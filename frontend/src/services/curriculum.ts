@@ -43,7 +43,9 @@ export const EXAM_LABEL: Record<ExamSlug, string> = {
 const lessonModules = import.meta.glob<Lesson>('../../../curriculum/*/lessons/*.json', { eager: true, import: 'default' })
 const questionModules = import.meta.glob<Question[]>('../../../curriculum/*/questions.json', { eager: true, import: 'default' })
 
-export const lessons: Lesson[] = Object.values(lessonModules).filter((l) => examEnabled(l.exam))
+/** Every lesson, including hidden exams' (used for refreshers of prerequisite topics). */
+export const allLessons: Lesson[] = Object.values(lessonModules)
+export const lessons: Lesson[] = allLessons.filter((l) => examEnabled(l.exam))
 export const questions: Question[] = Object.values(questionModules).flat().filter((q) => examEnabled(q.exam))
 export const animations = (animationsJson as AnimationMeta[]).filter((a) => examEnabled(a.exam as ExamSlug))
 export const coverage = coverageJson as unknown as CoverageReport
@@ -125,4 +127,13 @@ export function baseMinutes(o: Objective, exam: ExamSlug = 'az-104'): number {
 
 export function estimatedHours(exam: ExamSlug): number {
   return Math.round(allObjectives(exam).reduce((s, o) => s + baseMinutes(o, exam), 0) / 60)
+}
+
+/**
+ * A prerequisite from an exam that is hidden in this build (for example AZ-900 while only AZ-104 is shown):
+ * returns the lesson that teaches it, so the page can show a short refresher instead of a dead link.
+ */
+export function hiddenPrerequisiteLesson(p: { objectiveId?: string; lessonId?: string }): Lesson | undefined {
+  const l = p.lessonId ? allLessons.find((x) => x.id === p.lessonId) : p.objectiveId ? allLessons.find((x) => x.objectiveIds.includes(p.objectiveId!)) : undefined
+  return l && !examEnabled(l.exam) ? l : undefined
 }

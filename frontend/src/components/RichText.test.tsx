@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { splitCode } from './RichText'
+import { render, screen } from '@testing-library/react'
+import { RichParagraph, splitCode, splitList } from './RichText'
 
 const codes = (t: string) => splitCode(t).filter((p) => p.code).map((p) => p.text)
 
@@ -41,5 +42,34 @@ describe('splitCode edge cases from the lessons', () => {
   })
   it('keeps parameter file names whole', () => {
     expect(codes('Pass --parameters @prod.parameters.json to the command.')).toEqual(['--parameters', 'prod.parameters.json'])
+  })
+})
+
+describe('scannable paragraphs', () => {
+  it('splits a semicolon list only outside brackets', () => {
+    expect(splitList('a (x; y); b; c')).toEqual(['a (x; y)', 'b', 'c'])
+    expect(splitList('no list here')).toEqual(['no list here'])
+  })
+  it('bolds the topic a paragraph starts with, and later topics after a full stop', () => {
+    render(<RichParagraph text="Group types: Security and Microsoft 365. Membership types: Assigned or Dynamic." />)
+    expect(screen.getByText('Group types:').tagName).toBe('STRONG')
+    expect(screen.getByText('Membership types:').tagName).toBe('STRONG')
+  })
+  it('turns a long semicolon list after a topic into bullets', () => {
+    render(<RichParagraph text="Roles: User Administrator manages users; Groups Administrator manages groups; owners manage membership." />)
+    expect(screen.getByText('Roles').tagName).toBe('STRONG')
+    expect(screen.getAllByRole('listitem')).toHaveLength(3)
+  })
+  it('leaves sentences without a topic as plain paragraphs', () => {
+    const { container } = render(<RichParagraph text="Deleted users can be restored for 30 days." />)
+    expect(container.querySelector('strong')).toBeNull()
+    expect(container.querySelector('ul')).toBeNull()
+  })
+})
+
+describe('dynamic membership rule syntax', () => {
+  it('formats rule properties and operators as code, but not hyphenated words', () => {
+    expect(codes('Rules use user.<property> -eq / -ne / -startsWith, combined with -and / -or.')).toEqual(['user.<property>', '-eq', '-ne', '-startsWith', '-and', '-or'])
+    expect(codes('A lift-and-shift move or a pay-as-you-go plan.')).toEqual([])
   })
 })

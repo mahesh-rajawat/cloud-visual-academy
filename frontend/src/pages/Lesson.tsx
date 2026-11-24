@@ -9,9 +9,9 @@ import { Walkthrough } from '../components/Walkthrough'
 import { useProgress } from '../hooks/useProgress'
 import { api } from '../services/api'
 import { useApp } from '../services/AppContext'
-import { EXAM_LABEL, findLesson, findObjective, lessonForObjective, lessonSequence, questionsFor, registries } from '../services/curriculum'
+import { EXAM_LABEL, findLesson, hiddenPrerequisiteLesson, findObjective, lessonForObjective, lessonSequence, questionsFor, registries } from '../services/curriculum'
 import type { Lesson } from '../services/types'
-import { Rich } from '../components/RichText'
+import { Rich, RichParagraph } from '../components/RichText'
 import { LOOKALIKES } from '../services/clarity'
 
 const TABS = ['Hands-on (Azure)', 'Lab', 'Configure', 'Troubleshoot', 'Questions', 'Misconceptions', 'Compare', 'Docs & verification'] as const
@@ -95,6 +95,25 @@ function PrevNext({ lesson }: { lesson: Lesson }) {
 }
 function readView(): View {
   try { return localStorage.getItem(VIEW_KEY) === 'full' ? 'full' : 'lite' } catch { return 'lite' }
+}
+
+/** A prerequisite links to its lesson; if that lesson belongs to a hidden exam, its basics are shown here instead. */
+function Prerequisite({ p, repeat }: { p: { text: string; objectiveId?: string; lessonId?: string }; repeat?: boolean }) {
+  const hidden = hiddenPrerequisiteLesson(p)
+  const label = p.text.replace(/\s*\((AZ-900|AI-901|CLF-C02)\)/, '')
+  if (hidden && repeat) return <li>{label} <span className="text-xs text-slate-500">· covered in the refresher above</span></li>
+  if (hidden) {
+    return (
+      <li>
+        <details className="rounded-md border border-slate-200 px-2 py-1 dark:border-slate-700">
+          <summary className="cursor-pointer">{label} <span className="text-xs text-sky-700 dark:text-sky-400">· quick refresher</span></summary>
+          <div className="prose-cva mt-1 space-y-1 text-sm">{hidden.foundation.map((t) => <p key={t}><Rich text={t} /></p>)}</div>
+        </details>
+      </li>
+    )
+  }
+  const own = p.lessonId && findLesson(p.lessonId)
+  return <li>{own ? <Link className="underline" to={`/lesson/${p.lessonId}`}>{p.text}</Link> : p.text}{p.objectiveId && <span className="text-xs text-slate-500"> ({p.objectiveId})</span>}</li>
 }
 
 /** Lessons whose services are easy to mix up point to the side-by-side comparison and drill. */
@@ -332,15 +351,15 @@ export default function LessonPage() {
           <p className="mb-3">{lesson.learningObjective}</p>
           <h2 className="font-semibold">Before you start</h2>
           <ul className="mb-3 ml-5 list-disc">
-            {lesson.prerequisites.map((p) => <li key={p.text}>{p.lessonId && findLesson(p.lessonId) ? <Link className="underline" to={`/lesson/${p.lessonId}`}>{p.text}</Link> : p.text}{p.objectiveId && <span className="text-xs text-slate-500"> ({p.objectiveId})</span>}</li>)}
+            {lesson.prerequisites.map((p, i) => <Prerequisite key={p.text} p={p} repeat={lesson.prerequisites.slice(0, i).some((q) => hiddenPrerequisiteLesson(q)?.id === hiddenPrerequisiteLesson(p)?.id && hiddenPrerequisiteLesson(p))} />)}
           </ul>
           <h2 className="font-semibold">{depth === 'foundation' ? 'Simple explanation' : 'Deep technical explanation'}</h2>
-          <div className="prose-cva">{(depth === 'foundation' ? lesson.foundation : lesson.engineer).map((p) => <p key={p}><Rich text={p} /></p>)}</div>
+          <div className="prose-cva">{(depth === 'foundation' ? lesson.foundation : lesson.engineer).map((p) => <RichParagraph key={p} text={p} />)}</div>
           {depth === 'foundation' && <button type="button" className="text-xs text-sky-700 underline" onClick={() => void saveSettings({ ...settings, depth: 'engineer' })}>Go deeper: Engineer view →</button>}
         </div>
         <div className="card p-5 text-[15px] leading-relaxed">
           <h2 className="font-semibold">Real-world example: {lesson.example.title}</h2>
-          <div className="prose-cva">{lesson.example.body.map((p) => <p key={p}><Rich text={p} /></p>)}</div>
+          <div className="prose-cva">{lesson.example.body.map((p) => <RichParagraph key={p} text={p} />)}</div>
           <h2 className="font-semibold">Architecture decisions</h2>
           <ul className="ml-5 list-disc">{lesson.architectureDecisions.map((a) => <li key={a}>{a}</li>)}</ul>
         </div>
