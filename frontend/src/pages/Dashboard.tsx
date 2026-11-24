@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Badge } from '../animations/primitives'
 import { examMastery, overallStudied, studiedObjectives, useProgress, weakObjectives, type ProgressData } from '../hooks/useProgress'
 import { useApp } from '../services/AppContext'
+import { STATIC_SITE } from '../services/api'
 import { EXAMS, EXAM_LABEL, RECOMMENDED_SEQUENCE, allObjectives, coverageFor, estimatedHours, findLesson, findObjective, lessonForObjective, lessonsFor, registries } from '../services/curriculum'
 import { useSprintPlan } from './Sprint'
 import type { ExamSlug } from '../services/types'
@@ -77,7 +78,9 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {online === false && <p className="card border-amber-300 p-3 text-sm text-amber-800 dark:text-amber-200">The local backend is offline, so no learner history can be shown. Start it with <code>uvicorn app.main:app</code> in <code>backend/</code>.</p>}
+      {online === false && <p className="card border-amber-300 p-3 text-sm text-amber-800 dark:text-amber-200">{STATIC_SITE
+        ? 'This is the read-only online copy. All lessons, walkthroughs and questions work here; progress, scores and lab screenshots are saved only when you run the app on your computer.'
+        : <>The local backend is offline, so no learner history can be shown. Start it with <code>uvicorn app.main:app</code> in <code>backend/</code>.</>}</p>}
 
       <section aria-labelledby="certs" className="space-y-2">
         <h2 id="certs" className="text-lg font-semibold">Certification tracks</h2>

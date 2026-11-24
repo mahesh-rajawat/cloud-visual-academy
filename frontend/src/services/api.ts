@@ -70,7 +70,11 @@ export interface Screenshot {
 
 export class ApiError extends Error {}
 
+// The GitHub Pages build has no backend, so lessons are read-only there.
+export const STATIC_SITE = import.meta.env.VITE_STATIC === '1'
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  if (STATIC_SITE) throw new ApiError('Read-only online copy: progress and screenshots are saved only when you run the app on your computer.')
   let res: Response
   try {
     res = await fetch(`/api${path}`, { headers: { 'Content-Type': 'application/json' }, ...init })

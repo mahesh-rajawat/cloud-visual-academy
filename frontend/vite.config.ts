@@ -8,6 +8,8 @@ const curriculum = fileURLToPath(new URL('../curriculum', import.meta.url))
 const apiTarget = process.env.CVA_API ?? 'http://127.0.0.1:8000'
 
 export default defineConfig({
+  // GitHub Pages serves the app from /<repo>/; local builds stay at /.
+  base: process.env.CVA_BASE ?? '/',
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@curriculum': curriculum } },
   server: {
