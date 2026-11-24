@@ -9,6 +9,7 @@ const NAV: Array<{ to: string; label: string; icon: string }> = [
   { to: '/course/ai-901', label: 'AI-901', icon: '▤' },
   { to: '/course/aws-clf-c02', label: 'AWS CLF-C02', icon: '▤' },
   { to: '/sprint', label: 'AZ-104 study plan', icon: '▦' },
+  { to: '/clear-up', label: 'Clear the confusion', icon: '⇆' },
   { to: '/exam-guide', label: 'Exam-day guide', icon: '✎' },
   { to: '/diagnostic', label: 'AZ-900 diagnostic', icon: '✓' },
   { to: '/practice', label: 'Practice exams', icon: '✎' },

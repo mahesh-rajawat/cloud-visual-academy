@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ClipboardEvent } from 'react'
 import { Badge } from '../animations/primitives'
 import { api, type Screenshot } from '../services/api'
 import type { HandsOnLab as Lab } from '../services/types'
+import { Rich } from './RichText'
 
 const COST_TONE = { free: 'allow', low: 'info', watch: 'warn' } as const
 const COST_LABEL = { free: 'Free', low: 'Low cost', watch: 'Billed hourly: delete right after' } as const
@@ -95,10 +96,10 @@ export function HandsOnLab({ lessonId, lab, online }: { lessonId: string; lab: L
               <div className="flex items-start gap-3">
                 <input type="checkbox" className="mt-1 h-4 w-4" checked={isDone} onChange={() => toggle(n)} aria-label={`Step ${n} done`} />
                 <div className="min-w-0 flex-1">
-                  <p><span className="font-semibold">Step {n}.</span> {s.do}</p>
+                  <p><span className="font-semibold">Step {n}.</span> <Rich text={s.do} /></p>
                   {s.code && <pre className="code mt-1 overflow-x-auto text-xs">{s.code}</pre>}
-                  {s.see && <p className="mt-1 text-slate-600 dark:text-slate-300"><span className="font-medium text-emerald-700 dark:text-emerald-400">You should see:</span> {s.see}</p>}
-                  {s.tip && <p className="mt-1 text-xs text-slate-500">Tip: {s.tip}</p>}
+                  {s.see && <p className="mt-1 text-slate-600 dark:text-slate-300"><span className="font-medium text-emerald-700 dark:text-emerald-400">You should see:</span> <Rich text={s.see} /></p>}
+                  {s.tip && <p className="mt-1 text-xs text-slate-500">Tip: <Rich text={s.tip} /></p>}
                   <Shots step={n} />
                 </div>
                 {online && (
@@ -117,8 +118,8 @@ export function HandsOnLab({ lessonId, lab, online }: { lessonId: string; lab: L
       {online === false && <p className="text-xs text-slate-500">Start the local backend to save screenshots.</p>}
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div><h3 className="font-semibold">Check it worked</h3><ul className="ml-5 list-disc">{lab.check.map((c) => <li key={c}>{c}</li>)}</ul></div>
-        <div className="rounded-lg border border-red-200 p-2 dark:border-red-900"><h3 className="font-semibold text-red-800 dark:text-red-300">Clean up (don't skip)</h3><ul className="ml-5 list-disc">{lab.cleanup.map((c) => <li key={c}>{c}</li>)}</ul></div>
+        <div><h3 className="font-semibold">Check it worked</h3><ul className="ml-5 list-disc">{lab.check.map((c) => <li key={c}><Rich text={c} /></li>)}</ul></div>
+        <div className="rounded-lg border border-red-200 p-2 dark:border-red-900"><h3 className="font-semibold text-red-800 dark:text-red-300">Clean up (don't skip)</h3><ul className="ml-5 list-disc">{lab.cleanup.map((c) => <li key={c}><Rich text={c} /></li>)}</ul></div>
       </div>
       <div>
         <h3 className="font-semibold">See the real portal screens</h3>

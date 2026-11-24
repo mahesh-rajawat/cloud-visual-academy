@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Walkthrough as WalkthroughData, WalkNode } from '../services/types'
+import { Rich } from './RichText'
 
 // Lite, step-by-step lesson view: the diagram builds up one idea at a time while the
 // explanation panel walks through problem → technique → case → recap.
@@ -199,14 +200,14 @@ export function Walkthrough({ data, onFinish }: { data: WalkthroughData; onFinis
               <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${badge.cls}`}>{badge.text}</span>
             </div>
             <h2 className="mb-2 text-lg font-semibold leading-snug">{step.title}</h2>
-            <div className="prose-cva space-y-2">{step.body.map((p) => <p key={p}>{p}</p>)}</div>
+            <div className="prose-cva space-y-2">{step.body.map((p) => <p key={p}><Rich text={p} /></p>)}</div>
             {step.recap && (
-              <ul className="mt-3 space-y-1.5">{step.recap.map((r) => <li key={r} className="flex gap-2"><span aria-hidden className="text-emerald-600">✓</span><span>{r}</span></li>)}</ul>
+              <ul className="mt-3 space-y-1.5">{step.recap.map((r) => <li key={r} className="flex gap-2"><span aria-hidden className="text-emerald-600">✓</span><span><Rich text={r} /></span></li>)}</ul>
             )}
             {step.callout && (
               <div className={`mt-3 rounded-lg border p-3 ${CALLOUT[step.callout.type]?.cls ?? ''}`}>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">{CALLOUT[step.callout.type]?.title ?? 'Key idea'}</p>
-                <p>{step.callout.text}</p>
+                <p><Rich text={step.callout.text} /></p>
               </div>
             )}
             <div className="mt-4 flex gap-2">

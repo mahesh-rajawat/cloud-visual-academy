@@ -4,6 +4,7 @@ import { useApp } from '../services/AppContext'
 import { displayOptions, isCorrect, shuffle, type Answer } from '../services/exam'
 import type { Question } from '../services/types'
 import { Badge } from '../animations/primitives'
+import { Rich } from './RichText'
 
 export interface RunResult {
   answers: Record<string, Answer>
@@ -34,7 +35,7 @@ function AnswerInput({ q, value, onChange, locked }: { q: Question; value: Answe
             <label key={o.id} className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2 ${checked ? 'border-sky-500 bg-sky-50 dark:bg-sky-950/40' : 'border-slate-200 dark:border-slate-700'}`}>
               <input type={q.answerMode === 'single' ? 'radio' : 'checkbox'} name={q.id} checked={checked} className="mt-1"
                 onChange={() => onChange(q.answerMode === 'single' ? [o.id] : checked ? sel.filter((x) => x !== o.id) : [...sel, o.id])} />
-              <span>{o.text}</span>
+              <span><Rich text={o.text} /></span>
             </label>
           )
         })}
@@ -98,11 +99,11 @@ export function QuestionExplanation({ q, answer }: { q: Question; answer: Answer
   return (
     <div className={`mt-3 rounded-lg border p-3 text-sm ${ok ? 'border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30' : 'border-red-300 bg-red-50 dark:bg-red-950/30'}`}>
       <p className="mb-1 font-semibold">{ok ? 'Correct' : 'Incorrect'}</p>
-      <p className="mb-2">{q.explanation}</p>
+      <p className="mb-2"><Rich text={q.explanation} /></p>
       {(q.answerMode === 'single' || q.answerMode === 'multiple') && (
         <ul className="space-y-1">
           {displayOptions(q).map((o) => (
-            <li key={o.id}><Badge tone={q.correct.includes(o.id) ? 'allow' : 'muted'}>{q.correct.includes(o.id) ? 'correct' : 'wrong'}</Badge> <span className="font-medium">{o.text}</span>: {o.explanation}</li>
+            <li key={o.id}><Badge tone={q.correct.includes(o.id) ? 'allow' : 'muted'}>{q.correct.includes(o.id) ? 'correct' : 'wrong'}</Badge> <span className="font-medium"><Rich text={o.text} /></span>: <Rich text={o.explanation} /></li>
           ))}
         </ul>
       )}
@@ -189,7 +190,7 @@ export function QuestionRunner({ questions, feedback, recordAs, timeLimitSeconds
           {isBookmarked('question', q.id) ? '★ Bookmarked' : '☆ Bookmark'}
         </button>
       </div>
-      <p className="mb-3 font-medium">{q.stem}</p>
+      <p className="mb-3 font-medium"><Rich text={q.stem} /></p>
       {q.code && <pre className="code mb-3">{q.code}</pre>}
       <AnswerInput q={q} value={ans} onChange={(a) => setAnswers({ ...answers, [q.id]: a })} locked={locked} />
       <fieldset className="mt-3 flex flex-wrap items-center gap-3 text-xs" disabled={locked}>

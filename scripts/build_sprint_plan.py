@@ -49,10 +49,13 @@ for day in range(1, 50):
     days.append({"day": day, "skills": skills, "activities": activities})
 assert not queue, f"{len(queue)} objectives do not fit in 7 weeks"
 
-# Spare learning days at the end of week 7 become extra practice.
-for d in days:
-    if not d["skills"] and not d["activities"]:
-        d["activities"] = ["weak-revision"]
+# Spare learning days at the end of week 7: drills on the areas learners mix up most, plus weak areas.
+DRILLS = ["drill-deploy", "drill-network", "drill-lookalikes"]
+spare = [d for d in days if not d["skills"] and not d["activities"]]
+for i, d in enumerate(spare):
+    d["activities"] = ([DRILLS[i]] if i < len(DRILLS) else []) + ["weak-revision"]
+for a in DRILLS:
+    act.setdefault(a, 45)
 
 def title(d):
     names = list(dict.fromkeys(lesson_of[s] for s in d["skills"]))
@@ -62,6 +65,12 @@ def title(d):
     if "weekly-assessment" in d["activities"]:
         week = d["day"] // 7
         return f"{base}, week {week} check" if base else f"Week {week} check"
+    if "drill-deploy" in d["activities"]:
+        return "Clear the confusion: templates and CLI, then weak areas"
+    if "drill-network" in d["activities"]:
+        return "Clear the confusion: networking, then weak areas"
+    if "drill-lookalikes" in d["activities"]:
+        return "Clear the confusion: look-alike services drill, then weak areas"
     if "weak-revision" in d["activities"]:
         return "Catch-up: weak areas and their labs"
     return base

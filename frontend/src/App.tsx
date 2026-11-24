@@ -6,6 +6,7 @@ import Coverage from './pages/Coverage'
 import Dashboard from './pages/Dashboard'
 import Diagnostic from './pages/Diagnostic'
 import ExamGuide from './pages/ExamGuide'
+import ClearUp from './pages/ClearUp'
 import LessonPage from './pages/Lesson'
 import { AnimationLibrary, Labs } from './pages/Library'
 import { Analytics, Bookmarks, Search, SettingsPage } from './pages/Misc'
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/lesson/:lessonId" element={<LessonPage />} />
         <Route path="/sprint" element={<Sprint />} />
         <Route path="/exam-guide" element={<ExamGuide />} />
+        <Route path="/clear-up" element={<ClearUp />} />
         <Route path="/diagnostic" element={<Diagnostic />} />
         <Route path="/practice" element={<Practice />} />
         <Route path="/reviews" element={<Reviews />} />

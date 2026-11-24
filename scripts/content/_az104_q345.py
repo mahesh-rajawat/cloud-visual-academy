@@ -373,3 +373,100 @@ add(("AZ104-2.3.7", 2, "configuration", "Policy says deleted blobs must be recov
      [("Blob soft delete with 30 days retention; recover with Show deleted blobs > Undelete", "Correct (retention can be 1 to 365 days)."), ("Container soft delete with 30 days; it also covers single blobs", "Container soft delete only restores deleted containers."),
       ("A lifecycle rule that keeps blobs for 30 days", "Lifecycle rules move or delete data; they do not undelete."), ("A resource lock on the storage account", "Locks protect the account, not blob data.")],
      "a", "Blob soft delete keeps deleted blobs (and snapshots) for the retention period you choose, from 1 to 365 days; without versioning, you restore them with Undelete.", D + "azure/storage/blobs/soft-delete-blob-overview"))
+
+# Added for learners who find deployments hard: reading and changing templates and CLI.
+add(("AZ104-3.1.1", 2, "command", "You deploy this Bicep file with sku=Premium_LRS. What happens?",
+     [("The deployment fails validation and nothing is created", "Correct: Premium_LRS is not in the @allowed list."), ("A Standard_LRS account is created", "The default is used only when no value is given."),
+      ("A Premium_LRS account is created", "Values outside @allowed are rejected."), ("The account is created, then the deployment reports a warning", "Validation happens before anything is deployed.")],
+     "a", "@allowed (allowedValues in JSON) limits what can be passed; any other value fails validation before deployment.", D + "azure/azure-resource-manager/bicep/parameters",
+     "@allowed([ 'Standard_LRS', 'Standard_GRS' ])\nparam sku string = 'Standard_LRS'\n\nresource sa 'Microsoft.Storage/storageAccounts@2023-05-01' = {\n  name: 'stapp${uniqueString(resourceGroup().id)}'\n  location: resourceGroup().location\n  sku: { name: sku }\n  kind: 'StorageV2'\n}"))
+add(("AZ104-3.1.1", 2, "command", "In this ARM template fragment, which resource does Azure Resource Manager create first?",
+     [("nic-web", "Correct: the VM dependsOn the NIC, so the NIC is deployed first."), ("vm-web", "It waits for its dependency."), ("Both at the same time", "Only resources without dependencies between them deploy in parallel."), ("Whichever is listed first in the file", "Order in the file does not matter; dependsOn does.")],
+     "a", "dependsOn tells Resource Manager to finish one resource before starting another. Without it, resources deploy in parallel.", D + "azure/azure-resource-manager/templates/resource-dependency",
+     "{\n  \"type\": \"Microsoft.Compute/virtualMachines\",\n  \"name\": \"vm-web\",\n  \"dependsOn\": [\n    \"[resourceId('Microsoft.Network/networkInterfaces', 'nic-web')]\"\n  ],\n  ...\n},\n{\n  \"type\": \"Microsoft.Network/networkInterfaces\",\n  \"name\": \"nic-web\",\n  ...\n}"))
+add(("AZ104-3.1.3", 2, "command", "This Bicep file has no dependsOn. Will the VM wait for the NIC?",
+     [("Yes: referencing nic.id creates an implicit dependency", "Correct."), ("No: you must add dependsOn", "Bicep infers it from the symbolic reference."), ("Only if both are in the same module", "Not required."), ("No: Bicep always deploys in file order", "Order in the file does not matter.")],
+     "a", "In Bicep, using another resource's symbolic name (nic.id) makes Resource Manager deploy that resource first. Explicit dependsOn is rarely needed.", D + "azure/azure-resource-manager/bicep/resource-dependencies",
+     "resource nic 'Microsoft.Network/networkInterfaces@2023-09-01' = { ... }\n\nresource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {\n  name: 'vm-web'\n  properties: {\n    networkProfile: {\n      networkInterfaces: [ { id: nic.id } ]\n    }\n  }\n}"))
+add(("AZ104-3.1.4", 2, "command", "This Bicep file creates a resource group. Which command deploys it?",
+     [("az deployment sub create --location uaenorth --template-file rg.bicep", "Correct: subscription scope, and --location is required."), ("az deployment group create -g rg-app --template-file rg.bicep", "A resource group cannot be created inside a resource group deployment."),
+      ("az group create --template-file rg.bicep", "az group create does not take templates."), ("az deployment mg create --template-file rg.bicep", "Management group scope is for management-group-level resources.")],
+     "a", "Resource groups are subscription-level resources: targetScope = 'subscription' and az deployment sub create (New-AzSubscriptionDeployment in PowerShell).", D + "azure/azure-resource-manager/bicep/deploy-to-subscription",
+     "targetScope = 'subscription'\n\nresource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {\n  name: 'rg-app'\n  location: 'uaenorth'\n}"))
+add(("AZ104-3.1.2", 2, "configuration", "You must change an ARM template so the location can be chosen at deployment but defaults to the resource group's region. What do you add?",
+     [("A parameter: \"location\": { \"type\": \"string\", \"defaultValue\": \"[resourceGroup().location]\" }, then use [parameters('location')]", "Correct."), ("A variable \"location\": \"[resourceGroup().location]\"", "A variable cannot be changed at deployment."),
+      ("An output named location", "Outputs return values; they do not take input."), ("A dependsOn on the resource group", "Unrelated to location.")],
+     "a", "Inputs are parameters; defaultValue can use template functions such as resourceGroup().location.", D + "azure/azure-resource-manager/templates/parameters"))
+add(("AZ104-3.1.3", 2, "command", "How many storage accounts does this Bicep file create?",
+     [("Three, one per name in the array", "Correct: the for loop creates one resource per item."), ("One", "The for expression repeats the resource."), ("None: loops need a module", "Loops work directly on resources."), ("Three, but only if dependsOn is added", "Not needed.")],
+     "a", "Bicep loops ([for item in array: {...}]) create one copy per item; in ARM JSON the same is done with copy.", D + "azure/azure-resource-manager/bicep/loops",
+     "param names array = [ 'stlogs01', 'stdata01', 'stbak01' ]\n\nresource sa 'Microsoft.Storage/storageAccounts@2023-05-01' = [for n in names: {\n  name: n\n  location: resourceGroup().location\n  sku: { name: 'Standard_LRS' }\n  kind: 'StorageV2'\n}]"))
+add(("AZ104-3.1.1", 3, "single", "A template names a storage account [concat('st', uniqueString(resourceGroup().id))]. You deploy it twice to the same resource group. What happens the second time?",
+     [("The same name is generated, so the existing account is updated (not duplicated)", "Correct: uniqueString is deterministic for the same input."), ("A second account with a new random name is created", "uniqueString is not random."),
+      ("The deployment fails because the name exists", "Redeploying the same resource updates it."), ("The name changes every deployment", "Only a different resource group ID gives a different value.")],
+     "a", "uniqueString(seed) always returns the same 13-character value for the same seed, which keeps names stable across redeployments.", D + "azure/azure-resource-manager/templates/template-functions-string#uniquestring"))
+add(("AZ104-3.1.4", 2, "command", "What does --parameters @prod.parameters.json do in this command?",
+     [("Reads parameter values from the file prod.parameters.json", "Correct."), ("Creates a new parameter file", "It reads, not writes."), ("Validates the file without deploying", "That is what-if or validate."), ("Exports the current settings", "Export is az group export.")],
+     "a", "Parameter files keep values per environment (dev, prod). Bicep can also use a .bicepparam file.", D + "azure/azure-resource-manager/templates/parameter-files",
+     "az deployment group create \\\n  --resource-group rg-prod \\\n  --template-file main.bicep \\\n  --parameters @prod.parameters.json"))
+add(("AZ104-3.1.4", 3, "command", "rg-app contains vnet1, st01 and vm1. main.bicep defines only vnet1 and st01. What happens when you run this command?",
+     [("vm1 is deleted; vnet1 and st01 are created or updated", "Correct: Complete mode removes resources that are not in the template."), ("Nothing is deleted", "That is Incremental mode (the default)."),
+      ("The deployment fails because vm1 exists", "Complete mode does not fail; it deletes."), ("Only a preview is shown", "That is what-if.")],
+     "a", "Complete mode makes the resource group match the template exactly. Run what-if first to see the deletions.", D + "azure/azure-resource-manager/templates/deployment-modes",
+     "az deployment group create -g rg-app -f main.bicep --mode Complete"))
+add(("AZ104-3.1.3", 3, "command", "A reviewer flags this Bicep file. What is the problem?",
+     [("The secure password is returned as an output, so it appears in deployment history", "Correct: never output secure values."), ("@secure() cannot be used on strings", "It can."), ("Parameters cannot be used in VM properties", "They can."), ("Outputs must be declared before resources", "Order does not matter.")],
+     "a", "Outputs are stored in the deployment history and visible to anyone with read access. Keep secrets in @secure() parameters or Key Vault references and never output them.", D + "azure/azure-resource-manager/bicep/outputs",
+     "@secure()\nparam adminPassword string\n\nresource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {\n  ...\n  properties: { osProfile: { adminPassword: adminPassword } }\n}\n\noutput password string = adminPassword"))
+add(("AZ104-3.1.5", 2, "command", "What does this command produce?",
+     [("An ARM JSON template describing the resources currently in rg-app", "Correct."), ("A Bicep file", "Use az bicep decompile on the JSON, or export as Bicep in the portal."), ("A backup of the data in rg-app", "Templates describe resources, not data."), ("A list of deployments", "That is az deployment group list.")],
+     "a", "az group export (portal: Export template) captures existing resources as a template, which you usually tidy before reuse.", D + "azure/azure-resource-manager/templates/export-template-cli",
+     "az group export --name rg-app > rg-app.json"))
+add(("AZ104-3.1.5", 1, "command", "What does this command do?",
+     [("Converts the ARM JSON template into a Bicep file (azuredeploy.bicep)", "Correct."), ("Converts Bicep into JSON", "That is az bicep build."), ("Deploys the template", "That is az deployment … create."), ("Validates the JSON only", "It converts it.")],
+     "a", "decompile = JSON → Bicep (best effort); build = Bicep → JSON.", D + "azure/azure-resource-manager/bicep/decompile",
+     "az bicep decompile --file azuredeploy.json"))
+add(("AZ104-3.1.1", 2, "command", "What does the existing keyword mean in this Bicep file?",
+     [("It refers to vnet-hub, which already exists; Bicep does not create or change it", "Correct."), ("It creates vnet-hub if it does not exist", "existing never creates."), ("It deletes vnet-hub after deployment", "No."), ("It locks vnet-hub", "Locks are separate resources.")],
+     "a", "existing lets a template read an already deployed resource (for example to use its ID) without managing it.", D + "azure/azure-resource-manager/bicep/existing-resource",
+     "resource hub 'Microsoft.Network/virtualNetworks@2023-09-01' existing = {\n  name: 'vnet-hub'\n}\n\noutput hubId string = hub.id"))
+
+# Networking, read the configuration and decide.
+add(("AZ104-4.2.2", 2, "command", "An NSG on VM1's subnet has these inbound rules. Can 10.1.1.4 connect to VM1 on RDP (3389)?",
+     [("No: rule 100 denies 3389 from any source and is checked first", "Correct."), ("Yes: rule 200 allows 10.0.0.0/8", "It is never reached; the lower number wins."), ("Yes: VirtualNetwork traffic is always allowed", "Your rules come before the default rules."), ("Only if VM1 has a public IP", "Unrelated.")],
+     "a", "NSG rules are checked from the lowest priority number up and the first match wins. Move the allow rule to a number below 100.", D + "azure/virtual-network/network-security-groups-overview",
+     "Priority  Name          Port  Source        Action\n100       deny-rdp      3389  Any           Deny\n200       allow-rdp-in  3389  10.0.0.0/8    Allow\n65000     AllowVnetInBound      VirtualNetwork Allow"))
+add(("AZ104-4.2.2", 3, "troubleshooting", "The subnet's NSG allows inbound 443 from the internet. VM1's NIC also has an NSG with only the default rules. Can users reach VM1 on 443?",
+     [("No: inbound traffic must be allowed by BOTH the subnet NSG and the NIC NSG; the NIC NSG's DenyAllInBound blocks it", "Correct."), ("Yes: the subnet NSG is enough", "Both NSGs are evaluated."),
+      ("Yes: the NIC NSG is ignored when a subnet NSG exists", "It is not ignored."), ("No: NSGs cannot allow 443", "They can.")],
+     "a", "Inbound: subnet NSG first, then NIC NSG. Outbound: NIC NSG first, then subnet NSG. Traffic needs an allow at every NSG it passes.", D + "azure/virtual-network/network-security-group-how-it-works"))
+add(("AZ104-4.1.4", 3, "troubleshooting", "Subnet app has this route table. The firewall VM at 10.0.2.4 receives nothing and internet traffic from app VMs fails. What is the most likely fix?",
+     [("Enable IP forwarding on the firewall VM's network interface (and in its OS)", "Correct: without it Azure drops traffic not addressed to the VM itself."), ("Change the next hop type to Internet", "That bypasses the firewall."),
+      ("Associate the route table with the firewall's subnet", "The route belongs on the source subnet."), ("Add a public IP to every app VM", "Defeats the purpose.")],
+     "a", "A network virtual appliance must have IP forwarding enabled on its NIC to forward traffic it receives for other destinations.", D + "azure/virtual-network/virtual-network-network-interface#enable-or-disable-ip-forwarding",
+     "Route table rt-app (associated with subnet app)\nAddress prefix   Next hop type        Next hop IP\n0.0.0.0/0        VirtualAppliance     10.0.2.4"))
+add(("AZ104-4.1.2", 2, "command", "You ran only this command. The peering shows status Initiated and traffic does not flow. Why?",
+     [("A peering must be created from both VNets; create spoke-to-hub too", "Correct."), ("--allow-vnet-access blocks traffic", "It allows it."), ("Peering needs a VPN gateway", "It does not."), ("The VNets must be in the same resource group", "Not required.")],
+     "a", "Each side needs its own peering link. The status becomes Connected when both exist.", D + "azure/virtual-network/virtual-network-manage-peering",
+     "az network vnet peering create -g rg-net -n hub-to-spoke \\\n  --vnet-name vnet-hub --remote-vnet vnet-spoke --allow-vnet-access"))
+add(("AZ104-4.1.2", 2, "single", "VNet1 uses 10.0.0.0/16 and VNet2 uses 10.0.128.0/17. Can you peer them?",
+     [("No: the address spaces overlap", "Correct: 10.0.128.0/17 is inside 10.0.0.0/16."), ("Yes, peering ignores address spaces", "Overlap is not allowed."), ("Yes, if they are in different regions", "Overlap is still not allowed."), ("Only with gateway transit", "Unrelated.")],
+     "a", "Peered VNets must have non-overlapping address spaces. Plan unique ranges for every VNet.", D + "azure/virtual-network/virtual-network-peering-overview"))
+add(("AZ104-4.1.1", 1, "single", "How many IP addresses can you assign to VMs in a /27 subnet?",
+     [("27", "Correct: 32 addresses minus 5 reserved by Azure."), ("32", "Azure reserves 5."), ("30", "Azure reserves 5, not 2."), ("16", "A /27 has 32 addresses.")],
+     "a", "Azure reserves the first four and the last address of every subnet: /24 = 251, /27 = 27, /28 = 11, /29 = 3.", D + "azure/virtual-network/virtual-networks-faq"))
+add(("AZ104-4.3.3", 2, "troubleshooting", "The web app on the backend VMs listens on port 8080. The load balancer has this health probe. Users get no response. Why?",
+     [("The probe checks port 80, where nothing listens, so every backend is marked unhealthy", "Correct."), ("HTTP probes are not supported", "They are."), ("The probe interval is too short", "5 seconds is normal."), ("The VMs need public IPs", "Not for a load-balanced backend.")],
+     "a", "If all probes fail, the load balancer sends traffic nowhere. Point the probe at the port and path the app serves, for example 8080 /health.", D + "azure/load-balancer/load-balancer-custom-probe-overview",
+     "Health probe hp-web\nProtocol: HTTP   Port: 80   Path: /health   Interval: 5 seconds"))
+add(("AZ104-4.2.5", 3, "troubleshooting", "You created a private endpoint for stdata01. From a VM in the VNet you run the command below. What should you fix?",
+     [("Link the privatelink.blob.core.windows.net private DNS zone to the VNet (with the endpoint's A record)", "Correct: the name still resolves to the public IP."), ("Create a service endpoint as well", "Not needed."), ("Enable public network access", "The opposite of the goal."), ("Add a public IP to the VM", "Unrelated.")],
+     "a", "Private endpoints depend on DNS. The account name must resolve to the endpoint's private IP through the privatelink zone linked to the VNet (or your DNS forwarding).", D + "azure/private-link/private-endpoint-dns",
+     "$ nslookup stdata01.blob.core.windows.net\nName:    blob.dxb21prdstr01a.store.core.windows.net\nAddress: 20.60.152.68"))
+add(("AZ104-4.2.1", 2, "command", "What does this NSG rule allow?",
+     [("SQL traffic (1433) from VMs whose NICs are in asg-web to VMs whose NICs are in asg-db", "Correct."), ("All traffic between the two subnets", "Only port 1433, only between those groups."), ("Internet access to the databases on 1433", "The source is asg-web."), ("Nothing until IP addresses are added", "ASGs replace IP addresses.")],
+     "a", "Application security groups let NSG rules use VM roles instead of IP addresses. NICs join an ASG; the ASG and NICs must be in the same VNet.", D + "azure/virtual-network/application-security-groups",
+     "az network nsg rule create -g rg-app --nsg-name nsg-db -n allow-web-sql \\\n  --priority 110 --direction Inbound --access Allow --protocol Tcp \\\n  --source-asgs asg-web --destination-asgs asg-db --destination-port-ranges 1433"))
+add(("AZ104-4.1.3", 2, "single", "A VM has a new Standard SKU public IP. Neither its NIC nor its subnet has an NSG. Can you RDP to it from the internet?",
+     [("No: Standard public IPs are closed to inbound traffic until an NSG allows it", "Correct."), ("Yes: without an NSG all traffic is allowed", "That was the retired Basic SKU behaviour."), ("Yes, but only on port 3389", "No inbound traffic is allowed."), ("Only with Azure Bastion", "Bastion does not use the VM's public IP.")],
+     "a", "Standard public IPs are secure by default. Add an NSG with an allow rule (ideally limited to your IP), or better, use Bastion with no public IP.", D + "azure/virtual-network/ip-services/public-ip-addresses"))

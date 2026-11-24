@@ -14153,5 +14153,896 @@
     "docs": [
       "https://learn.microsoft.com/azure/storage/blobs/soft-delete-blob-overview"
     ]
+  },
+  {
+    "id": "az104-q-x-165",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.1",
+    "difficulty": 2,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "You deploy this Bicep file with sku=Premium_LRS. What happens?",
+    "options": [
+      {
+        "id": "a",
+        "text": "The deployment fails validation and nothing is created",
+        "explanation": "Correct: Premium_LRS is not in the @allowed list."
+      },
+      {
+        "id": "b",
+        "text": "A Standard_LRS account is created",
+        "explanation": "The default is used only when no value is given."
+      },
+      {
+        "id": "c",
+        "text": "A Premium_LRS account is created",
+        "explanation": "Values outside @allowed are rejected."
+      },
+      {
+        "id": "d",
+        "text": "The account is created, then the deployment reports a warning",
+        "explanation": "Validation happens before anything is deployed."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "@allowed (allowedValues in JSON) limits what can be passed; any other value fails validation before deployment.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/bicep/parameters"
+    ],
+    "code": "@allowed([ 'Standard_LRS', 'Standard_GRS' ])\nparam sku string = 'Standard_LRS'\n\nresource sa 'Microsoft.Storage/storageAccounts@2023-05-01' = {\n  name: 'stapp${uniqueString(resourceGroup().id)}'\n  location: resourceGroup().location\n  sku: { name: sku }\n  kind: 'StorageV2'\n}"
+  },
+  {
+    "id": "az104-q-x-166",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.1",
+    "difficulty": 2,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "In this ARM template fragment, which resource does Azure Resource Manager create first?",
+    "options": [
+      {
+        "id": "a",
+        "text": "nic-web",
+        "explanation": "Correct: the VM dependsOn the NIC, so the NIC is deployed first."
+      },
+      {
+        "id": "b",
+        "text": "vm-web",
+        "explanation": "It waits for its dependency."
+      },
+      {
+        "id": "c",
+        "text": "Both at the same time",
+        "explanation": "Only resources without dependencies between them deploy in parallel."
+      },
+      {
+        "id": "d",
+        "text": "Whichever is listed first in the file",
+        "explanation": "Order in the file does not matter; dependsOn does."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "dependsOn tells Resource Manager to finish one resource before starting another. Without it, resources deploy in parallel.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/templates/resource-dependency"
+    ],
+    "code": "{\n  \"type\": \"Microsoft.Compute/virtualMachines\",\n  \"name\": \"vm-web\",\n  \"dependsOn\": [\n    \"[resourceId('Microsoft.Network/networkInterfaces', 'nic-web')]\"\n  ],\n  ...\n},\n{\n  \"type\": \"Microsoft.Network/networkInterfaces\",\n  \"name\": \"nic-web\",\n  ...\n}"
+  },
+  {
+    "id": "az104-q-x-167",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.3",
+    "difficulty": 2,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "This Bicep file has no dependsOn. Will the VM wait for the NIC?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Yes: referencing nic.id creates an implicit dependency",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "No: you must add dependsOn",
+        "explanation": "Bicep infers it from the symbolic reference."
+      },
+      {
+        "id": "c",
+        "text": "Only if both are in the same module",
+        "explanation": "Not required."
+      },
+      {
+        "id": "d",
+        "text": "No: Bicep always deploys in file order",
+        "explanation": "Order in the file does not matter."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "In Bicep, using another resource's symbolic name (nic.id) makes Resource Manager deploy that resource first. Explicit dependsOn is rarely needed.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/bicep/resource-dependencies"
+    ],
+    "code": "resource nic 'Microsoft.Network/networkInterfaces@2023-09-01' = { ... }\n\nresource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {\n  name: 'vm-web'\n  properties: {\n    networkProfile: {\n      networkInterfaces: [ { id: nic.id } ]\n    }\n  }\n}"
+  },
+  {
+    "id": "az104-q-x-168",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.4",
+    "difficulty": 2,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "This Bicep file creates a resource group. Which command deploys it?",
+    "options": [
+      {
+        "id": "a",
+        "text": "az deployment sub create --location uaenorth --template-file rg.bicep",
+        "explanation": "Correct: subscription scope, and --location is required."
+      },
+      {
+        "id": "b",
+        "text": "az deployment group create -g rg-app --template-file rg.bicep",
+        "explanation": "A resource group cannot be created inside a resource group deployment."
+      },
+      {
+        "id": "c",
+        "text": "az group create --template-file rg.bicep",
+        "explanation": "az group create does not take templates."
+      },
+      {
+        "id": "d",
+        "text": "az deployment mg create --template-file rg.bicep",
+        "explanation": "Management group scope is for management-group-level resources."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Resource groups are subscription-level resources: targetScope = 'subscription' and az deployment sub create (New-AzSubscriptionDeployment in PowerShell).",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/bicep/deploy-to-subscription"
+    ],
+    "code": "targetScope = 'subscription'\n\nresource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {\n  name: 'rg-app'\n  location: 'uaenorth'\n}"
+  },
+  {
+    "id": "az104-q-x-169",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.2",
+    "difficulty": 2,
+    "type": "configuration",
+    "answerMode": "single",
+    "stem": "You must change an ARM template so the location can be chosen at deployment but defaults to the resource group's region. What do you add?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A parameter: \"location\": { \"type\": \"string\", \"defaultValue\": \"[resourceGroup().location]\" }, then use [parameters('location')]",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A variable \"location\": \"[resourceGroup().location]\"",
+        "explanation": "A variable cannot be changed at deployment."
+      },
+      {
+        "id": "c",
+        "text": "An output named location",
+        "explanation": "Outputs return values; they do not take input."
+      },
+      {
+        "id": "d",
+        "text": "A dependsOn on the resource group",
+        "explanation": "Unrelated to location."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Inputs are parameters; defaultValue can use template functions such as resourceGroup().location.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/templates/parameters"
+    ]
+  },
+  {
+    "id": "az104-q-x-170",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.3",
+    "difficulty": 2,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "How many storage accounts does this Bicep file create?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Three, one per name in the array",
+        "explanation": "Correct: the for loop creates one resource per item."
+      },
+      {
+        "id": "b",
+        "text": "One",
+        "explanation": "The for expression repeats the resource."
+      },
+      {
+        "id": "c",
+        "text": "None: loops need a module",
+        "explanation": "Loops work directly on resources."
+      },
+      {
+        "id": "d",
+        "text": "Three, but only if dependsOn is added",
+        "explanation": "Not needed."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Bicep loops ([for item in array: {...}]) create one copy per item; in ARM JSON the same is done with copy.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/bicep/loops"
+    ],
+    "code": "param names array = [ 'stlogs01', 'stdata01', 'stbak01' ]\n\nresource sa 'Microsoft.Storage/storageAccounts@2023-05-01' = [for n in names: {\n  name: n\n  location: resourceGroup().location\n  sku: { name: 'Standard_LRS' }\n  kind: 'StorageV2'\n}]"
+  },
+  {
+    "id": "az104-q-x-171",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.1",
+    "difficulty": 3,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "A template names a storage account [concat('st', uniqueString(resourceGroup().id))]. You deploy it twice to the same resource group. What happens the second time?",
+    "options": [
+      {
+        "id": "a",
+        "text": "The same name is generated, so the existing account is updated (not duplicated)",
+        "explanation": "Correct: uniqueString is deterministic for the same input."
+      },
+      {
+        "id": "b",
+        "text": "A second account with a new random name is created",
+        "explanation": "uniqueString is not random."
+      },
+      {
+        "id": "c",
+        "text": "The deployment fails because the name exists",
+        "explanation": "Redeploying the same resource updates it."
+      },
+      {
+        "id": "d",
+        "text": "The name changes every deployment",
+        "explanation": "Only a different resource group ID gives a different value."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "uniqueString(seed) always returns the same 13-character value for the same seed, which keeps names stable across redeployments.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/templates/template-functions-string#uniquestring"
+    ]
+  },
+  {
+    "id": "az104-q-x-172",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.4",
+    "difficulty": 2,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "What does --parameters @prod.parameters.json do in this command?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Reads parameter values from the file prod.parameters.json",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Creates a new parameter file",
+        "explanation": "It reads, not writes."
+      },
+      {
+        "id": "c",
+        "text": "Validates the file without deploying",
+        "explanation": "That is what-if or validate."
+      },
+      {
+        "id": "d",
+        "text": "Exports the current settings",
+        "explanation": "Export is az group export."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Parameter files keep values per environment (dev, prod). Bicep can also use a .bicepparam file.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/templates/parameter-files"
+    ],
+    "code": "az deployment group create \\\n  --resource-group rg-prod \\\n  --template-file main.bicep \\\n  --parameters @prod.parameters.json"
+  },
+  {
+    "id": "az104-q-x-173",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.4",
+    "difficulty": 3,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "rg-app contains vnet1, st01 and vm1. main.bicep defines only vnet1 and st01. What happens when you run this command?",
+    "options": [
+      {
+        "id": "a",
+        "text": "vm1 is deleted; vnet1 and st01 are created or updated",
+        "explanation": "Correct: Complete mode removes resources that are not in the template."
+      },
+      {
+        "id": "b",
+        "text": "Nothing is deleted",
+        "explanation": "That is Incremental mode (the default)."
+      },
+      {
+        "id": "c",
+        "text": "The deployment fails because vm1 exists",
+        "explanation": "Complete mode does not fail; it deletes."
+      },
+      {
+        "id": "d",
+        "text": "Only a preview is shown",
+        "explanation": "That is what-if."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Complete mode makes the resource group match the template exactly. Run what-if first to see the deletions.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-modes"
+    ],
+    "code": "az deployment group create -g rg-app -f main.bicep --mode Complete"
+  },
+  {
+    "id": "az104-q-x-174",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.3",
+    "difficulty": 3,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "A reviewer flags this Bicep file. What is the problem?",
+    "options": [
+      {
+        "id": "a",
+        "text": "The secure password is returned as an output, so it appears in deployment history",
+        "explanation": "Correct: never output secure values."
+      },
+      {
+        "id": "b",
+        "text": "@secure() cannot be used on strings",
+        "explanation": "It can."
+      },
+      {
+        "id": "c",
+        "text": "Parameters cannot be used in VM properties",
+        "explanation": "They can."
+      },
+      {
+        "id": "d",
+        "text": "Outputs must be declared before resources",
+        "explanation": "Order does not matter."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Outputs are stored in the deployment history and visible to anyone with read access. Keep secrets in @secure() parameters or Key Vault references and never output them.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/bicep/outputs"
+    ],
+    "code": "@secure()\nparam adminPassword string\n\nresource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {\n  ...\n  properties: { osProfile: { adminPassword: adminPassword } }\n}\n\noutput password string = adminPassword"
+  },
+  {
+    "id": "az104-q-x-175",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.5",
+    "difficulty": 2,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "What does this command produce?",
+    "options": [
+      {
+        "id": "a",
+        "text": "An ARM JSON template describing the resources currently in rg-app",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A Bicep file",
+        "explanation": "Use az bicep decompile on the JSON, or export as Bicep in the portal."
+      },
+      {
+        "id": "c",
+        "text": "A backup of the data in rg-app",
+        "explanation": "Templates describe resources, not data."
+      },
+      {
+        "id": "d",
+        "text": "A list of deployments",
+        "explanation": "That is az deployment group list."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "az group export (portal: Export template) captures existing resources as a template, which you usually tidy before reuse.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/templates/export-template-cli"
+    ],
+    "code": "az group export --name rg-app > rg-app.json"
+  },
+  {
+    "id": "az104-q-x-176",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.5",
+    "difficulty": 1,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "What does this command do?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Converts the ARM JSON template into a Bicep file (azuredeploy.bicep)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Converts Bicep into JSON",
+        "explanation": "That is az bicep build."
+      },
+      {
+        "id": "c",
+        "text": "Deploys the template",
+        "explanation": "That is az deployment … create."
+      },
+      {
+        "id": "d",
+        "text": "Validates the JSON only",
+        "explanation": "It converts it."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "decompile = JSON → Bicep (best effort); build = Bicep → JSON.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/bicep/decompile"
+    ],
+    "code": "az bicep decompile --file azuredeploy.json"
+  },
+  {
+    "id": "az104-q-x-177",
+    "exam": "az-104",
+    "objectiveId": "AZ104-3.1.1",
+    "difficulty": 2,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "What does the existing keyword mean in this Bicep file?",
+    "options": [
+      {
+        "id": "a",
+        "text": "It refers to vnet-hub, which already exists; Bicep does not create or change it",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "It creates vnet-hub if it does not exist",
+        "explanation": "existing never creates."
+      },
+      {
+        "id": "c",
+        "text": "It deletes vnet-hub after deployment",
+        "explanation": "No."
+      },
+      {
+        "id": "d",
+        "text": "It locks vnet-hub",
+        "explanation": "Locks are separate resources."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "existing lets a template read an already deployed resource (for example to use its ID) without managing it.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/bicep/existing-resource"
+    ],
+    "code": "resource hub 'Microsoft.Network/virtualNetworks@2023-09-01' existing = {\n  name: 'vnet-hub'\n}\n\noutput hubId string = hub.id"
+  },
+  {
+    "id": "az104-q-x-178",
+    "exam": "az-104",
+    "objectiveId": "AZ104-4.2.2",
+    "difficulty": 2,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "An NSG on VM1's subnet has these inbound rules. Can 10.1.1.4 connect to VM1 on RDP (3389)?",
+    "options": [
+      {
+        "id": "a",
+        "text": "No: rule 100 denies 3389 from any source and is checked first",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Yes: rule 200 allows 10.0.0.0/8",
+        "explanation": "It is never reached; the lower number wins."
+      },
+      {
+        "id": "c",
+        "text": "Yes: VirtualNetwork traffic is always allowed",
+        "explanation": "Your rules come before the default rules."
+      },
+      {
+        "id": "d",
+        "text": "Only if VM1 has a public IP",
+        "explanation": "Unrelated."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "NSG rules are checked from the lowest priority number up and the first match wins. Move the allow rule to a number below 100.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview"
+    ],
+    "code": "Priority  Name          Port  Source        Action\n100       deny-rdp      3389  Any           Deny\n200       allow-rdp-in  3389  10.0.0.0/8    Allow\n65000     AllowVnetInBound      VirtualNetwork Allow"
+  },
+  {
+    "id": "az104-q-x-179",
+    "exam": "az-104",
+    "objectiveId": "AZ104-4.2.2",
+    "difficulty": 3,
+    "type": "troubleshooting",
+    "answerMode": "single",
+    "stem": "The subnet's NSG allows inbound 443 from the internet. VM1's NIC also has an NSG with only the default rules. Can users reach VM1 on 443?",
+    "options": [
+      {
+        "id": "a",
+        "text": "No: inbound traffic must be allowed by BOTH the subnet NSG and the NIC NSG; the NIC NSG's DenyAllInBound blocks it",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Yes: the subnet NSG is enough",
+        "explanation": "Both NSGs are evaluated."
+      },
+      {
+        "id": "c",
+        "text": "Yes: the NIC NSG is ignored when a subnet NSG exists",
+        "explanation": "It is not ignored."
+      },
+      {
+        "id": "d",
+        "text": "No: NSGs cannot allow 443",
+        "explanation": "They can."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Inbound: subnet NSG first, then NIC NSG. Outbound: NIC NSG first, then subnet NSG. Traffic needs an allow at every NSG it passes.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-network/network-security-group-how-it-works"
+    ]
+  },
+  {
+    "id": "az104-q-x-180",
+    "exam": "az-104",
+    "objectiveId": "AZ104-4.1.4",
+    "difficulty": 3,
+    "type": "troubleshooting",
+    "answerMode": "single",
+    "stem": "Subnet app has this route table. The firewall VM at 10.0.2.4 receives nothing and internet traffic from app VMs fails. What is the most likely fix?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Enable IP forwarding on the firewall VM's network interface (and in its OS)",
+        "explanation": "Correct: without it Azure drops traffic not addressed to the VM itself."
+      },
+      {
+        "id": "b",
+        "text": "Change the next hop type to Internet",
+        "explanation": "That bypasses the firewall."
+      },
+      {
+        "id": "c",
+        "text": "Associate the route table with the firewall's subnet",
+        "explanation": "The route belongs on the source subnet."
+      },
+      {
+        "id": "d",
+        "text": "Add a public IP to every app VM",
+        "explanation": "Defeats the purpose."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "A network virtual appliance must have IP forwarding enabled on its NIC to forward traffic it receives for other destinations.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-network/virtual-network-network-interface#enable-or-disable-ip-forwarding"
+    ],
+    "code": "Route table rt-app (associated with subnet app)\nAddress prefix   Next hop type        Next hop IP\n0.0.0.0/0        VirtualAppliance     10.0.2.4"
+  },
+  {
+    "id": "az104-q-x-181",
+    "exam": "az-104",
+    "objectiveId": "AZ104-4.1.2",
+    "difficulty": 2,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "You ran only this command. The peering shows status Initiated and traffic does not flow. Why?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A peering must be created from both VNets; create spoke-to-hub too",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "--allow-vnet-access blocks traffic",
+        "explanation": "It allows it."
+      },
+      {
+        "id": "c",
+        "text": "Peering needs a VPN gateway",
+        "explanation": "It does not."
+      },
+      {
+        "id": "d",
+        "text": "The VNets must be in the same resource group",
+        "explanation": "Not required."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Each side needs its own peering link. The status becomes Connected when both exist.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-network/virtual-network-manage-peering"
+    ],
+    "code": "az network vnet peering create -g rg-net -n hub-to-spoke \\\n  --vnet-name vnet-hub --remote-vnet vnet-spoke --allow-vnet-access"
+  },
+  {
+    "id": "az104-q-x-182",
+    "exam": "az-104",
+    "objectiveId": "AZ104-4.1.2",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "VNet1 uses 10.0.0.0/16 and VNet2 uses 10.0.128.0/17. Can you peer them?",
+    "options": [
+      {
+        "id": "a",
+        "text": "No: the address spaces overlap",
+        "explanation": "Correct: 10.0.128.0/17 is inside 10.0.0.0/16."
+      },
+      {
+        "id": "b",
+        "text": "Yes, peering ignores address spaces",
+        "explanation": "Overlap is not allowed."
+      },
+      {
+        "id": "c",
+        "text": "Yes, if they are in different regions",
+        "explanation": "Overlap is still not allowed."
+      },
+      {
+        "id": "d",
+        "text": "Only with gateway transit",
+        "explanation": "Unrelated."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Peered VNets must have non-overlapping address spaces. Plan unique ranges for every VNet.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-network/virtual-network-peering-overview"
+    ]
+  },
+  {
+    "id": "az104-q-x-183",
+    "exam": "az-104",
+    "objectiveId": "AZ104-4.1.1",
+    "difficulty": 1,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "How many IP addresses can you assign to VMs in a /27 subnet?",
+    "options": [
+      {
+        "id": "a",
+        "text": "27",
+        "explanation": "Correct: 32 addresses minus 5 reserved by Azure."
+      },
+      {
+        "id": "b",
+        "text": "32",
+        "explanation": "Azure reserves 5."
+      },
+      {
+        "id": "c",
+        "text": "30",
+        "explanation": "Azure reserves 5, not 2."
+      },
+      {
+        "id": "d",
+        "text": "16",
+        "explanation": "A /27 has 32 addresses."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Azure reserves the first four and the last address of every subnet: /24 = 251, /27 = 27, /28 = 11, /29 = 3.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-network/virtual-networks-faq"
+    ]
+  },
+  {
+    "id": "az104-q-x-184",
+    "exam": "az-104",
+    "objectiveId": "AZ104-4.3.3",
+    "difficulty": 2,
+    "type": "troubleshooting",
+    "answerMode": "single",
+    "stem": "The web app on the backend VMs listens on port 8080. The load balancer has this health probe. Users get no response. Why?",
+    "options": [
+      {
+        "id": "a",
+        "text": "The probe checks port 80, where nothing listens, so every backend is marked unhealthy",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "HTTP probes are not supported",
+        "explanation": "They are."
+      },
+      {
+        "id": "c",
+        "text": "The probe interval is too short",
+        "explanation": "5 seconds is normal."
+      },
+      {
+        "id": "d",
+        "text": "The VMs need public IPs",
+        "explanation": "Not for a load-balanced backend."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "If all probes fail, the load balancer sends traffic nowhere. Point the probe at the port and path the app serves, for example 8080 /health.",
+    "docs": [
+      "https://learn.microsoft.com/azure/load-balancer/load-balancer-custom-probe-overview"
+    ],
+    "code": "Health probe hp-web\nProtocol: HTTP   Port: 80   Path: /health   Interval: 5 seconds"
+  },
+  {
+    "id": "az104-q-x-185",
+    "exam": "az-104",
+    "objectiveId": "AZ104-4.2.5",
+    "difficulty": 3,
+    "type": "troubleshooting",
+    "answerMode": "single",
+    "stem": "You created a private endpoint for stdata01. From a VM in the VNet you run the command below. What should you fix?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Link the privatelink.blob.core.windows.net private DNS zone to the VNet (with the endpoint's A record)",
+        "explanation": "Correct: the name still resolves to the public IP."
+      },
+      {
+        "id": "b",
+        "text": "Create a service endpoint as well",
+        "explanation": "Not needed."
+      },
+      {
+        "id": "c",
+        "text": "Enable public network access",
+        "explanation": "The opposite of the goal."
+      },
+      {
+        "id": "d",
+        "text": "Add a public IP to the VM",
+        "explanation": "Unrelated."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Private endpoints depend on DNS. The account name must resolve to the endpoint's private IP through the privatelink zone linked to the VNet (or your DNS forwarding).",
+    "docs": [
+      "https://learn.microsoft.com/azure/private-link/private-endpoint-dns"
+    ],
+    "code": "$ nslookup stdata01.blob.core.windows.net\nName:    blob.dxb21prdstr01a.store.core.windows.net\nAddress: 20.60.152.68"
+  },
+  {
+    "id": "az104-q-x-186",
+    "exam": "az-104",
+    "objectiveId": "AZ104-4.2.1",
+    "difficulty": 2,
+    "type": "command",
+    "answerMode": "single",
+    "stem": "What does this NSG rule allow?",
+    "options": [
+      {
+        "id": "a",
+        "text": "SQL traffic (1433) from VMs whose NICs are in asg-web to VMs whose NICs are in asg-db",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "All traffic between the two subnets",
+        "explanation": "Only port 1433, only between those groups."
+      },
+      {
+        "id": "c",
+        "text": "Internet access to the databases on 1433",
+        "explanation": "The source is asg-web."
+      },
+      {
+        "id": "d",
+        "text": "Nothing until IP addresses are added",
+        "explanation": "ASGs replace IP addresses."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Application security groups let NSG rules use VM roles instead of IP addresses. NICs join an ASG; the ASG and NICs must be in the same VNet.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-network/application-security-groups"
+    ],
+    "code": "az network nsg rule create -g rg-app --nsg-name nsg-db -n allow-web-sql \\\n  --priority 110 --direction Inbound --access Allow --protocol Tcp \\\n  --source-asgs asg-web --destination-asgs asg-db --destination-port-ranges 1433"
+  },
+  {
+    "id": "az104-q-x-187",
+    "exam": "az-104",
+    "objectiveId": "AZ104-4.1.3",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "A VM has a new Standard SKU public IP. Neither its NIC nor its subnet has an NSG. Can you RDP to it from the internet?",
+    "options": [
+      {
+        "id": "a",
+        "text": "No: Standard public IPs are closed to inbound traffic until an NSG allows it",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Yes: without an NSG all traffic is allowed",
+        "explanation": "That was the retired Basic SKU behaviour."
+      },
+      {
+        "id": "c",
+        "text": "Yes, but only on port 3389",
+        "explanation": "No inbound traffic is allowed."
+      },
+      {
+        "id": "d",
+        "text": "Only with Azure Bastion",
+        "explanation": "Bastion does not use the VM's public IP."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Standard public IPs are secure by default. Add an NSG with an allow rule (ideally limited to your IP), or better, use Bastion with no public IP.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-network/ip-services/public-ip-addresses"
+    ]
   }
 ]

@@ -11,6 +11,8 @@ import { api } from '../services/api'
 import { useApp } from '../services/AppContext'
 import { EXAM_LABEL, findLesson, findObjective, lessonForObjective, lessonSequence, questionsFor, registries } from '../services/curriculum'
 import type { Lesson } from '../services/types'
+import { Rich } from '../components/RichText'
+import { LOOKALIKES } from '../services/clarity'
 
 const TABS = ['Hands-on (Azure)', 'Lab', 'Configure', 'Troubleshoot', 'Questions', 'Misconceptions', 'Compare', 'Docs & verification'] as const
 type Tab = (typeof TABS)[number]
@@ -95,6 +97,19 @@ function readView(): View {
   try { return localStorage.getItem(VIEW_KEY) === 'full' ? 'full' : 'lite' } catch { return 'lite' }
 }
 
+/** Lessons whose services are easy to mix up point to the side-by-side comparison and drill. */
+function ConfusionLink({ lessonId }: { lessonId: string }) {
+  const groups = LOOKALIKES.filter((g) => g.lesson === lessonId)
+  if (!groups.length) return null
+  const tab = (area: string) => (area === 'Deploying' ? 'deploy' : area === 'Networking' ? 'network' : 'lookalikes')
+  return (
+    <aside className="card border-sky-200 p-3 text-sm dark:border-sky-900" aria-label="Easily confused">
+      <p className="font-medium">Easy to mix up? Compare side by side, then try the quick drill:</p>
+      <ul className="ml-5 mt-1 list-disc">{groups.map((g) => <li key={g.id}><Link className="text-sky-700 underline dark:text-sky-400" to={`/clear-up?tab=${tab(g.area)}#${g.id}`}>{g.title}</Link></li>)}</ul>
+    </aside>
+  )
+}
+
 export default function LessonPage() {
   const { lessonId = '' } = useParams()
   const lesson = findLesson(lessonId)
@@ -173,6 +188,7 @@ export default function LessonPage() {
           <button type="button" className="btn-primary" onClick={() => void markComplete()} disabled={!online}>{progress?.completed ? '✓ Completed (update)' : 'Mark lesson complete'}</button>
         </header>
         <Walkthrough key={lesson.id} data={w} />
+        <ConfusionLink lessonId={lesson.id} />
         {Anim && (
           <section aria-labelledby="lite-sim-h">
             <h2 id="lite-sim-h" className="mb-1 text-base font-semibold">Try it yourself in the simulator</h2>
@@ -212,6 +228,7 @@ export default function LessonPage() {
           <button type="button" className="btn-ghost" onClick={() => void toggleBookmark({ kind: 'lesson', ref: lesson.id, exam: lesson.exam, title: lesson.title })}>{isBookmarked('lesson', lesson.id) ? '★ Bookmarked' : '☆ Bookmark'}</button>
           <button type="button" className="btn-primary" onClick={() => void markComplete()} disabled={!online}>{progress?.completed ? '✓ Completed (update)' : 'Mark lesson complete'}</button>
         </header>
+        <ConfusionLink lessonId={lesson.id} />
         <section aria-labelledby="anim-h">
           <h2 id="anim-h" className="mb-1 text-sm font-semibold">Try it yourself</h2>
           <p className="mb-2 text-sm text-slate-500">{lesson.animation.caption}</p>
@@ -239,14 +256,14 @@ export default function LessonPage() {
                 <p><Badge tone="info">Type {lesson.lab.type}: {lesson.lab.type === 'A' ? 'fully simulated' : lesson.lab.type === 'B' ? 'guided configuration' : 'optional real cloud'}</Badge> · {lesson.lab.duration} min · Cost: {lesson.lab.cost}</p>
                 <p><strong>Objective:</strong> {lesson.lab.objective}</p>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <div><h3 className="font-semibold">Steps (use the simulation above)</h3><ol className="ml-5 list-decimal">{lesson.lab.steps.map((s) => <li key={s}>{s}</li>)}</ol></div>
+                  <div><h3 className="font-semibold">Steps (use the simulation above)</h3><ol className="ml-5 list-decimal">{lesson.lab.steps.map((s) => <li key={s}><Rich text={s} /></li>)}</ol></div>
                   <div>
                     <h3 className="font-semibold">Validation checks</h3>
                     <ul>{lesson.lab.validation.map((v) => <li key={v.id}>{labChecks.has(v.id) ? '✅' : '⬜'} {v.text}</li>)}</ul>
                     {labDone && <p className="mt-2 font-semibold text-emerald-700">All checks passed. Mark the lesson complete to record it.</p>}
-                    <h3 className="mt-2 font-semibold">Expected results</h3><ul className="ml-5 list-disc">{lesson.lab.expected.map((s) => <li key={s}>{s}</li>)}</ul>
-                    <h3 className="mt-2 font-semibold">Failure scenarios to try</h3><ul className="ml-5 list-disc">{lesson.lab.failureScenarios.map((s) => <li key={s}>{s}</li>)}</ul>
-                    <h3 className="mt-2 font-semibold">Cleanup</h3><ul className="ml-5 list-disc">{lesson.lab.cleanup.map((s) => <li key={s}>{s}</li>)}</ul>
+                    <h3 className="mt-2 font-semibold">Expected results</h3><ul className="ml-5 list-disc">{lesson.lab.expected.map((s) => <li key={s}><Rich text={s} /></li>)}</ul>
+                    <h3 className="mt-2 font-semibold">Failure scenarios to try</h3><ul className="ml-5 list-disc">{lesson.lab.failureScenarios.map((s) => <li key={s}><Rich text={s} /></li>)}</ul>
+                    <h3 className="mt-2 font-semibold">Cleanup</h3><ul className="ml-5 list-disc">{lesson.lab.cleanup.map((s) => <li key={s}><Rich text={s} /></li>)}</ul>
                   </div>
                 </div>
               </div>
@@ -255,16 +272,16 @@ export default function LessonPage() {
             {tab === 'Configure' && (
               <div className="space-y-3">
                 <div className="grid gap-3 md:grid-cols-3">
-                  <div><h3 className="font-semibold">Prerequisites</h3><ul className="ml-5 list-disc">{lesson.configuration.prerequisites.map((s) => <li key={s}>{s}</li>)}</ul></div>
-                  <div><h3 className="font-semibold">Permissions</h3><ul className="ml-5 list-disc">{lesson.configuration.permissions.map((s) => <li key={s}>{s}</li>)}</ul></div>
-                  <div><h3 className="font-semibold">Limits & dependencies</h3><ul className="ml-5 list-disc">{lesson.configuration.limits.map((s) => <li key={s}>{s}</li>)}</ul></div>
+                  <div><h3 className="font-semibold">Prerequisites</h3><ul className="ml-5 list-disc">{lesson.configuration.prerequisites.map((s) => <li key={s}><Rich text={s} /></li>)}</ul></div>
+                  <div><h3 className="font-semibold">Permissions</h3><ul className="ml-5 list-disc">{lesson.configuration.permissions.map((s) => <li key={s}><Rich text={s} /></li>)}</ul></div>
+                  <div><h3 className="font-semibold">Limits & dependencies</h3><ul className="ml-5 list-disc">{lesson.configuration.limits.map((s) => <li key={s}><Rich text={s} /></li>)}</ul></div>
                 </div>
                 <div className="flex gap-1" role="group" aria-label="Configuration method">
                   {(['portal', 'cli', 'powershell', 'bicep', 'python'] as const).filter((v) => (v !== 'bicep' || lesson.configuration.bicep) && (v !== 'python' || lesson.configuration.python)).map((v) => (
                     <button key={v} type="button" aria-pressed={cfgView === v} className={cfgView === v ? 'btn-primary' : 'btn-ghost'} onClick={() => setCfgView(v)}>{{ portal: 'Portal', cli: 'Azure CLI', powershell: 'PowerShell', bicep: 'Bicep', python: 'Python' }[v]}</button>
                   ))}
                 </div>
-                {cfgView === 'portal' ? <ol className="ml-5 list-decimal">{lesson.configuration.portal.map((s) => <li key={s}>{s}</li>)}</ol>
+                {cfgView === 'portal' ? <ol className="ml-5 list-decimal">{lesson.configuration.portal.map((s) => <li key={s}><Rich text={s} /></li>)}</ol>
                   : <pre className="code">{cfgView === 'cli' ? lesson.configuration.cli : cfgView === 'powershell' ? lesson.configuration.powershell : cfgView === 'python' ? lesson.configuration.python : lesson.configuration.bicep}</pre>}
                 <p className="text-xs text-slate-500">Guided configuration (lab type B). Nothing here runs against Azure; copy commands into your own subscription only if you accept the cost.</p>
               </div>
@@ -274,8 +291,8 @@ export default function LessonPage() {
               <div className="space-y-2">
                 {lesson.troubleshooting.map((t) => (
                   <details key={t.symptom} className="rounded-lg border border-slate-200 p-2 dark:border-slate-700">
-                    <summary className="cursor-pointer font-medium">Symptom: {t.symptom}</summary>
-                    <p className="mt-1"><strong>Cause:</strong> {t.cause}</p><p><strong>Fix:</strong> {t.fix}</p>
+                    <summary className="cursor-pointer font-medium">Symptom: <Rich text={t.symptom} /></summary>
+                    <p className="mt-1"><strong>Cause:</strong> <Rich text={t.cause} /></p><p><strong>Fix:</strong> <Rich text={t.fix} /></p>
                   </details>
                 ))}
               </div>
@@ -284,11 +301,11 @@ export default function LessonPage() {
             {tab === 'Questions' && <QuestionRunner key={lesson.id} questions={qs} feedback="immediate" recordAs="lesson" title="Knowledge check" />}
 
             {tab === 'Misconceptions' && (
-              <ul className="space-y-2">{lesson.misconceptions.map((m) => <li key={m.myth}><p className="text-red-700 dark:text-red-400">✗ {m.myth}</p><p className="text-emerald-700 dark:text-emerald-400">✓ {m.reality}</p></li>)}</ul>
+              <ul className="space-y-2">{lesson.misconceptions.map((m) => <li key={m.myth}><p className="text-red-700 dark:text-red-400">✗ <Rich text={m.myth} /></p><p className="text-emerald-700 dark:text-emerald-400">✓ <Rich text={m.reality} /></p></li>)}</ul>
             )}
 
             {tab === 'Compare' && (
-              <dl className="space-y-2">{lesson.comparisons.map((c) => <div key={c.service}><dt className="font-semibold">{c.service}</dt><dd>{c.difference}</dd></div>)}</dl>
+              <dl className="space-y-2">{lesson.comparisons.map((c) => <div key={c.service}><dt className="font-semibold">{c.service}</dt><dd><Rich text={c.difference} /></dd></div>)}</dl>
             )}
 
             {tab === 'Docs & verification' && (
@@ -318,12 +335,12 @@ export default function LessonPage() {
             {lesson.prerequisites.map((p) => <li key={p.text}>{p.lessonId ? <Link className="underline" to={`/lesson/${p.lessonId}`}>{p.text}</Link> : p.text}{p.objectiveId && <span className="text-xs text-slate-500"> ({p.objectiveId})</span>}</li>)}
           </ul>
           <h2 className="font-semibold">{depth === 'foundation' ? 'Simple explanation' : 'Deep technical explanation'}</h2>
-          <div className="prose-cva">{(depth === 'foundation' ? lesson.foundation : lesson.engineer).map((p) => <p key={p}>{p}</p>)}</div>
+          <div className="prose-cva">{(depth === 'foundation' ? lesson.foundation : lesson.engineer).map((p) => <p key={p}><Rich text={p} /></p>)}</div>
           {depth === 'foundation' && <button type="button" className="text-xs text-sky-700 underline" onClick={() => void saveSettings({ ...settings, depth: 'engineer' })}>Go deeper: Engineer view →</button>}
         </div>
         <div className="card p-5 text-[15px] leading-relaxed">
           <h2 className="font-semibold">Real-world example: {lesson.example.title}</h2>
-          <div className="prose-cva">{lesson.example.body.map((p) => <p key={p}>{p}</p>)}</div>
+          <div className="prose-cva">{lesson.example.body.map((p) => <p key={p}><Rich text={p} /></p>)}</div>
           <h2 className="font-semibold">Architecture decisions</h2>
           <ul className="ml-5 list-disc">{lesson.architectureDecisions.map((a) => <li key={a}>{a}</li>)}</ul>
         </div>

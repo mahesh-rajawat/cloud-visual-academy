@@ -7,7 +7,10 @@
   "mock-exam": 100,
   "weak-revision": 45,
   "readiness-report": 15,
-  "exam-day-prep": 30
+  "exam-day-prep": 30,
+  "drill-deploy": 45,
+  "drill-network": 45,
+  "drill-lookalikes": 45
  },
  "objectiveMinutes": {
   "handsOn": 40,
@@ -429,25 +432,28 @@
   },
   {
    "day": 46,
-   "title": "Catch-up: weak areas and their labs",
+   "title": "Clear the confusion: templates and CLI, then weak areas",
    "skills": [],
    "activities": [
+    "drill-deploy",
     "weak-revision"
    ]
   },
   {
    "day": 47,
-   "title": "Catch-up: weak areas and their labs",
+   "title": "Clear the confusion: networking, then weak areas",
    "skills": [],
    "activities": [
+    "drill-network",
     "weak-revision"
    ]
   },
   {
    "day": 48,
-   "title": "Catch-up: weak areas and their labs",
+   "title": "Clear the confusion: look-alike services drill, then weak areas",
    "skills": [],
    "activities": [
+    "drill-lookalikes",
     "weak-revision"
    ]
   },

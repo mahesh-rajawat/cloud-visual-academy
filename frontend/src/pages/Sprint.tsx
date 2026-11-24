@@ -36,6 +36,9 @@ const ACTIVITY_LINK: Record<string, string> = {
   'weak-revision': '/practice?exam=az-104&mode=weak',
   'readiness-report': '/analytics',
   'exam-day-prep': '/exam-guide',
+  'drill-deploy': '/clear-up?tab=deploy',
+  'drill-network': '/clear-up?tab=network',
+  'drill-lookalikes': '/clear-up?tab=drill',
 }
 
 export default function Sprint() {

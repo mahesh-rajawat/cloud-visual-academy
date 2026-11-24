@@ -24,7 +24,7 @@ export function shuffle<T>(items: T[], seed: number): T[] {
   return out
 }
 
-function hashSeed(text: string): number {
+export function hashSeed(text: string): number {
   let h = 2166136261
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619)
   return h >>> 0
