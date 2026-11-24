@@ -1,0 +1,612 @@
+{
+  "id": "az305-messaging-events",
+  "exam": "az-305",
+  "title": "Design messaging, event-driven and API architectures",
+  "objectiveIds": [
+    "AZ305-4.2.1",
+    "AZ305-4.2.2",
+    "AZ305-4.2.3"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Recommend a messaging architecture, an event-driven architecture and an API integration solution.",
+  "prerequisites": [
+    {
+      "text": "Serverless and batch compute",
+      "objectiveId": "AZ305-4.1.4",
+      "lessonId": "az305-serverless-batch"
+    }
+  ],
+  "foundation": [
+    "Parts of an app talk in two ways. A message is a request someone must handle (process this order). An event is news that something happened (a file was uploaded).",
+    "Queues and Service Bus carry messages; Event Grid and Event Hubs carry events. API Management puts a safe, managed front door on your APIs."
+  ],
+  "engineer": [
+    "Messaging: Azure Queue Storage (simple, very large queues over 80 GB, at-least-once delivery, no ordering guarantees) and Azure Service Bus (enterprise broker: queues and topics with subscriptions and filters, FIFO through sessions, duplicate detection, dead-lettering, transactions, scheduled messages; Premium tier for VNet isolation, predictable performance and messages up to 100 MB). Patterns: competing consumers, queue-based load levelling, publish-subscribe.",
+    "Events: Event Grid (discrete events, push delivery to handlers, filtering, retries and dead-lettering; system topics for Azure resources, custom topics, namespaces with MQTT); Event Hubs (high-throughput event streaming with partitions, consumer groups, retention, Capture to storage and a Kafka endpoint). Event-driven styles: simple event processing (Event Grid → Function), stream processing (Event Hubs → Stream Analytics/Databricks), event sourcing.",
+    "APIs: Azure API Management (gateway with policies for authentication, rate limiting, caching and transformation; products and subscriptions; versions and revisions; developer portal; tiers from Consumption to Premium v2, with self-hosted gateways for hybrid). Combine with Application Gateway or Front Door for WAF, and private endpoints or VNet injection for internal APIs."
+  ],
+  "animation": {
+    "id": "az305-messaging-sim",
+    "caption": "Choose the messaging or eventing service for each requirement."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "shop",
+        "label": "Web shop",
+        "x": 118,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "sb",
+        "label": "Service Bus topic",
+        "x": 322,
+        "y": 56,
+        "kind": "scope"
+      },
+      {
+        "id": "bill",
+        "label": "Billing",
+        "x": 527,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "ship",
+        "label": "Shipping",
+        "x": 722,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "blob",
+        "label": "Storage",
+        "x": 170,
+        "y": 161,
+        "kind": "storage"
+      },
+      {
+        "id": "eg",
+        "label": "Event Grid",
+        "x": 420,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "fn",
+        "label": "Function",
+        "x": 670,
+        "y": 161,
+        "kind": "compute"
+      },
+      {
+        "id": "iot",
+        "label": "Devices",
+        "x": 170,
+        "y": 270,
+        "kind": "compute"
+      },
+      {
+        "id": "eh",
+        "label": "Event Hubs",
+        "x": 420,
+        "y": 270,
+        "kind": "scope"
+      },
+      {
+        "id": "apim",
+        "label": "API Management",
+        "x": 670,
+        "y": 270,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "shop",
+        "to": "sb"
+      },
+      {
+        "from": "sb",
+        "to": "bill"
+      },
+      {
+        "from": "sb",
+        "to": "ship"
+      },
+      {
+        "from": "blob",
+        "to": "eg"
+      },
+      {
+        "from": "eg",
+        "to": "fn"
+      },
+      {
+        "from": "iot",
+        "to": "eh"
+      },
+      {
+        "from": "apim",
+        "to": "shop"
+      }
+    ]
+  },
+  "example": {
+    "title": "Order processing at an online retailer",
+    "body": [
+      "Orders go onto a Service Bus topic; billing, shipping and email services each have a subscription with filters, and sessions keep each customer's orders in sequence.",
+      "Storage uploads raise Event Grid events to functions; clickstream data flows through Event Hubs to analytics; partners call order APIs through API Management with keys and rate limits."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Service Bus namespace > Topics > Subscriptions and filters; queue properties (sessions, duplicate detection).",
+      "Event Grid > System topics / Event subscriptions.",
+      "API Management > APIs, Products, Policies, Developer portal."
+    ],
+    "cli": "az servicebus topic create -g rg-app --namespace-name sb-orders -n orders\naz servicebus topic subscription create -g rg-app --namespace-name sb-orders --topic-name orders -n billing\naz apim create -g rg-api -n apim-contoso --publisher-email api@contoso.com --publisher-name Contoso --sku-name StandardV2",
+    "powershell": "New-AzServiceBusTopic -ResourceGroupName rg-app -NamespaceName sb-orders -Name orders"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-messaging-sim",
+    "objective": "Pick the messaging or eventing service.",
+    "duration": 15,
+    "steps": [
+      "Answer every case."
+    ],
+    "expected": [
+      "Service Bus for enterprise messaging; Event Grid for reactive events; Event Hubs for streams"
+    ],
+    "validation": [
+      {
+        "id": "messaging-correct",
+        "text": "Chose the right messaging service"
+      }
+    ],
+    "failureScenarios": [
+      "Using Event Grid for ordered commands",
+      "Using Queue Storage when FIFO and duplicate detection are needed"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Messages are processed twice after retries.",
+      "cause": "At-least-once delivery without idempotency.",
+      "fix": "Make handlers idempotent and enable Service Bus duplicate detection."
+    },
+    {
+      "symptom": "Partners overload the backend API.",
+      "cause": "No throttling.",
+      "fix": "Add API Management rate-limit and quota policies."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Service Bus vs Queue Storage",
+      "difference": "Service Bus: FIFO, transactions, topics, dead-letter; Queue Storage: simple, cheap, huge queues."
+    },
+    {
+      "service": "Event Grid vs Event Hubs",
+      "difference": "Event Grid: discrete events pushed to handlers; Event Hubs: high-volume streams read by consumers."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Events and messages are the same.",
+      "reality": "A message expects processing; an event announces a fact."
+    },
+    {
+      "myth": "Event Hubs pushes events to subscribers.",
+      "reality": "Consumers pull from partitions."
+    }
+  ],
+  "architectureDecisions": [
+    "Messages → Service Bus (or Queue Storage when simple).",
+    "Discrete events → Event Grid; streams → Event Hubs.",
+    "Expose APIs through API Management."
+  ],
+  "docs": [
+    {
+      "title": "Compare messaging services",
+      "url": "https://learn.microsoft.com/azure/event-grid/compare-messaging-services"
+    },
+    {
+      "title": "Storage queues vs Service Bus queues",
+      "url": "https://learn.microsoft.com/azure/service-bus-messaging/service-bus-azure-and-storage-queues-compared-contrasted"
+    },
+    {
+      "title": "Event-driven architecture style",
+      "url": "https://learn.microsoft.com/azure/architecture/guide/architecture-styles/event-driven"
+    },
+    {
+      "title": "API Management key concepts",
+      "url": "https://learn.microsoft.com/azure/api-management/api-management-key-concepts"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Let parts of an app talk reliably — with messages, events and well-managed APIs.",
+    "learn": [
+      "Messages: Queue Storage vs Service Bus",
+      "Events: Event Grid vs Event Hubs",
+      "APIs through API Management"
+    ],
+    "nodes": [
+      {
+        "id": "shop",
+        "label": "Web shop",
+        "x": 112,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "sb",
+        "label": "Service Bus topic",
+        "x": 307,
+        "y": 75,
+        "kind": "service",
+        "sub": "orders"
+      },
+      {
+        "id": "bill",
+        "label": "Billing",
+        "x": 502,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "ship",
+        "label": "Shipping",
+        "x": 688,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "blob",
+        "label": "Storage",
+        "x": 162,
+        "y": 215,
+        "kind": "storage"
+      },
+      {
+        "id": "eg",
+        "label": "Event Grid",
+        "x": 400,
+        "y": 215,
+        "kind": "service",
+        "sub": "push events"
+      },
+      {
+        "id": "fn",
+        "label": "Function",
+        "x": 638,
+        "y": 215,
+        "kind": "compute"
+      },
+      {
+        "id": "iot",
+        "label": "Devices",
+        "x": 162,
+        "y": 360,
+        "kind": "compute"
+      },
+      {
+        "id": "eh",
+        "label": "Event Hubs",
+        "x": 400,
+        "y": 360,
+        "kind": "service",
+        "sub": "stream"
+      },
+      {
+        "id": "apim",
+        "label": "API Management",
+        "x": 638,
+        "y": 360,
+        "kind": "network",
+        "sub": "partners"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Parts that must talk",
+        "body": [
+          "Orders must reach billing and shipping, uploads must trigger processing, devices stream telemetry, and partners call APIs."
+        ],
+        "show": [
+          "shop"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Messages",
+        "title": "Commands that must be handled",
+        "body": [
+          "Service Bus: queues and topics with ordering (sessions), duplicate detection and dead-lettering. Topics let each service subscribe with filters. Queue Storage is simpler and cheaper."
+        ],
+        "show": [
+          "shop",
+          "sb",
+          "bill",
+          "ship"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "shop",
+            "to": "sb",
+            "fresh": true
+          },
+          {
+            "from": "sb",
+            "to": "bill",
+            "fresh": true
+          },
+          {
+            "from": "sb",
+            "to": "ship",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Events",
+        "title": "News that something happened",
+        "body": [
+          "Event Grid pushes discrete events (a blob was created) to handlers. Event Hubs ingests millions of events per second as a stream for analytics."
+        ],
+        "show": [
+          "shop",
+          "sb",
+          "bill",
+          "ship",
+          "blob",
+          "eg",
+          "fn",
+          "iot",
+          "eh"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "shop",
+            "to": "sb"
+          },
+          {
+            "from": "sb",
+            "to": "bill"
+          },
+          {
+            "from": "sb",
+            "to": "ship"
+          },
+          {
+            "from": "blob",
+            "to": "eg",
+            "fresh": true
+          },
+          {
+            "from": "eg",
+            "to": "fn",
+            "fresh": true
+          },
+          {
+            "from": "iot",
+            "to": "eh",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "APIs",
+        "title": "A managed front door for APIs",
+        "body": [
+          "API Management adds keys, rate limits, versions, transformation and a developer portal in front of your services."
+        ],
+        "show": [
+          "shop",
+          "sb",
+          "bill",
+          "ship",
+          "blob",
+          "eg",
+          "fn",
+          "iot",
+          "eh",
+          "apim"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "shop",
+            "to": "sb"
+          },
+          {
+            "from": "sb",
+            "to": "bill"
+          },
+          {
+            "from": "sb",
+            "to": "ship"
+          },
+          {
+            "from": "blob",
+            "to": "eg"
+          },
+          {
+            "from": "eg",
+            "to": "fn"
+          },
+          {
+            "from": "iot",
+            "to": "eh"
+          },
+          {
+            "from": "apim",
+            "to": "shop",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "App communication",
+        "body": [
+          "Message, event or API?"
+        ],
+        "show": [
+          "shop",
+          "sb",
+          "bill",
+          "ship",
+          "blob",
+          "eg",
+          "fn",
+          "iot",
+          "eh",
+          "apim"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "shop",
+            "to": "sb"
+          },
+          {
+            "from": "sb",
+            "to": "bill"
+          },
+          {
+            "from": "sb",
+            "to": "ship"
+          },
+          {
+            "from": "blob",
+            "to": "eg"
+          },
+          {
+            "from": "eg",
+            "to": "fn"
+          },
+          {
+            "from": "iot",
+            "to": "eh"
+          },
+          {
+            "from": "apim",
+            "to": "shop"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "recap": [
+          "Service Bus (FIFO, topics) vs Queue Storage (simple)",
+          "Event Grid (discrete) vs Event Hubs (stream)",
+          "API Management for APIs"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Publish to a Service Bus topic with filtered subscriptions",
+    "minutes": 20,
+    "costLevel": "low",
+    "cost": "Low. A Standard namespace is billed hourly (a few US cents for this lab). Delete it the same day.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription. Work in a resource group called rg-az305-lab.",
+      "If rg-az305-lab does not exist yet: Resource groups > Create > name rg-az305-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Service Bus' > Create: rg-az305-lab, unique namespace name, your region, pricing tier Standard.",
+        "see": "The namespace deploys.",
+        "tip": "Basic tier has no topics; topics need Standard or Premium."
+      },
+      {
+        "do": "Namespace > Topics > + Topic: name orders.",
+        "see": "Topic orders created."
+      },
+      {
+        "do": "Open orders > + Subscription: name billing. Create another: shipping.",
+        "see": "Two subscriptions."
+      },
+      {
+        "do": "Open the shipping subscription > Filters: replace the default rule with a SQL filter.",
+        "see": "Only messages with Country = 'AE' will reach shipping.",
+        "code": "Country = 'AE'"
+      },
+      {
+        "do": "Open the orders topic > Service Bus Explorer > Send messages: body {\"id\":1}, add a custom property Country = AE. Send. Send another with Country = US.",
+        "see": "Two messages sent."
+      },
+      {
+        "do": "Subscriptions > billing > Service Bus Explorer > Peek from start; then shipping.",
+        "see": "billing has both messages; shipping has only the AE one.",
+        "tip": "This is publish-subscribe with filters — the sender doesn't know who listens."
+      }
+    ],
+    "check": [
+      "Each subscription received the messages its filter allows."
+    ],
+    "cleanup": [
+      "Resource groups > rg-az305-lab > Delete resource group > type the name > Delete."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: topics and subscriptions in the portal",
+        "url": "https://learn.microsoft.com/azure/service-bus-messaging/service-bus-quickstart-topics-subscriptions-portal"
+      },
+      {
+        "title": "Topic filters and actions",
+        "url": "https://learn.microsoft.com/azure/service-bus-messaging/topic-filters"
+      }
+    ]
+  }
+}

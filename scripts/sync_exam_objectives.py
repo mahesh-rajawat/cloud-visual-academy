@@ -33,6 +33,7 @@ MS_EXAMS = {
     "az-900": ("AZ-900", "https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-900"),
     "az-104": ("AZ-104", "https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-104"),
     "ai-901": ("AI-901", "https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/ai-901"),
+    "az-305": ("AZ-305", "https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-305"),
 }
 AWS_BASE = "https://docs.aws.amazon.com/aws-certification/latest/cloud-practitioner-02"
 AWS_DOMAIN_PAGES = [f"cloud-practitioner-02-domain{i}" for i in range(1, 5)]

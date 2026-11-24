@@ -1,0 +1,591 @@
+{
+  "id": "az305-bcdr",
+  "exam": "az-305",
+  "title": "Design backup and disaster recovery",
+  "objectiveIds": [
+    "AZ305-3.1.1",
+    "AZ305-3.1.2",
+    "AZ305-3.1.3",
+    "AZ305-3.1.4"
+  ],
+  "estimatedMinutes": 50,
+  "learningObjective": "Recommend recovery solutions for Azure and hybrid workloads that meet RPO and RTO, and backup and recovery for compute, databases and unstructured data.",
+  "prerequisites": [
+    {
+      "text": "Backup vaults and policies (AZ-104)",
+      "objectiveId": "AZ104-5.2.1",
+      "lessonId": "az104-backup-vaults"
+    },
+    {
+      "text": "Site Recovery (AZ-104)",
+      "objectiveId": "AZ104-5.2.5",
+      "lessonId": "az104-site-recovery"
+    }
+  ],
+  "foundation": [
+    "Two numbers drive every recovery design. RPO (recovery point objective): how much data you can afford to lose, measured in time. RTO (recovery time objective): how long you can be down.",
+    "Backup lets you go back in time (after a mistake or ransomware). Disaster recovery keeps the service running somewhere else (after a regional outage). Most systems need both.",
+    "Smaller RPO and RTO cost more, so set them per workload with the business."
+  ],
+  "engineer": [
+    "Recovery design: classify workloads (mission-critical, business-critical, other) with RPO/RTO targets; choose backup, replication or active-active accordingly; document runbooks and test failovers regularly (Site Recovery test failover doesn't affect production). Use paired or chosen secondary regions; consider data residency.",
+    "Compute: Azure Backup for VMs (Standard policy: daily; Enhanced: every 4–24 hours, longer instant-restore snapshots, required for Trusted Launch in the portal), restore as new VM, replace disks or file-level recovery. Azure Site Recovery replicates Azure VMs to another region (and VMware, Hyper-V or physical servers to Azure) with crash-consistent recovery points every few minutes, app-consistent points on a schedule, recovery plans for multi-tier ordering, and test failovers. Hybrid: MARS agent for files and folders, Azure Backup Server or DPM for on-premises workloads.",
+    "Databases: Azure SQL automated backups with point-in-time restore (1–35 days), long-term retention (weekly, monthly, yearly up to 10 years), geo-restore from geo-redundant backups (RPO about 1 hour, RTO up to about 12 hours), active geo-replication (readable secondaries, RPO about 5 seconds) and auto-failover groups (listener endpoints, SQL Database and Managed Instance). SQL Server in VMs: Azure Backup with 15-minute log backups. Cosmos DB: continuous backup with point-in-time restore (7 or 30 days) or periodic backup.",
+    "Unstructured data: blob soft delete, versioning, point-in-time restore, operational and vaulted backup for blobs, object replication; Azure Files share snapshots and Azure Backup for Files (snapshot and vaulted tiers); geo-redundant storage with customer-managed failover. Protect backups: vault soft delete, immutable vaults, multi-user authorization with Resource Guard, and cross-region restore on GRS vaults."
+  ],
+  "animation": {
+    "id": "az305-bcdr-sim",
+    "caption": "Choose the backup or disaster recovery solution for each recovery requirement."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "prim",
+        "label": "Primary region",
+        "x": 121,
+        "y": 56,
+        "kind": "network"
+      },
+      {
+        "id": "vm",
+        "label": "VMs",
+        "x": 320,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "db",
+        "label": "SQL database",
+        "x": 520,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "blob",
+        "label": "Blobs + files",
+        "x": 719,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "bk",
+        "label": "Azure Backup",
+        "x": 170,
+        "y": 161,
+        "kind": "security"
+      },
+      {
+        "id": "asr",
+        "label": "Site Recovery",
+        "x": 420,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "fog",
+        "label": "Failover group",
+        "x": 670,
+        "y": 161,
+        "kind": "storage"
+      },
+      {
+        "id": "sec",
+        "label": "Secondary region",
+        "x": 255,
+        "y": 270,
+        "kind": "network"
+      },
+      {
+        "id": "imm",
+        "label": "Immutable vault",
+        "x": 589,
+        "y": 270,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "vm",
+        "to": "bk",
+        "label": "daily / hourly"
+      },
+      {
+        "from": "vm",
+        "to": "asr",
+        "label": "replicate"
+      },
+      {
+        "from": "db",
+        "to": "fog"
+      },
+      {
+        "from": "asr",
+        "to": "sec"
+      },
+      {
+        "from": "fog",
+        "to": "sec"
+      },
+      {
+        "from": "blob",
+        "to": "bk"
+      },
+      {
+        "from": "bk",
+        "to": "imm"
+      }
+    ]
+  },
+  "example": {
+    "title": "RPO/RTO tiers for an insurer",
+    "body": [
+      "Mission-critical claims system (RPO 5 minutes, RTO 1 hour): VMs replicated with Site Recovery to a second region, database in an auto-failover group, quarterly test failovers. Daily Enhanced-policy backups protect against corruption and ransomware.",
+      "Internal tools (RPO 24 hours, RTO 24 hours): daily Azure Backup only, with cross-region restore. Documents: versioning, soft delete and vaulted blob backup; yearly SQL long-term retention for 7 years."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Recovery Services vault > Backup / Site Recovery: enable replication, recovery plans, test failover.",
+      "Backup vault > Backup policies (blobs, disks, PostgreSQL).",
+      "SQL server > Backups: retention policies, long-term retention; Failover groups."
+    ],
+    "cli": "az backup protection enable-for-vm -g rg-bcdr --vault-name rsv-weu --vm vm-app01 --policy-name EnhancedPolicy\naz sql failover-group create -g rg-data -s sql-weu --partner-server sql-neu -n fog-claims --add-db db-claims --failover-policy Automatic",
+    "powershell": "New-AzSqlDatabaseFailoverGroup -ResourceGroupName rg-data -ServerName sql-weu -PartnerServerName sql-neu -FailoverGroupName fog-claims -FailoverPolicy Automatic"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-bcdr-sim",
+    "objective": "Pick the recovery solution for each requirement.",
+    "duration": 15,
+    "steps": [
+      "Answer every case.",
+      "For each answer, say which of RPO or RTO it mainly improves."
+    ],
+    "expected": [
+      "Site Recovery for regional DR of VMs",
+      "Backup for point-in-time recovery"
+    ],
+    "validation": [
+      {
+        "id": "recovery-correct",
+        "text": "Chose the right recovery solution"
+      }
+    ],
+    "failureScenarios": [
+      "Using replication alone against ransomware",
+      "Never testing failover"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "After ransomware, the DR copy is encrypted too.",
+      "cause": "Replication copies every change.",
+      "fix": "Restore from point-in-time backups (protected with immutable vault and soft delete)."
+    },
+    {
+      "symptom": "The app can't connect after a SQL geo-failover.",
+      "cause": "Connection string points to the old primary server.",
+      "fix": "Use the failover group's listener endpoint."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Backup vs Site Recovery",
+      "difference": "Backup restores data to a point in time; Site Recovery fails whole workloads over to another region."
+    },
+    {
+      "service": "Geo-restore vs geo-replication",
+      "difference": "Geo-restore: cheap, hours of RTO and ~1 h RPO. Geo-replication: running secondary, seconds of RPO."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Replication is a backup.",
+      "reality": "It replicates corruption and deletions too."
+    },
+    {
+      "myth": "RTO is how much data you lose.",
+      "reality": "That is RPO; RTO is downtime."
+    }
+  ],
+  "architectureDecisions": [
+    "Set RPO/RTO per workload tier.",
+    "Backup for every workload; DR (Site Recovery, failover groups) for those that need it.",
+    "Protect backups: soft delete, immutability, Resource Guard; test restores and failovers."
+  ],
+  "docs": [
+    {
+      "title": "Business continuity, HA and DR",
+      "url": "https://learn.microsoft.com/azure/reliability/concept-business-continuity-high-availability-disaster-recovery"
+    },
+    {
+      "title": "About Site Recovery",
+      "url": "https://learn.microsoft.com/azure/site-recovery/site-recovery-overview"
+    },
+    {
+      "title": "What is Azure Backup?",
+      "url": "https://learn.microsoft.com/azure/backup/backup-overview"
+    },
+    {
+      "title": "Azure SQL business continuity",
+      "url": "https://learn.microsoft.com/azure/azure-sql/database/business-continuity-high-availability-disaster-recover-hadr-overview"
+    },
+    {
+      "title": "Auto-failover groups",
+      "url": "https://learn.microsoft.com/azure/azure-sql/database/failover-group-sql-db"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Lose as little data and as little time as the business can accept, and no more than it pays for.",
+    "learn": [
+      "RPO and RTO",
+      "Backup vs disaster recovery",
+      "Recovery for VMs and databases",
+      "Recovery for files and blobs, and protecting backups"
+    ],
+    "nodes": [
+      {
+        "id": "prim",
+        "label": "Primary region",
+        "x": 115,
+        "y": 75,
+        "kind": "globe"
+      },
+      {
+        "id": "vm",
+        "label": "VMs",
+        "x": 305,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "db",
+        "label": "SQL database",
+        "x": 495,
+        "y": 75,
+        "kind": "database"
+      },
+      {
+        "id": "blob",
+        "label": "Blobs + files",
+        "x": 685,
+        "y": 75,
+        "kind": "storage"
+      },
+      {
+        "id": "bk",
+        "label": "Azure Backup",
+        "x": 162,
+        "y": 215,
+        "kind": "security",
+        "sub": "back in time"
+      },
+      {
+        "id": "asr",
+        "label": "Site Recovery",
+        "x": 400,
+        "y": 215,
+        "kind": "service",
+        "sub": "fail over"
+      },
+      {
+        "id": "fog",
+        "label": "Failover group",
+        "x": 638,
+        "y": 215,
+        "kind": "database",
+        "sub": "geo-replica"
+      },
+      {
+        "id": "sec",
+        "label": "Secondary region",
+        "x": 243,
+        "y": 360,
+        "kind": "globe"
+      },
+      {
+        "id": "imm",
+        "label": "Immutable vault",
+        "x": 561,
+        "y": 360,
+        "kind": "security",
+        "sub": "protect backups"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "A region fails — or ransomware strikes",
+        "body": [
+          "Different disasters need different answers. First agree two numbers with the business."
+        ],
+        "show": [
+          "prim"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Targets",
+        "title": "RPO and RTO",
+        "body": [
+          "RPO: how much data you can lose (minutes? a day?). RTO: how long you can be down. Smaller numbers mean more cost, so set them per workload."
+        ],
+        "show": [
+          "prim"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": [
+          0
+        ],
+        "stats": [
+          {
+            "label": "RPO",
+            "value": "data loss"
+          },
+          {
+            "label": "RTO",
+            "value": "downtime"
+          }
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Two tools",
+        "title": "Backup goes back in time; DR goes somewhere else",
+        "body": [
+          "Backups recover from mistakes, corruption and ransomware. Disaster recovery replicates to another region so the service keeps running when a region fails."
+        ],
+        "show": [
+          "prim",
+          "vm",
+          "bk",
+          "asr"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "bk",
+            "label": "daily / hourly",
+            "fresh": true
+          },
+          {
+            "from": "vm",
+            "to": "asr",
+            "label": "replicate",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Replication copies ransomware damage too — you still need backups."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Compute + data",
+        "title": "VMs and databases",
+        "body": [
+          "VMs: Azure Backup plus Site Recovery for regional failover with test failovers. SQL: point-in-time restore (up to 35 days), long-term retention (up to 10 years), and failover groups for a geo-replica with seconds of RPO."
+        ],
+        "show": [
+          "prim",
+          "vm",
+          "bk",
+          "asr",
+          "db",
+          "fog",
+          "sec"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "bk",
+            "label": "daily / hourly"
+          },
+          {
+            "from": "vm",
+            "to": "asr",
+            "label": "replicate"
+          },
+          {
+            "from": "db",
+            "to": "fog",
+            "fresh": true
+          },
+          {
+            "from": "asr",
+            "to": "sec",
+            "fresh": true
+          },
+          {
+            "from": "fog",
+            "to": "sec",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Files + protection",
+        "title": "Blobs, files and safe backups",
+        "body": [
+          "Blobs: soft delete, versioning, vaulted backup. Files: share snapshots and Azure Backup. Protect the backups themselves with soft delete, immutable vaults and Resource Guard."
+        ],
+        "show": [
+          "prim",
+          "vm",
+          "bk",
+          "asr",
+          "db",
+          "fog",
+          "sec",
+          "blob",
+          "imm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "bk",
+            "label": "daily / hourly"
+          },
+          {
+            "from": "vm",
+            "to": "asr",
+            "label": "replicate"
+          },
+          {
+            "from": "db",
+            "to": "fog"
+          },
+          {
+            "from": "asr",
+            "to": "sec"
+          },
+          {
+            "from": "fog",
+            "to": "sec"
+          },
+          {
+            "from": "blob",
+            "to": "bk",
+            "fresh": true
+          },
+          {
+            "from": "bk",
+            "to": "imm",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Recovery design",
+        "body": [
+          "Targets first, then tools."
+        ],
+        "show": [
+          "prim",
+          "vm",
+          "bk",
+          "asr",
+          "db",
+          "fog",
+          "sec",
+          "blob",
+          "imm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "bk",
+            "label": "daily / hourly"
+          },
+          {
+            "from": "vm",
+            "to": "asr",
+            "label": "replicate"
+          },
+          {
+            "from": "db",
+            "to": "fog"
+          },
+          {
+            "from": "asr",
+            "to": "sec"
+          },
+          {
+            "from": "fog",
+            "to": "sec"
+          },
+          {
+            "from": "blob",
+            "to": "bk"
+          },
+          {
+            "from": "bk",
+            "to": "imm"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "RPO = data loss; RTO = downtime",
+          "Backup (time) vs DR (place)",
+          "VMs: Backup + Site Recovery; SQL: PITR, LTR, failover groups",
+          "Blobs/files: versioning, snapshots, vaulted backup; protect backups"
+        ]
+      }
+    ]
+  }
+}

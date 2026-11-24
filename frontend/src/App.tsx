@@ -13,6 +13,7 @@ import { Analytics, Bookmarks, Search, SettingsPage } from './pages/Misc'
 import Practice from './pages/Practice'
 import Reviews from './pages/Reviews'
 import Sprint from './pages/Sprint'
+import { PLAN_EXAMS, examEnabled } from './services/curriculum'
 
 export default function App() {
   return (
@@ -21,15 +22,15 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/course/:exam" element={<Course />} />
         <Route path="/lesson/:lessonId" element={<LessonPage />} />
-        <Route path="/sprint" element={<Sprint />} />
-        <Route path="/exam-guide" element={<ExamGuide />} />
-        <Route path="/clear-up" element={<ClearUp />} />
-        <Route path="/diagnostic" element={<Diagnostic />} />
+        {PLAN_EXAMS.length > 0 && <Route path="/sprint" element={<Sprint />} />}
+        {examEnabled('az-104') && <Route path="/exam-guide" element={<ExamGuide />} />}
+        {examEnabled('az-104') && <Route path="/clear-up" element={<ClearUp />} />}
+        {examEnabled('az-900') && <Route path="/diagnostic" element={<Diagnostic />} />}
         <Route path="/practice" element={<Practice />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/animations" element={<AnimationLibrary />} />
         <Route path="/labs" element={<Labs />} />
-        <Route path="/compare" element={<Compare />} />
+        {examEnabled('aws-clf-c02') && <Route path="/compare" element={<Compare />} />}
         <Route path="/coverage" element={<Coverage />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/bookmarks" element={<Bookmarks />} />

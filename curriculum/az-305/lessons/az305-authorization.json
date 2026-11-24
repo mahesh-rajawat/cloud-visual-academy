@@ -1,0 +1,626 @@
+{
+  "id": "az305-authorization",
+  "exam": "az-305",
+  "title": "Design authorization for Azure and on-premises resources",
+  "objectiveIds": [
+    "AZ305-1.2.3",
+    "AZ305-1.2.4"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Recommend how people and workloads are authorized to Azure resources (RBAC, custom roles, PIM, ABAC) and to on-premises resources (application proxy, Private Access, Domain Services).",
+  "prerequisites": [
+    {
+      "text": "Azure RBAC (AZ-104)",
+      "objectiveId": "AZ104-1.2.2",
+      "lessonId": "az104-rbac"
+    }
+  ],
+  "foundation": [
+    "Authorization decides what a signed-in identity may do.",
+    "For Azure resources the rule is least privilege: the smallest role, at the smallest scope, for the shortest time.",
+    "On-premises apps can use Microsoft Entra ID as their front door too, so remote users get MFA without a traditional VPN."
+  ],
+  "engineer": [
+    "Azure RBAC design: assign roles to groups, not users; use built-in roles first; scope at management group, subscription, resource group or resource; create custom roles (Actions/NotActions, DataActions) only when no built-in role fits; avoid Owner and User Access Administrator except for a few, and use the Role Based Access Control Administrator role with conditions to limit which roles others can assign.",
+    "Privileged Identity Management (Entra ID P2 or ID Governance): make admin roles eligible rather than permanent, with time-bound activation, MFA, justification, approval and access reviews. Covers Entra roles, Azure roles and groups (PIM for Groups).",
+    "Attribute-based access control (ABAC) adds conditions to role assignments, for example Storage Blob Data Reader only for blobs with the index tag Project=Alpha. Data-plane access (Storage Blob Data, Key Vault Secrets User, Cosmos DB data roles) is separate from control-plane roles like Contributor.",
+    "On-premises resources: Microsoft Entra application proxy publishes internal web apps (with pre-authentication, Conditional Access, and Kerberos constrained delegation for Windows-integrated apps) through outbound-only connectors. Microsoft Entra Private Access (Global Secure Access) provides Zero Trust network access to private apps on any port, replacing VPNs. Microsoft Entra Domain Services gives a managed domain (LDAP, Kerberos, NTLM, Group Policy) for legacy apps moved to Azure, without running domain controllers. Entra Kerberos enables identity-based access to Azure Files for hybrid users."
+  ],
+  "animation": {
+    "id": "az305-authz-sim",
+    "caption": "Choose the right authorization approach for Azure and for on-premises apps."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "grp",
+        "label": "Ops group",
+        "x": 166,
+        "y": 56,
+        "kind": "user"
+      },
+      {
+        "id": "role",
+        "label": "Role + scope",
+        "x": 420,
+        "y": 56,
+        "kind": "security"
+      },
+      {
+        "id": "rg",
+        "label": "Resource group",
+        "x": 674,
+        "y": 56,
+        "kind": "scope"
+      },
+      {
+        "id": "pim",
+        "label": "PIM",
+        "x": 174,
+        "y": 161,
+        "kind": "security"
+      },
+      {
+        "id": "abac",
+        "label": "ABAC condition",
+        "x": 426,
+        "y": 161,
+        "kind": "security"
+      },
+      {
+        "id": "blob",
+        "label": "Blobs",
+        "x": 672,
+        "y": 161,
+        "kind": "storage"
+      },
+      {
+        "id": "remote",
+        "label": "Remote user",
+        "x": 159,
+        "y": 270,
+        "kind": "user"
+      },
+      {
+        "id": "proxy",
+        "label": "Application proxy",
+        "x": 404,
+        "y": 270,
+        "kind": "scope"
+      },
+      {
+        "id": "intranet",
+        "label": "On-premises web app",
+        "x": 666,
+        "y": 270,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "grp",
+        "to": "role"
+      },
+      {
+        "from": "role",
+        "to": "rg"
+      },
+      {
+        "from": "pim",
+        "to": "role",
+        "label": "activate"
+      },
+      {
+        "from": "abac",
+        "to": "blob"
+      },
+      {
+        "from": "remote",
+        "to": "proxy"
+      },
+      {
+        "from": "proxy",
+        "to": "intranet",
+        "label": "connector"
+      }
+    ]
+  },
+  "example": {
+    "title": "Least privilege at a bank",
+    "body": [
+      "Cloud engineers are eligible for Contributor on their landing-zone subscriptions through PIM, activated for 4 hours with justification; Owner requires approval. A custom 'VM Operator' role lets the service desk only start and restart VMs.",
+      "The legacy HR intranet is published with application proxy and Conditional Access, so staff reach it from home with MFA and no VPN."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Subscription > Access control (IAM) > Add role assignment; Conditions tab for ABAC.",
+      "Microsoft Entra admin center > Identity governance > Privileged Identity Management > Azure resources.",
+      "Microsoft Entra admin center > Applications > Enterprise applications > Application proxy."
+    ],
+    "cli": "az role definition create --role-definition @vm-operator.json\naz role assignment create --assignee-object-id <group-id> --assignee-principal-type Group --role \"VM Operator\" --scope /subscriptions/<sub>/resourceGroups/rg-app",
+    "powershell": "New-AzRoleDefinition -InputFile vm-operator.json"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-authz-sim",
+    "objective": "Choose how to authorize access in Azure and on-premises.",
+    "duration": 15,
+    "steps": [
+      "Answer every case in both trainers."
+    ],
+    "expected": [
+      "PIM for standing admin access",
+      "Application proxy for on-premises web apps"
+    ],
+    "validation": [
+      {
+        "id": "authz-azure-correct",
+        "text": "Chose the right Azure authorization approach"
+      },
+      {
+        "id": "authz-onprem-correct",
+        "text": "Chose the right on-premises access solution"
+      }
+    ],
+    "failureScenarios": [
+      "Giving Owner permanently",
+      "Opening inbound ports for remote access"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "An operator can delete VMs although they should only restart them.",
+      "cause": "Contributor assigned for convenience.",
+      "fix": "Create a custom role with only start/restart/read actions."
+    },
+    {
+      "symptom": "A user is Contributor on a storage account but cannot read blobs with Entra auth.",
+      "cause": "Contributor is control plane only.",
+      "fix": "Assign a Storage Blob Data role (data plane)."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "RBAC vs Azure Policy",
+      "difference": "RBAC controls who can act; Policy controls what resource configurations are allowed."
+    },
+    {
+      "service": "Application proxy vs Private Access",
+      "difference": "Application proxy publishes web apps; Private Access gives network-level Zero Trust access to any private app or port."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Global Administrator can manage all Azure resources by default.",
+      "reality": "Entra roles and Azure RBAC are separate; Global Admins must elevate access to get User Access Administrator."
+    },
+    {
+      "myth": "Custom roles are always better.",
+      "reality": "Built-in roles are maintained by Microsoft; use custom only when needed."
+    }
+  ],
+  "architectureDecisions": [
+    "Groups + built-in roles + narrow scope.",
+    "PIM for every privileged role.",
+    "Publish on-premises apps through Entra (application proxy or Private Access) instead of VPN where possible."
+  ],
+  "docs": [
+    {
+      "title": "What is Azure RBAC?",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/overview"
+    },
+    {
+      "title": "What is Privileged Identity Management?",
+      "url": "https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-configure"
+    },
+    {
+      "title": "What is Azure ABAC?",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/conditions-overview"
+    },
+    {
+      "title": "Microsoft Entra application proxy",
+      "url": "https://learn.microsoft.com/entra/identity/app-proxy/overview-what-is-app-proxy"
+    },
+    {
+      "title": "Microsoft Entra Private Access",
+      "url": "https://learn.microsoft.com/entra/global-secure-access/concept-private-access"
+    },
+    {
+      "title": "Microsoft Entra Domain Services",
+      "url": "https://learn.microsoft.com/entra/identity/domain-services/overview"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Give exactly the access that is needed, only when it is needed — in Azure and on-premises.",
+    "learn": [
+      "Least privilege with RBAC",
+      "Just-in-time admin with PIM",
+      "Conditions (ABAC) and data-plane roles",
+      "On-premises apps through Entra"
+    ],
+    "nodes": [
+      {
+        "id": "grp",
+        "label": "Ops group",
+        "x": 158,
+        "y": 75,
+        "kind": "user"
+      },
+      {
+        "id": "role",
+        "label": "Role + scope",
+        "x": 400,
+        "y": 75,
+        "kind": "security",
+        "sub": "who can do what where"
+      },
+      {
+        "id": "rg",
+        "label": "Resource group",
+        "x": 642,
+        "y": 75,
+        "kind": "service"
+      },
+      {
+        "id": "pim",
+        "label": "PIM",
+        "x": 166,
+        "y": 215,
+        "kind": "security",
+        "sub": "eligible, time-bound"
+      },
+      {
+        "id": "abac",
+        "label": "ABAC condition",
+        "x": 406,
+        "y": 215,
+        "kind": "security",
+        "sub": "tag = Alpha"
+      },
+      {
+        "id": "blob",
+        "label": "Blobs",
+        "x": 640,
+        "y": 215,
+        "kind": "storage"
+      },
+      {
+        "id": "remote",
+        "label": "Remote user",
+        "x": 151,
+        "y": 360,
+        "kind": "user"
+      },
+      {
+        "id": "proxy",
+        "label": "Application proxy",
+        "x": 385,
+        "y": 360,
+        "kind": "service",
+        "sub": "Entra pre-auth"
+      },
+      {
+        "id": "intranet",
+        "label": "On-premises web app",
+        "x": 634,
+        "y": 360,
+        "kind": "compute"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Too many people have too much access",
+        "body": [
+          "Owner everywhere is easy and dangerous. Design so each person gets only what they need."
+        ],
+        "show": [
+          "grp"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "RBAC",
+        "title": "Role + scope, assigned to a group",
+        "body": [
+          "Pick the narrowest built-in role, assign it to a group, at the smallest scope (resource group rather than subscription). Create a custom role only if no built-in role fits."
+        ],
+        "show": [
+          "grp",
+          "role",
+          "rg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "grp",
+            "to": "role",
+            "fresh": true
+          },
+          {
+            "from": "role",
+            "to": "rg",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "PIM",
+        "title": "Admin rights only when needed",
+        "body": [
+          "Privileged Identity Management makes roles 'eligible'. Admins activate them for a few hours, with MFA, a reason and sometimes approval."
+        ],
+        "show": [
+          "grp",
+          "role",
+          "rg",
+          "pim"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "grp",
+            "to": "role"
+          },
+          {
+            "from": "role",
+            "to": "rg"
+          },
+          {
+            "from": "pim",
+            "to": "role",
+            "label": "activate",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Conditions",
+        "title": "Finer control with ABAC",
+        "body": [
+          "Conditions on a role assignment can check attributes, for example: may read only blobs tagged Project=Alpha. Remember that reading data needs data roles such as Storage Blob Data Reader; Contributor is not enough."
+        ],
+        "show": [
+          "grp",
+          "role",
+          "rg",
+          "pim",
+          "abac",
+          "blob"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "grp",
+            "to": "role"
+          },
+          {
+            "from": "role",
+            "to": "rg"
+          },
+          {
+            "from": "pim",
+            "to": "role",
+            "label": "activate"
+          },
+          {
+            "from": "abac",
+            "to": "blob",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "On-premises",
+        "title": "Entra as the front door for internal apps",
+        "body": [
+          "Application proxy publishes an internal web app through an outbound connector: users sign in with Entra ID and MFA, and no inbound ports open. Private Access does the same for any private app or port, replacing the VPN."
+        ],
+        "show": [
+          "grp",
+          "role",
+          "rg",
+          "pim",
+          "abac",
+          "blob",
+          "remote",
+          "proxy",
+          "intranet"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "grp",
+            "to": "role"
+          },
+          {
+            "from": "role",
+            "to": "rg"
+          },
+          {
+            "from": "pim",
+            "to": "role",
+            "label": "activate"
+          },
+          {
+            "from": "abac",
+            "to": "blob"
+          },
+          {
+            "from": "remote",
+            "to": "proxy",
+            "fresh": true
+          },
+          {
+            "from": "proxy",
+            "to": "intranet",
+            "label": "connector",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Authorization design",
+        "body": [
+          "Least privilege, just in time."
+        ],
+        "show": [
+          "grp",
+          "role",
+          "rg",
+          "pim",
+          "abac",
+          "blob",
+          "remote",
+          "proxy",
+          "intranet"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "grp",
+            "to": "role"
+          },
+          {
+            "from": "role",
+            "to": "rg"
+          },
+          {
+            "from": "pim",
+            "to": "role",
+            "label": "activate"
+          },
+          {
+            "from": "abac",
+            "to": "blob"
+          },
+          {
+            "from": "remote",
+            "to": "proxy"
+          },
+          {
+            "from": "proxy",
+            "to": "intranet",
+            "label": "connector"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Built-in role, group, narrow scope",
+          "PIM for privileged roles",
+          "ABAC conditions; data roles for data",
+          "Application proxy / Private Access for on-premises"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a least-privilege custom role",
+    "minutes": 15,
+    "costLevel": "free",
+    "cost": "Free. Role definitions and assignments cost nothing.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription. Work in a resource group called rg-az305-lab.",
+      "If rg-az305-lab does not exist yet: Resource groups > Create > name rg-az305-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "Open Cloud Shell (Bash) from the portal toolbar."
+    ],
+    "steps": [
+      {
+        "do": "Save your subscription ID in a variable.",
+        "see": "A GUID is printed.",
+        "code": "SUB=$(az account show --query id -o tsv); echo $SUB"
+      },
+      {
+        "do": "Create a role definition file that allows only reading, starting and restarting VMs in the lab resource group.",
+        "see": "No output; the file vm-operator.json exists.",
+        "code": "cat > vm-operator.json <<EOF\n{\n  \"Name\": \"VM Operator (lab)\",\n  \"Description\": \"Read, start and restart VMs only\",\n  \"Actions\": [\n    \"Microsoft.Compute/virtualMachines/read\",\n    \"Microsoft.Compute/virtualMachines/start/action\",\n    \"Microsoft.Compute/virtualMachines/restart/action\"\n  ],\n  \"AssignableScopes\": [ \"/subscriptions/$SUB/resourceGroups/rg-az305-lab\" ]\n}\nEOF"
+      },
+      {
+        "do": "Create the custom role.",
+        "see": "JSON describing the new role, with type CustomRole.",
+        "code": "az role definition create --role-definition @vm-operator.json"
+      },
+      {
+        "do": "In the portal: rg-az305-lab > Access control (IAM) > Roles, search 'VM Operator'.",
+        "see": "Your custom role listed. Open it > Permissions to see exactly three actions.",
+        "tip": "Compare with Virtual Machine Contributor, which also allows delete, resize and more."
+      },
+      {
+        "do": "Access control (IAM) > Add > Add role assignment: look at the Conditions tab on a Storage Blob Data role (don't save).",
+        "see": "The ABAC condition builder (for example filtering by blob index tags)."
+      }
+    ],
+    "check": [
+      "The custom role shows only read, start and restart."
+    ],
+    "cleanup": [
+      "Delete the role: az role definition delete --name \"VM Operator (lab)\"",
+      "Resource groups > rg-az305-lab > Delete resource group > type the name > Delete."
+    ],
+    "screens": [
+      {
+        "title": "Create a custom role with the CLI",
+        "url": "https://learn.microsoft.com/azure/role-based-access-control/custom-roles-cli"
+      },
+      {
+        "title": "ABAC conditions",
+        "url": "https://learn.microsoft.com/azure/role-based-access-control/conditions-overview"
+      }
+    ]
+  }
+}

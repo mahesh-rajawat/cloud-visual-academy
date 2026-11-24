@@ -1,30 +1,40 @@
 #!/usr/bin/env python3
-"""Lay out curriculum/az-104/sprint-plan.json so every day fits the default study time.
+"""Lay out curriculum/<exam>/sprint-plan.json so every day fits the default study time.
 
-Objectives keep the curated teaching order of the existing plan. Weeks 1-7 teach every
-objective (with a weekly check each Sunday-equivalent day 7, 14, ...); week 8 is mock
-exams and revision only. Packing uses the weekday budget for every day, so the plan fits
-whichever weekday it starts on.
+Usage: python scripts/build_sprint_plan.py [az-104|az-305]
+
+Objectives keep the curated teaching order of the existing plan (or the official outline order for a
+new plan), grouped by lesson. Every week but the last teaches objectives, with a weekly check on
+days 7, 14, ...; the last week is mock exams and revision only. Packing uses the weekday budget for
+every day, so the plan fits whichever weekday it starts on.
 """
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PLAN = ROOT / "curriculum/az-104/sprint-plan.json"
+EXAM = sys.argv[1] if len(sys.argv) > 1 else "az-104"
+PLAN = ROOT / f"curriculum/{EXAM}/sprint-plan.json"
 WEEKDAY_MIN = 105  # 1.75 h default
 
-plan = json.loads(PLAN.read_text())
-reg = json.loads((ROOT / "curriculum/az-104/objectives.json").read_text())
+# New plans start from this template. AZ-305 design skills get 40 minutes: lesson, design trainer and questions.
+NEW = {
+    "az-305": {"exam": "az-305", "weeks": 5,
+               "activityMinutes": {"weekly-assessment": 40, "mock-exam": 100, "weak-revision": 45, "readiness-report": 15, "exam-day-prep": 30},
+               "objectiveMinutes": {"handsOn": 45, "conceptual": 40}, "struggleMultiplier": 1.5, "dailyRecallMinutes": 10, "days": []},
+}
+plan = json.loads(PLAN.read_text()) if PLAN.exists() else NEW[EXAM]
+reg = json.loads((ROOT / f"curriculum/{EXAM}/objectives.json").read_text())
 hands_on = {o["id"]: o["handsOn"] for d in reg["domains"] for s in d["skills"] for o in s["objectives"] if o["status"] == "active"}
 lesson_of = {}
-for f in sorted((ROOT / "curriculum/az-104/lessons").glob("*.json")):
+for f in sorted((ROOT / f"curriculum/{EXAM}/lessons").glob("*.json")):
     l = json.loads(f.read_text())
     for oid in l["objectiveIds"]:
         lesson_of.setdefault(oid, l["title"])
 
 # Curated order from the current plan, plus any active objective it does not list yet.
 order = [s for d in plan["days"] for s in d["skills"] if s in hands_on]
-order = list(dict.fromkeys(order))
+order = list(dict.fromkeys(order)) or list(hands_on)  # a new plan follows the outline
 # Keep each lesson's objectives together, lessons in order of first appearance.
 lesson_rank = {}
 for oid in order:
@@ -37,20 +47,22 @@ act = plan["activityMinutes"]
 mins = lambda oid: plan["objectiveMinutes"]["handsOn" if hands_on[oid] else "conceptual"]
 recall = plan["dailyRecallMinutes"]
 
+WEEKS = plan["weeks"]
+LEARN_DAYS = (WEEKS - 1) * 7
 days = []
 queue = list(order)
-for day in range(1, 50):
-    activities = ["diagnostic"] if day == 1 else ["weekly-assessment"] if day % 7 == 0 else []
+for day in range(1, LEARN_DAYS + 1):
+    activities = ["diagnostic"] if day == 1 and "diagnostic" in act else ["weekly-assessment"] if day % 7 == 0 else []
     room = WEEKDAY_MIN - recall - sum(act[a] for a in activities)
     skills = []
     while queue and mins(queue[0]) <= room:
         room -= mins(queue[0])
         skills.append(queue.pop(0))
     days.append({"day": day, "skills": skills, "activities": activities})
-assert not queue, f"{len(queue)} objectives do not fit in 7 weeks"
+assert not queue, f"{len(queue)} objectives do not fit in {WEEKS - 1} weeks"
 
 # Spare learning days at the end of week 7: drills on the areas learners mix up most, plus weak areas.
-DRILLS = ["drill-deploy", "drill-network", "drill-lookalikes"]
+DRILLS = ["drill-deploy", "drill-network", "drill-lookalikes"] if EXAM == "az-104" else []
 spare = [d for d in days if not d["skills"] and not d["activities"]]
 for i, d in enumerate(spare):
     d["activities"] = ([DRILLS[i]] if i < len(DRILLS) else []) + ["weak-revision"]
@@ -85,12 +97,11 @@ final = [
     ("Mock exam 2 and review every mistake", ["mock-exam"]),
     ("Weak areas: redo their labs", ["weak-revision"]),
     ("Mock exam 3 and review every mistake", ["mock-exam"]),
-    ("Readiness check, exam-day guide, light review", ["readiness-report", "exam-day-prep"]),
+    ("Readiness check, exam-day guide, light review" if EXAM == "az-104" else "Readiness check and light review", ["readiness-report", "exam-day-prep"]),
 ]
 for i, (t, a) in enumerate(final):
-    days.append({"day": 50 + i, "title": t, "skills": [], "activities": a})
+    days.append({"day": LEARN_DAYS + 1 + i, "title": t, "skills": [], "activities": a})
 
-plan["weeks"] = 8
 plan["days"] = [{"day": d["day"], "title": d["title"], "skills": d["skills"], "activities": d["activities"]} for d in days]
 PLAN.write_text(json.dumps(plan, indent=1, ensure_ascii=False) + "\n")
 last = max(d["day"] for d in days if d["skills"])

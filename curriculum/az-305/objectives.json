@@ -1,0 +1,454 @@
+{
+  "examCode": "AZ-305",
+  "examName": "Designing Microsoft Azure Infrastructure Solutions",
+  "vendor": "Microsoft",
+  "sourceUrl": "https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-305",
+  "skillsMeasuredAsOf": "April 17, 2026",
+  "domains": [
+    {
+      "id": "AZ305-1",
+      "name": "Design identity, governance, and monitoring solutions",
+      "weight": "25–30%",
+      "skills": [
+        {
+          "id": "AZ305-1.1",
+          "name": "Design solutions for logging and monitoring",
+          "objectives": [
+            {
+              "id": "AZ305-1.1.1",
+              "text": "Recommend a logging solution",
+              "fingerprint": "b9e18cce38cc",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-1.1.2",
+              "text": "Recommend a solution for routing logs",
+              "fingerprint": "98a210ffc729",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-1.1.3",
+              "text": "Recommend a monitoring solution",
+              "fingerprint": "49d00f511d6e",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AZ305-1.2",
+          "name": "Design authentication and authorization solutions",
+          "objectives": [
+            {
+              "id": "AZ305-1.2.1",
+              "text": "Recommend an authentication solution",
+              "fingerprint": "cf540f81f772",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-1.2.2",
+              "text": "Recommend an identity management solution",
+              "fingerprint": "71a81cd95df4",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-1.2.3",
+              "text": "Recommend a solution for authorizing access to Azure resources",
+              "fingerprint": "fbd439c090a0",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-1.2.4",
+              "text": "Recommend a solution for authorizing access to on-premises resources",
+              "fingerprint": "097ad6e582a2",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-1.2.5",
+              "text": "Recommend a solution to manage secrets, certificates, and keys",
+              "fingerprint": "9cbfa2ed9500",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AZ305-1.3",
+          "name": "Design governance",
+          "objectives": [
+            {
+              "id": "AZ305-1.3.1",
+              "text": "Recommend a structure for management groups, subscriptions, and resource groups, and a strategy for resource tagging",
+              "fingerprint": "3813fbeedf6c",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-1.3.2",
+              "text": "Recommend a solution for managing compliance",
+              "fingerprint": "08ef6d4beed8",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-1.3.3",
+              "text": "Recommend a solution for identity governance",
+              "fingerprint": "6e456f41def0",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AZ305-2",
+      "name": "Design data storage solutions",
+      "weight": "20–25%",
+      "skills": [
+        {
+          "id": "AZ305-2.1",
+          "name": "Design data storage solutions for relational data",
+          "objectives": [
+            {
+              "id": "AZ305-2.1.1",
+              "text": "Recommend a solution for storing relational data",
+              "fingerprint": "18089fd8f209",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-2.1.2",
+              "text": "Recommend a database service tier and compute tier",
+              "fingerprint": "d877690e6518",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-2.1.3",
+              "text": "Recommend a solution for database scalability",
+              "fingerprint": "e5200db0baf4",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-2.1.4",
+              "text": "Recommend a solution for data protection",
+              "fingerprint": "27cad5a9f994",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AZ305-2.2",
+          "name": "Design data storage solutions for semi-structured and unstructured data",
+          "objectives": [
+            {
+              "id": "AZ305-2.2.1",
+              "text": "Recommend a solution for storing semi-structured data",
+              "fingerprint": "de7ac3747821",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-2.2.2",
+              "text": "Recommend a solution for storing unstructured data",
+              "fingerprint": "b80b512ed9c8",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-2.2.3",
+              "text": "Recommend a data storage solution to balance features, performance, and costs",
+              "fingerprint": "ef7f35fe2892",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-2.2.4",
+              "text": "Recommend a data solution for protection and durability",
+              "fingerprint": "a10f9d01e449",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AZ305-2.3",
+          "name": "Design data integration",
+          "objectives": [
+            {
+              "id": "AZ305-2.3.1",
+              "text": "Recommend a solution for data integration",
+              "fingerprint": "768068f43a6f",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-2.3.2",
+              "text": "Recommend a solution for data analysis",
+              "fingerprint": "cfd9868da862",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AZ305-3",
+      "name": "Design business continuity solutions",
+      "weight": "15–20%",
+      "skills": [
+        {
+          "id": "AZ305-3.1",
+          "name": "Design solutions for backup and disaster recovery",
+          "objectives": [
+            {
+              "id": "AZ305-3.1.1",
+              "text": "Recommend a recovery solution for Azure and hybrid workloads that meets recovery objectives",
+              "fingerprint": "89cf3dd9f654",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-3.1.2",
+              "text": "Recommend a backup and recovery solution for compute",
+              "fingerprint": "d6ef7421a3c2",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-3.1.3",
+              "text": "Recommend a backup and recovery solution for databases",
+              "fingerprint": "c6cf17c900a7",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-3.1.4",
+              "text": "Recommend a backup and recovery solution for unstructured data",
+              "fingerprint": "a20ae728fbcd",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AZ305-3.2",
+          "name": "Design for high availability",
+          "objectives": [
+            {
+              "id": "AZ305-3.2.1",
+              "text": "Recommend a high availability solution for compute",
+              "fingerprint": "7bf95a959a96",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-3.2.2",
+              "text": "Recommend a high availability solution for relational data",
+              "fingerprint": "fdc9824668f1",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-3.2.3",
+              "text": "Recommend a high availability solution for semi-structured and unstructured data",
+              "fingerprint": "f05a3de1cf6c",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AZ305-4",
+      "name": "Design infrastructure solutions",
+      "weight": "30–35%",
+      "skills": [
+        {
+          "id": "AZ305-4.1",
+          "name": "Design compute solutions",
+          "objectives": [
+            {
+              "id": "AZ305-4.1.1",
+              "text": "Specify components of a compute solution based on workload requirements",
+              "fingerprint": "4f7c7965699e",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.1.2",
+              "text": "Recommend a virtual machine-based solution",
+              "fingerprint": "dd9cd13b24d2",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.1.3",
+              "text": "Recommend a container-based solution",
+              "fingerprint": "942aab7ccc4d",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.1.4",
+              "text": "Recommend a serverless-based solution",
+              "fingerprint": "37b4ff1488c6",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.1.5",
+              "text": "Recommend a compute solution for batch processing",
+              "fingerprint": "493dc14494f6",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AZ305-4.2",
+          "name": "Design an application architecture",
+          "objectives": [
+            {
+              "id": "AZ305-4.2.1",
+              "text": "Recommend a messaging architecture",
+              "fingerprint": "d32c4a842252",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.2.2",
+              "text": "Recommend an event-driven architecture",
+              "fingerprint": "7a36069e052a",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.2.3",
+              "text": "Recommend a solution for API integration",
+              "fingerprint": "3d10e1ccbde5",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.2.4",
+              "text": "Recommend a caching solution for applications",
+              "fingerprint": "ac3c6ffd2d2b",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.2.5",
+              "text": "Recommend an application configuration management solution",
+              "fingerprint": "c35ac3788dae",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.2.6",
+              "text": "Recommend an automated deployment solution for applications",
+              "fingerprint": "1d03f71f1b58",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AZ305-4.3",
+          "name": "Design migrations",
+          "objectives": [
+            {
+              "id": "AZ305-4.3.1",
+              "text": "Evaluate a migration solution that leverages the Microsoft Cloud Adoption Framework for Azure",
+              "fingerprint": "5a680191680d",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.3.2",
+              "text": "Evaluate on-premises servers, data, and applications for migration",
+              "fingerprint": "a9cec9f56d19",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.3.3",
+              "text": "Recommend a solution for migrating workloads to infrastructure as a service (IaaS) and platform as a service (PaaS)",
+              "fingerprint": "d3cfd7be6946",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.3.4",
+              "text": "Recommend a solution for migrating databases",
+              "fingerprint": "6ee0df5258a2",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.3.5",
+              "text": "Recommend a solution for migrating unstructured data",
+              "fingerprint": "a6963319c8d9",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AZ305-4.4",
+          "name": "Design network solutions",
+          "objectives": [
+            {
+              "id": "AZ305-4.4.1",
+              "text": "Recommend a connectivity solution that connects Azure resources to the internet",
+              "fingerprint": "740024d3eba3",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.4.2",
+              "text": "Recommend a connectivity solution that connects Azure resources to on-premises networks",
+              "fingerprint": "3a0b497dc119",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.4.3",
+              "text": "Recommend a solution to optimize network performance",
+              "fingerprint": "49eebd7c856d",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.4.4",
+              "text": "Recommend a solution to optimize network security",
+              "fingerprint": "c74db1dd9470",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AZ305-4.4.5",
+              "text": "Recommend a load-balancing and routing solution",
+              "fingerprint": "9cb96d9df237",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "retrievedAt": "2026-11-24T19:11:24+00:00",
+  "objectiveCount": 49
+}

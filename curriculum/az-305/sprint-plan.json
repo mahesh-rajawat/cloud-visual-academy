@@ -1,0 +1,329 @@
+{
+ "exam": "az-305",
+ "weeks": 5,
+ "activityMinutes": {
+  "weekly-assessment": 40,
+  "mock-exam": 100,
+  "weak-revision": 45,
+  "readiness-report": 15,
+  "exam-day-prep": 30
+ },
+ "objectiveMinutes": {
+  "handsOn": 45,
+  "conceptual": 40
+ },
+ "struggleMultiplier": 1.5,
+ "dailyRecallMinutes": 10,
+ "days": [
+  {
+   "day": 1,
+   "title": "Design logging and monitoring",
+   "skills": [
+    "AZ305-1.1.1",
+    "AZ305-1.1.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 2,
+   "title": "Design logging and monitoring + Design authentication and identity management",
+   "skills": [
+    "AZ305-1.1.3",
+    "AZ305-1.2.1"
+   ],
+   "activities": []
+  },
+  {
+   "day": 3,
+   "title": "Design authentication and identity management + Design authorization for Azure and on-premises resources",
+   "skills": [
+    "AZ305-1.2.2",
+    "AZ305-1.2.3"
+   ],
+   "activities": []
+  },
+  {
+   "day": 4,
+   "title": "Design authorization for Azure and on-premises resources + Design secrets, certificates and keys management",
+   "skills": [
+    "AZ305-1.2.4",
+    "AZ305-1.2.5"
+   ],
+   "activities": []
+  },
+  {
+   "day": 5,
+   "title": "Design governance",
+   "skills": [
+    "AZ305-1.3.1",
+    "AZ305-1.3.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 6,
+   "title": "Design governance + Design relational data storage and service tiers",
+   "skills": [
+    "AZ305-1.3.3",
+    "AZ305-2.1.1"
+   ],
+   "activities": []
+  },
+  {
+   "day": 7,
+   "title": "Design relational data storage and service tiers, week 1 check",
+   "skills": [
+    "AZ305-2.1.2"
+   ],
+   "activities": [
+    "weekly-assessment"
+   ]
+  },
+  {
+   "day": 8,
+   "title": "Design relational scalability and data protection",
+   "skills": [
+    "AZ305-2.1.3",
+    "AZ305-2.1.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 9,
+   "title": "Design semi-structured and unstructured data storage",
+   "skills": [
+    "AZ305-2.2.1",
+    "AZ305-2.2.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 10,
+   "title": "Balance storage cost and performance, and design durability",
+   "skills": [
+    "AZ305-2.2.3",
+    "AZ305-2.2.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 11,
+   "title": "Design data integration and analysis",
+   "skills": [
+    "AZ305-2.3.1",
+    "AZ305-2.3.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 12,
+   "title": "Design backup and disaster recovery",
+   "skills": [
+    "AZ305-3.1.1",
+    "AZ305-3.1.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 13,
+   "title": "Design backup and disaster recovery",
+   "skills": [
+    "AZ305-3.1.3",
+    "AZ305-3.1.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 14,
+   "title": "Design for high availability, week 2 check",
+   "skills": [
+    "AZ305-3.2.1"
+   ],
+   "activities": [
+    "weekly-assessment"
+   ]
+  },
+  {
+   "day": 15,
+   "title": "Design for high availability",
+   "skills": [
+    "AZ305-3.2.2",
+    "AZ305-3.2.3"
+   ],
+   "activities": []
+  },
+  {
+   "day": 16,
+   "title": "Design compute: workload requirements, VMs and containers",
+   "skills": [
+    "AZ305-4.1.1",
+    "AZ305-4.1.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 17,
+   "title": "Design compute: workload requirements, VMs and containers + Design serverless and batch compute",
+   "skills": [
+    "AZ305-4.1.3",
+    "AZ305-4.1.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 18,
+   "title": "Design serverless and batch compute + Design messaging, event-driven and API architectures",
+   "skills": [
+    "AZ305-4.1.5",
+    "AZ305-4.2.1"
+   ],
+   "activities": []
+  },
+  {
+   "day": 19,
+   "title": "Design messaging, event-driven and API architectures",
+   "skills": [
+    "AZ305-4.2.2",
+    "AZ305-4.2.3"
+   ],
+   "activities": []
+  },
+  {
+   "day": 20,
+   "title": "Design caching, configuration and automated deployment",
+   "skills": [
+    "AZ305-4.2.4",
+    "AZ305-4.2.5"
+   ],
+   "activities": []
+  },
+  {
+   "day": 21,
+   "title": "Design caching, configuration and automated deployment, week 3 check",
+   "skills": [
+    "AZ305-4.2.6"
+   ],
+   "activities": [
+    "weekly-assessment"
+   ]
+  },
+  {
+   "day": 22,
+   "title": "Plan migrations with the Cloud Adoption Framework",
+   "skills": [
+    "AZ305-4.3.1",
+    "AZ305-4.3.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 23,
+   "title": "Migrate workloads, databases and unstructured data",
+   "skills": [
+    "AZ305-4.3.3",
+    "AZ305-4.3.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 24,
+   "title": "Migrate workloads, databases and unstructured data + Design internet and hybrid connectivity",
+   "skills": [
+    "AZ305-4.3.5",
+    "AZ305-4.4.1"
+   ],
+   "activities": []
+  },
+  {
+   "day": 25,
+   "title": "Design internet and hybrid connectivity + Optimise network performance and security, and choose load balancing",
+   "skills": [
+    "AZ305-4.4.2",
+    "AZ305-4.4.3"
+   ],
+   "activities": []
+  },
+  {
+   "day": 26,
+   "title": "Optimise network performance and security, and choose load balancing",
+   "skills": [
+    "AZ305-4.4.4",
+    "AZ305-4.4.5"
+   ],
+   "activities": []
+  },
+  {
+   "day": 27,
+   "title": "Catch-up: weak areas and their labs",
+   "skills": [],
+   "activities": [
+    "weak-revision"
+   ]
+  },
+  {
+   "day": 28,
+   "title": "Week 4 check",
+   "skills": [],
+   "activities": [
+    "weekly-assessment"
+   ]
+  },
+  {
+   "day": 29,
+   "title": "Mock exam 1 and review every mistake",
+   "skills": [],
+   "activities": [
+    "mock-exam"
+   ]
+  },
+  {
+   "day": 30,
+   "title": "Weak areas: redo their labs",
+   "skills": [],
+   "activities": [
+    "weak-revision"
+   ]
+  },
+  {
+   "day": 31,
+   "title": "Weak areas: practice questions by topic",
+   "skills": [],
+   "activities": [
+    "weak-revision"
+   ]
+  },
+  {
+   "day": 32,
+   "title": "Mock exam 2 and review every mistake",
+   "skills": [],
+   "activities": [
+    "mock-exam"
+   ]
+  },
+  {
+   "day": 33,
+   "title": "Weak areas: redo their labs",
+   "skills": [],
+   "activities": [
+    "weak-revision"
+   ]
+  },
+  {
+   "day": 34,
+   "title": "Mock exam 3 and review every mistake",
+   "skills": [],
+   "activities": [
+    "mock-exam"
+   ]
+  },
+  {
+   "day": 35,
+   "title": "Readiness check and light review",
+   "skills": [],
+   "activities": [
+    "readiness-report",
+    "exam-day-prep"
+   ]
+  }
+ ]
+}

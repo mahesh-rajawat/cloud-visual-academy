@@ -1,0 +1,5593 @@
+[
+  {
+    "id": "az305-x-1.1.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.1.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A company operates in the EU and the US. Regulation requires EU log data to stay in the EU. Which logging design do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "One Log Analytics workspace per geography (EU and US)",
+        "explanation": "Correct: workspaces store data in their region."
+      },
+      {
+        "id": "b",
+        "text": "One workspace in the US for everything",
+        "explanation": "EU data would leave the EU."
+      },
+      {
+        "id": "c",
+        "text": "One workspace per application",
+        "explanation": "Many workspaces without a residency reason add cost and complexity."
+      },
+      {
+        "id": "d",
+        "text": "Send all logs to a storage account only",
+        "explanation": "You lose querying and alerting."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Data residency is a valid reason for more than one workspace.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-monitor/logs/workspace-design"
+    ]
+  },
+  {
+    "id": "az305-x-1.1.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.1.1",
+    "difficulty": 3,
+    "type": "architecture",
+    "answerMode": "single",
+    "stem": "Firewall logs are huge, queried only during investigations, and must be kept 2 years at low cost. Alerts are not needed on them. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Ingest them into a table using the Basic logs plan",
+        "explanation": "Correct: cheaper ingestion for high-volume troubleshooting logs."
+      },
+      {
+        "id": "b",
+        "text": "Analytics plan with 2-year interactive retention",
+        "explanation": "Most expensive option for rarely queried data."
+      },
+      {
+        "id": "c",
+        "text": "Do not collect them",
+        "explanation": "They are needed for investigations."
+      },
+      {
+        "id": "d",
+        "text": "Send them to Application Insights",
+        "explanation": "Not an app telemetry workload."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Use table plans to match cost to how logs are used: Analytics for alerting and frequent queries, Basic/Auxiliary for high-volume, rarely queried logs.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-monitor/logs/logs-table-plans"
+    ]
+  },
+  {
+    "id": "az305-x-1.1.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.1.1",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "Each application team must see only logs from its own resources in a shared Log Analytics workspace. What do you use?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Resource-context access with Azure RBAC on the resources",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A separate workspace per team",
+        "explanation": "Not required for access control."
+      },
+      {
+        "id": "c",
+        "text": "Workspace keys shared per team",
+        "explanation": "Keys do not scope queries."
+      },
+      {
+        "id": "d",
+        "text": "Azure Policy",
+        "explanation": "Policy does not control log reading."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Resource-context RBAC returns only records from resources the user can access; table-level RBAC adds finer control.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-monitor/logs/manage-access"
+    ]
+  },
+  {
+    "id": "az305-x-1.1.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.1.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "The security team uses a third-party SIEM that must receive Azure resource logs in near real time. How do you route them?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Diagnostic settings that stream to Event Hubs",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Diagnostic settings to a storage account",
+        "explanation": "Archive, not a stream."
+      },
+      {
+        "id": "c",
+        "text": "Export from Log Analytics once a week",
+        "explanation": "Not near real time."
+      },
+      {
+        "id": "d",
+        "text": "Application Insights",
+        "explanation": "App telemetry only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Event Hubs is the destination for streaming logs to external systems.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-monitor/essentials/diagnostic-settings"
+    ]
+  },
+  {
+    "id": "az305-x-1.1.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.1.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Diagnostic settings must be configured on every new key vault in 30 subscriptions, automatically. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "An Azure Policy with the DeployIfNotExists effect assigned at a management group",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A script run manually each month",
+        "explanation": "Not automatic; misses new vaults."
+      },
+      {
+        "id": "c",
+        "text": "A resource lock",
+        "explanation": "Locks prevent changes."
+      },
+      {
+        "id": "d",
+        "text": "A data collection rule",
+        "explanation": "DCRs are for agent-based collection, not resource logs."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Built-in 'enable logging by category group' policies deploy diagnostic settings at scale.",
+    "docs": [
+      "https://learn.microsoft.com/azure/governance/policy/concepts/effect-deploy-if-not-exists"
+    ]
+  },
+  {
+    "id": "az305-x-1.1.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.1.2",
+    "difficulty": 2,
+    "type": "configuration",
+    "answerMode": "single",
+    "stem": "Windows VMs must send only the System and Application event logs (Error and Warning) to a workspace. What do you configure?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Monitor Agent with a data collection rule selecting those events",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A diagnostic setting on the VM",
+        "explanation": "Guest OS logs need the agent and a DCR."
+      },
+      {
+        "id": "c",
+        "text": "The legacy Log Analytics agent",
+        "explanation": "Retired."
+      },
+      {
+        "id": "d",
+        "text": "Boot diagnostics",
+        "explanation": "Screenshots and serial log only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Data collection rules define which guest data the Azure Monitor Agent collects and where it sends it.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-monitor/agents/data-collection-rule-azure-monitor-agent"
+    ]
+  },
+  {
+    "id": "az305-x-1.1.3-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.1.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Users report a web app is slow. You need to see which database or API call takes the longest for each request. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Application Insights with distributed tracing",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "VM insights",
+        "explanation": "Infrastructure, not request-level traces."
+      },
+      {
+        "id": "c",
+        "text": "Network Watcher",
+        "explanation": "Network diagnostics."
+      },
+      {
+        "id": "d",
+        "text": "Activity log",
+        "explanation": "Control-plane events."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Application Insights records requests and dependency calls with timing.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.1.3-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.1.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "The SOC needs to correlate security events from Azure, Microsoft 365 and on-premises firewalls and run automated responses. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Microsoft Sentinel",
+        "explanation": "Correct: SIEM and SOAR."
+      },
+      {
+        "id": "b",
+        "text": "Azure Monitor workbooks",
+        "explanation": "Visualisation only."
+      },
+      {
+        "id": "c",
+        "text": "Azure Advisor",
+        "explanation": "Best-practice recommendations."
+      },
+      {
+        "id": "d",
+        "text": "Azure Policy",
+        "explanation": "Configuration compliance."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Sentinel runs on a Log Analytics workspace with connectors, analytics rules and playbooks.",
+    "docs": [
+      "https://learn.microsoft.com/azure/sentinel/overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.1.3-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.1.3",
+    "difficulty": 3,
+    "type": "architecture",
+    "answerMode": "multiple",
+    "stem": "Which TWO features help monitor AKS clusters?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Container insights",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Monitor managed service for Prometheus",
+        "explanation": "Correct."
+      },
+      {
+        "id": "c",
+        "text": "VM insights dependency map for each pod",
+        "explanation": "VM insights targets VMs."
+      },
+      {
+        "id": "d",
+        "text": "Azure Advisor score",
+        "explanation": "Recommendations, not monitoring."
+      }
+    ],
+    "correct": [
+      "a",
+      "b"
+    ],
+    "explanation": "Container insights plus managed Prometheus (and Grafana) are the AKS monitoring stack.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-monitor/containers/container-insights-overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "You sync 10,000 users from AD. Sign-in must keep working if the on-premises datacenter is offline, and leaked passwords must be detected. Which method?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Password hash sync",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Pass-through authentication",
+        "explanation": "Depends on on-premises agents."
+      },
+      {
+        "id": "c",
+        "text": "Federation with AD FS",
+        "explanation": "Depends on on-premises servers."
+      },
+      {
+        "id": "d",
+        "text": "Cloud-only accounts",
+        "explanation": "Users must keep their AD identity."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "PHS has no on-premises dependency at sign-in and enables leaked-credential detection.",
+    "docs": [
+      "https://learn.microsoft.com/entra/identity/hybrid/connect/choose-ad-authn"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Admins must use MFA, and access to the Azure portal from unmanaged devices must be blocked. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Conditional Access policies (Entra ID P1)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Security defaults",
+        "explanation": "Cannot require compliant devices."
+      },
+      {
+        "id": "c",
+        "text": "Per-user MFA only",
+        "explanation": "No device conditions."
+      },
+      {
+        "id": "d",
+        "text": "Azure Policy",
+        "explanation": "Not for sign-in."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Conditional Access combines user, app, device and location conditions.",
+    "docs": [
+      "https://learn.microsoft.com/entra/identity/conditional-access/overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.1",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Users must sign in without passwords using phishing-resistant authentication on shared kiosk PCs. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "FIDO2 security keys (passkeys)",
+        "explanation": "Correct: phishing-resistant and not tied to one PC."
+      },
+      {
+        "id": "b",
+        "text": "SMS codes",
+        "explanation": "Not phishing-resistant."
+      },
+      {
+        "id": "c",
+        "text": "Windows Hello for Business",
+        "explanation": "Bound to a personal device."
+      },
+      {
+        "id": "d",
+        "text": "Security questions",
+        "explanation": "Weak and not a sign-in method."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "FIDO2 keys and passkeys are phishing-resistant and portable.",
+    "docs": [
+      "https://learn.microsoft.com/entra/identity/authentication/concept-authentication-passwordless"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A consumer app needs sign-up and sign-in for millions of customers with email or Google accounts. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Microsoft Entra External ID in an external tenant",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "B2B collaboration guests in the workforce tenant",
+        "explanation": "Meant for partners."
+      },
+      {
+        "id": "c",
+        "text": "Create member users for each customer",
+        "explanation": "Not scalable or appropriate."
+      },
+      {
+        "id": "d",
+        "text": "Managed identities",
+        "explanation": "For Azure resources."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "External ID is the customer identity solution (successor to Azure AD B2C).",
+    "docs": [
+      "https://learn.microsoft.com/entra/external-id/external-identities-overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A GitHub Actions workflow deploys to Azure. Security forbids long-lived client secrets. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Workload identity federation on an app registration or user-assigned managed identity",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A client secret valid for 2 years",
+        "explanation": "Long-lived secret."
+      },
+      {
+        "id": "c",
+        "text": "A user account with MFA",
+        "explanation": "Pipelines cannot do MFA."
+      },
+      {
+        "id": "d",
+        "text": "A storage account key",
+        "explanation": "Unrelated."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Federated credentials trust GitHub's OIDC token, so no secret is stored.",
+    "docs": [
+      "https://learn.microsoft.com/entra/workload-id/workload-identity-federation"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.2",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "Several web apps must use the same identity to access a database, and it must survive if one app is deleted. Which identity?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A user-assigned managed identity",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A system-assigned managed identity per app",
+        "explanation": "Deleted with each app and not shared."
+      },
+      {
+        "id": "c",
+        "text": "A shared SQL login in app settings",
+        "explanation": "A secret to manage."
+      },
+      {
+        "id": "d",
+        "text": "A B2B guest",
+        "explanation": "For people."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "User-assigned identities are standalone resources that can be attached to many resources.",
+    "docs": [
+      "https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.3-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Engineers should become Contributor on production only when needed, for at most 4 hours, with a justification. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Privileged Identity Management eligible assignments",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Permanent Contributor with an access review",
+        "explanation": "Still standing access."
+      },
+      {
+        "id": "c",
+        "text": "A resource lock",
+        "explanation": "Locks do not grant access."
+      },
+      {
+        "id": "d",
+        "text": "Azure Policy",
+        "explanation": "Not for permissions."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "PIM provides just-in-time, time-bound activation with justification and approval.",
+    "docs": [
+      "https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-configure"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.3-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Support staff must only start, stop and restart VMs in one resource group. No built-in role is that narrow. What do you do?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Create a custom role with those actions and assign it to their group at the resource group",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Assign Virtual Machine Contributor",
+        "explanation": "Too broad."
+      },
+      {
+        "id": "c",
+        "text": "Assign Owner with a lock",
+        "explanation": "Far too broad."
+      },
+      {
+        "id": "d",
+        "text": "Use Azure Policy",
+        "explanation": "Policy does not grant actions."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Custom roles list exactly the allowed actions; assign to a group at the narrowest scope.",
+    "docs": [
+      "https://learn.microsoft.com/azure/role-based-access-control/custom-roles"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.3-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.3",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "In a shared container, users from each project may read only blobs tagged with their project. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Storage Blob Data Reader with an ABAC condition on the blob index tag",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "One SAS per user",
+        "explanation": "Hard to manage and not identity-based."
+      },
+      {
+        "id": "c",
+        "text": "Contributor on the account",
+        "explanation": "Control plane only, too broad."
+      },
+      {
+        "id": "d",
+        "text": "Separate storage accounts per user",
+        "explanation": "Unnecessary."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "ABAC conditions filter data access by attributes such as blob index tags.",
+    "docs": [
+      "https://learn.microsoft.com/azure/role-based-access-control/conditions-overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.4-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Remote employees need an on-premises intranet site with MFA. The network team will not open inbound firewall ports. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Microsoft Entra application proxy",
+        "explanation": "Correct: outbound connectors with Entra pre-authentication."
+      },
+      {
+        "id": "b",
+        "text": "Publish the site on a public IP",
+        "explanation": "Requires inbound ports."
+      },
+      {
+        "id": "c",
+        "text": "Microsoft Entra Domain Services",
+        "explanation": "A managed domain, not remote access."
+      },
+      {
+        "id": "d",
+        "text": "B2B collaboration",
+        "explanation": "For external users."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Application proxy publishes on-premises web apps securely.",
+    "docs": [
+      "https://learn.microsoft.com/entra/identity/app-proxy/overview-what-is-app-proxy"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.4-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A legacy app moved to Azure VMs requires LDAP and Kerberos. The company wants no domain controllers to patch. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Microsoft Entra Domain Services",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Domain controllers on Azure VMs",
+        "explanation": "Must be managed and patched."
+      },
+      {
+        "id": "c",
+        "text": "Application proxy",
+        "explanation": "Publishes web apps; does not provide LDAP."
+      },
+      {
+        "id": "d",
+        "text": "Conditional Access",
+        "explanation": "Not a directory service."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Domain Services is a managed domain compatible with LDAP, Kerberos and NTLM.",
+    "docs": [
+      "https://learn.microsoft.com/entra/identity/domain-services/overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.4-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.4",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "The company wants to replace its VPN so remote users reach private apps on various TCP ports, with Conditional Access per app. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Microsoft Entra Private Access",
+        "explanation": "Correct: Zero Trust network access per app."
+      },
+      {
+        "id": "b",
+        "text": "Point-to-site VPN",
+        "explanation": "The thing being replaced; network-wide access."
+      },
+      {
+        "id": "c",
+        "text": "Application proxy",
+        "explanation": "Web apps only."
+      },
+      {
+        "id": "d",
+        "text": "Azure Bastion",
+        "explanation": "VM admin sessions only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Private Access (Global Secure Access) gives per-app access to private resources on any port.",
+    "docs": [
+      "https://learn.microsoft.com/entra/global-secure-access/concept-private-access"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.5-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.5",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Customer-managed keys must be protected by HSMs at the lowest cost, without dedicated hardware. Which service?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Key Vault Premium",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Key Vault Standard",
+        "explanation": "Software-protected keys only."
+      },
+      {
+        "id": "c",
+        "text": "Managed HSM",
+        "explanation": "Single-tenant and more expensive."
+      },
+      {
+        "id": "d",
+        "text": "App Configuration",
+        "explanation": "Not for keys."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Premium adds HSM-protected keys to Key Vault.",
+    "docs": [
+      "https://learn.microsoft.com/azure/key-vault/general/overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.5-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.5",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A web app must read a database password from Key Vault without storing any credential. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Enable a managed identity on the app and grant it Key Vault Secrets User",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Store the vault's access key in app settings",
+        "explanation": "Key Vault has no shared access key; and that would be a secret."
+      },
+      {
+        "id": "c",
+        "text": "Grant the app Owner on the vault",
+        "explanation": "Too much access."
+      },
+      {
+        "id": "d",
+        "text": "Make the vault public",
+        "explanation": "Access still needs authorization."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Managed identity + RBAC data role is the standard pattern.",
+    "docs": [
+      "https://learn.microsoft.com/azure/key-vault/general/rbac-guide"
+    ]
+  },
+  {
+    "id": "az305-x-1.2.5-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.2.5",
+    "difficulty": 3,
+    "type": "multiple",
+    "answerMode": "multiple",
+    "stem": "Which TWO settings help ensure keys used for customer-managed encryption cannot be permanently destroyed by a malicious admin?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Soft delete",
+        "explanation": "Correct: deleted keys can be recovered."
+      },
+      {
+        "id": "b",
+        "text": "Purge protection",
+        "explanation": "Correct: prevents permanent deletion during retention."
+      },
+      {
+        "id": "c",
+        "text": "Standard tier",
+        "explanation": "Unrelated to deletion."
+      },
+      {
+        "id": "d",
+        "text": "Access policies instead of RBAC",
+        "explanation": "Does not prevent purge."
+      }
+    ],
+    "correct": [
+      "a",
+      "b"
+    ],
+    "explanation": "Soft delete plus purge protection keep deleted keys recoverable for the retention period.",
+    "docs": [
+      "https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.3.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.3.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "All production subscriptions must allow only EU regions, and new production subscriptions must get the rule automatically. Where do you assign the policy?",
+    "options": [
+      {
+        "id": "a",
+        "text": "On a management group that contains the production subscriptions",
+        "explanation": "Correct: new subscriptions placed there inherit it."
+      },
+      {
+        "id": "b",
+        "text": "On each production subscription",
+        "explanation": "New subscriptions would be missed."
+      },
+      {
+        "id": "c",
+        "text": "On each resource group",
+        "explanation": "Too granular."
+      },
+      {
+        "id": "d",
+        "text": "On the tenant root group for all subscriptions",
+        "explanation": "Would also restrict non-production."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Policies assigned at a management group apply to all subscriptions under it, now and in future.",
+    "docs": [
+      "https://learn.microsoft.com/azure/governance/management-groups/overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.3.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.3.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Finance needs costs by cost center. Resource groups already have a CostCenter tag, but resources inside often don't. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "An 'Inherit a tag from the resource group' policy with Modify and a remediation task",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Nothing: tags are inherited automatically",
+        "explanation": "They are not."
+      },
+      {
+        "id": "c",
+        "text": "A separate subscription per cost center",
+        "explanation": "Heavy change for a reporting need."
+      },
+      {
+        "id": "d",
+        "text": "Resource locks",
+        "explanation": "Unrelated."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Modify policies add or copy tags; remediation fixes existing resources.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/management/tag-policies"
+    ]
+  },
+  {
+    "id": "az305-x-1.3.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.3.1",
+    "difficulty": 3,
+    "type": "architecture",
+    "answerMode": "single",
+    "stem": "Which management group design follows Azure landing zone guidance?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Platform (Identity, Management, Connectivity), Landing zones (Corp, Online), Sandbox, Decommissioned",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "One management group per department, mirroring the org chart",
+        "explanation": "Org charts change; design for policy."
+      },
+      {
+        "id": "c",
+        "text": "Ten nested levels for fine control",
+        "explanation": "Keep the hierarchy shallow."
+      },
+      {
+        "id": "d",
+        "text": "No management groups; policy per subscription",
+        "explanation": "Does not scale."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "The landing zone hierarchy groups subscriptions by the policies and access they need.",
+    "docs": [
+      "https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/design-area/resource-org-management-groups"
+    ]
+  },
+  {
+    "id": "az305-x-1.3.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.3.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Auditors need a report showing how Azure resources meet PCI DSS controls. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "The Defender for Cloud regulatory compliance dashboard with the PCI DSS standard",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Advisor",
+        "explanation": "Best practices, not regulatory mapping."
+      },
+      {
+        "id": "c",
+        "text": "Resource locks",
+        "explanation": "Do not report."
+      },
+      {
+        "id": "d",
+        "text": "Cost Management",
+        "explanation": "Costs only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Defender for Cloud maps assessments to regulatory standards.",
+    "docs": [
+      "https://learn.microsoft.com/azure/defender-for-cloud/regulatory-compliance-dashboard"
+    ]
+  },
+  {
+    "id": "az305-x-1.3.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.3.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A company used Azure Blueprints to deploy compliant subscriptions. Blueprints is deprecated. What do you recommend instead?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Template specs and deployment stacks with Azure Policy",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Keep using Blueprints",
+        "explanation": "Deprecated."
+      },
+      {
+        "id": "c",
+        "text": "Manual portal deployments",
+        "explanation": "Not repeatable."
+      },
+      {
+        "id": "d",
+        "text": "Resource locks only",
+        "explanation": "Locks don't deploy anything."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Microsoft recommends template specs and deployment stacks (plus policy) to replace Blueprints.",
+    "docs": [
+      "https://learn.microsoft.com/azure/governance/blueprints/overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.3.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.3.2",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A Deny policy blocks a sandbox team that has an approved, temporary need for public IPs. Others must stay blocked. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A policy exemption (Waiver) on the sandbox scope with an expiry date",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Delete the policy assignment",
+        "explanation": "Removes protection for everyone."
+      },
+      {
+        "id": "c",
+        "text": "Change the effect to Audit everywhere",
+        "explanation": "Weakens enforcement."
+      },
+      {
+        "id": "d",
+        "text": "Give the team Owner",
+        "explanation": "RBAC doesn't bypass policy."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Exemptions exclude a scope from an assignment, with a category and expiry.",
+    "docs": [
+      "https://learn.microsoft.com/azure/governance/policy/concepts/exemption-structure"
+    ]
+  },
+  {
+    "id": "az305-x-1.3.3-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.3.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Every quarter, team owners must confirm that guest users still need access to their Microsoft Teams. Unconfirmed guests must lose access. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Access reviews with auto-apply of results",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "PIM",
+        "explanation": "For privileged roles."
+      },
+      {
+        "id": "c",
+        "text": "Conditional Access",
+        "explanation": "Controls sign-in, not certification."
+      },
+      {
+        "id": "d",
+        "text": "Dynamic groups",
+        "explanation": "Membership rules, not reviews."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Access reviews certify access and can remove denied users automatically.",
+    "docs": [
+      "https://learn.microsoft.com/entra/id-governance/access-reviews-overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.3.3-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.3.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Contractors must request a bundle of groups and apps, get manager approval, and lose access automatically after 6 months. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Entitlement management access packages",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A dynamic group",
+        "explanation": "No approval or expiry workflow."
+      },
+      {
+        "id": "c",
+        "text": "B2B invitations only",
+        "explanation": "No bundle or expiry."
+      },
+      {
+        "id": "d",
+        "text": "Administrative units",
+        "explanation": "Delegation, not access requests."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Access packages bundle resources with approval and expiration.",
+    "docs": [
+      "https://learn.microsoft.com/entra/id-governance/entitlement-management-overview"
+    ]
+  },
+  {
+    "id": "az305-x-1.3.3-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-1.3.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "When HR records an employee's last day, their account should be disabled and removed from groups automatically. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Lifecycle workflows (leaver)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Access reviews",
+        "explanation": "Periodic, not event-driven."
+      },
+      {
+        "id": "c",
+        "text": "Password expiry",
+        "explanation": "Doesn't remove access."
+      },
+      {
+        "id": "d",
+        "text": "PIM",
+        "explanation": "For privileged roles."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Lifecycle workflows automate joiner, mover and leaver tasks from HR attributes.",
+    "docs": [
+      "https://learn.microsoft.com/entra/id-governance/what-are-lifecycle-workflows"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "You migrate 40 SQL Server databases that use SQL Agent jobs, cross-database queries and Database Mail. You want PaaS with minimal changes. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure SQL Managed Instance",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure SQL Database single databases",
+        "explanation": "No SQL Agent or cross-database queries."
+      },
+      {
+        "id": "c",
+        "text": "SQL Server on Azure VMs",
+        "explanation": "Works but is IaaS, not PaaS."
+      },
+      {
+        "id": "d",
+        "text": "Azure Cosmos DB",
+        "explanation": "Not relational SQL Server."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Managed Instance supports instance-scoped SQL Server features as PaaS.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/managed-instance/sql-managed-instance-paas-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "An application requires SQL Server Reporting Services on the same server and a third-party backup agent installed on the OS. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "SQL Server on Azure VMs",
+        "explanation": "Correct: OS access and full feature set."
+      },
+      {
+        "id": "b",
+        "text": "SQL Managed Instance",
+        "explanation": "No OS access."
+      },
+      {
+        "id": "c",
+        "text": "SQL Database",
+        "explanation": "No OS access."
+      },
+      {
+        "id": "d",
+        "text": "Azure Database for MySQL",
+        "explanation": "Different engine."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Only a VM gives OS-level control.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/virtual-machines/windows/sql-server-on-azure-vm-iaas-what-is-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.1",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "A new cloud-native app needs one relational database with the least administration. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure SQL Database",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "SQL Managed Instance",
+        "explanation": "More than needed."
+      },
+      {
+        "id": "c",
+        "text": "SQL Server on a VM",
+        "explanation": "Most administration."
+      },
+      {
+        "id": "d",
+        "text": "Azure Table Storage",
+        "explanation": "Not relational."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "SQL Database is the most managed relational option for new apps.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/azure-sql-iaas-vs-paas-what-is-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A database is 45 TB and growing, and must scale compute quickly. Which tier?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Hyperscale",
+        "explanation": "Correct: up to 128 TB and fast scaling."
+      },
+      {
+        "id": "b",
+        "text": "General Purpose",
+        "explanation": "Limited to a few TB."
+      },
+      {
+        "id": "c",
+        "text": "Business Critical",
+        "explanation": "Limited size."
+      },
+      {
+        "id": "d",
+        "text": "Basic (DTU)",
+        "explanation": "Very small."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Hyperscale separates compute and storage for very large databases.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/database/service-tier-hyperscale"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A SaaS vendor has 250 small tenant databases. Each is busy at different times. Cost must be minimised. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "An elastic pool",
+        "explanation": "Correct: databases share pooled resources."
+      },
+      {
+        "id": "b",
+        "text": "250 provisioned Business Critical databases",
+        "explanation": "Very expensive."
+      },
+      {
+        "id": "c",
+        "text": "One Hyperscale database",
+        "explanation": "Breaks tenant isolation."
+      },
+      {
+        "id": "d",
+        "text": "SQL Server on one VM",
+        "explanation": "More administration."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Elastic pools suit many databases with varying, non-overlapping usage.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/database/elastic-pool-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.2",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A test database is used for about 2 hours a day at unpredictable times. You want to pay as little as possible. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "General Purpose serverless with auto-pause",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Business Critical provisioned",
+        "explanation": "Expensive and always running."
+      },
+      {
+        "id": "c",
+        "text": "Hyperscale provisioned with named replicas",
+        "explanation": "Overkill."
+      },
+      {
+        "id": "d",
+        "text": "DTU Premium",
+        "explanation": "Always billed."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Serverless bills per second of use and pauses when idle (General Purpose).",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/database/serverless-tier-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.3-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Heavy reports slow down OLTP on a Business Critical database. You want to fix it without extra cost. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Read scale-out with ApplicationIntent=ReadOnly for reports",
+        "explanation": "Correct: Business Critical includes a readable replica."
+      },
+      {
+        "id": "b",
+        "text": "Scale up to double vCores",
+        "explanation": "Extra cost."
+      },
+      {
+        "id": "c",
+        "text": "Move reports to a separate database copy every night",
+        "explanation": "Stale data and extra work."
+      },
+      {
+        "id": "d",
+        "text": "Use Hyperscale named replicas",
+        "explanation": "Requires changing tier."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Read scale-out uses the built-in readable replica at no extra cost.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/database/read-scale-out"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.3-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.3",
+    "difficulty": 3,
+    "type": "architecture",
+    "answerMode": "single",
+    "stem": "A multi-tenant app will outgrow any single database. Each tenant's data must stay together and be movable. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Shard by tenant across databases using elastic database tools",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Scale up to the largest Business Critical size",
+        "explanation": "Still a single-database limit."
+      },
+      {
+        "id": "c",
+        "text": "Read scale-out",
+        "explanation": "Helps reads only."
+      },
+      {
+        "id": "d",
+        "text": "Add more indexes",
+        "explanation": "Not a scale-out strategy."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Horizontal sharding with a shard map spreads tenants across databases.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/database/elastic-scale-introduction"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.3-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.3",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "Which tier lets you add up to 30 named replicas for independent read workloads?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Hyperscale",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "General Purpose",
+        "explanation": "No readable replicas."
+      },
+      {
+        "id": "c",
+        "text": "Business Critical",
+        "explanation": "One built-in readable replica."
+      },
+      {
+        "id": "d",
+        "text": "Basic",
+        "explanation": "No replicas."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Hyperscale supports named replicas for read scale-out.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/database/service-tier-hyperscale-replicas"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.4-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Database administrators must not be able to view social security numbers, but the app must use them. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Always Encrypted on that column",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Transparent data encryption",
+        "explanation": "Data is decrypted for anyone querying."
+      },
+      {
+        "id": "c",
+        "text": "Dynamic data masking",
+        "explanation": "Privileged users see the real values."
+      },
+      {
+        "id": "d",
+        "text": "Firewall rules",
+        "explanation": "Network control only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Always Encrypted keeps plaintext out of the database engine.",
+    "docs": [
+      "https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-database-engine"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.4-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Each regional sales manager must see only orders from their region in the same table. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Row-level security",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Dynamic data masking",
+        "explanation": "Masks values, not rows."
+      },
+      {
+        "id": "c",
+        "text": "A separate database per region",
+        "explanation": "Unnecessary duplication."
+      },
+      {
+        "id": "d",
+        "text": "TDE",
+        "explanation": "At-rest encryption only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "RLS filters rows per user with security predicates.",
+    "docs": [
+      "https://learn.microsoft.com/sql/relational-databases/security/row-level-security"
+    ]
+  },
+  {
+    "id": "az305-x-2.1.4-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.1.4",
+    "difficulty": 2,
+    "type": "multiple",
+    "answerMode": "multiple",
+    "stem": "Which TWO features detect or record suspicious database activity?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Auditing",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Microsoft Defender for SQL",
+        "explanation": "Correct: threat detection alerts."
+      },
+      {
+        "id": "c",
+        "text": "Dynamic data masking",
+        "explanation": "Hides values."
+      },
+      {
+        "id": "d",
+        "text": "Elastic pools",
+        "explanation": "Resource sharing."
+      }
+    ],
+    "correct": [
+      "a",
+      "b"
+    ],
+    "explanation": "Auditing records events; Defender for SQL detects threats such as SQL injection.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/database/security-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "An existing MongoDB application must move to a managed Azure service without changing its drivers. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Cosmos DB for MongoDB",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Cosmos DB for NoSQL",
+        "explanation": "Requires code changes."
+      },
+      {
+        "id": "c",
+        "text": "Azure Table Storage",
+        "explanation": "Different API."
+      },
+      {
+        "id": "d",
+        "text": "Azure SQL Database",
+        "explanation": "Relational."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "The MongoDB API keeps drivers and tools working.",
+    "docs": [
+      "https://learn.microsoft.com/azure/cosmos-db/mongodb/introduction"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.1",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A Cosmos DB container uses /country as partition key. Writes are throttled because most users are in one country. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Choose a high-cardinality partition key such as /userId (or a hierarchical key)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Increase RU/s only",
+        "explanation": "The hot partition remains."
+      },
+      {
+        "id": "c",
+        "text": "Switch to strong consistency",
+        "explanation": "Unrelated and slower."
+      },
+      {
+        "id": "d",
+        "text": "Add more regions",
+        "explanation": "Doesn't fix partition skew."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Partition keys should have many distinct values and spread requests evenly.",
+    "docs": [
+      "https://learn.microsoft.com/azure/cosmos-db/partitioning-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.1",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "Which consistency level is the Cosmos DB default and guarantees users read their own writes within a session?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Session",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Strong",
+        "explanation": "Strongest, higher latency."
+      },
+      {
+        "id": "c",
+        "text": "Eventual",
+        "explanation": "No read-your-writes guarantee."
+      },
+      {
+        "id": "d",
+        "text": "Bounded staleness",
+        "explanation": "Lag bounded by time or versions."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Session is the default and most widely used level.",
+    "docs": [
+      "https://learn.microsoft.com/azure/cosmos-db/consistency-levels"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Data engineers need folders with POSIX-style ACLs and fast directory renames for Spark jobs. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Data Lake Storage (hierarchical namespace)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Blob Storage with a flat namespace",
+        "explanation": "No real directories."
+      },
+      {
+        "id": "c",
+        "text": "Azure Files",
+        "explanation": "File shares, not an analytics lake."
+      },
+      {
+        "id": "d",
+        "text": "Cosmos DB",
+        "explanation": "Not for files."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Data Lake Storage adds a hierarchical namespace optimised for analytics.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/blobs/data-lake-storage-introduction"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Windows file servers must be replaced with a managed SMB share that keeps NTFS-style permissions from AD. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Files with identity-based access",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Blob Storage",
+        "explanation": "No SMB."
+      },
+      {
+        "id": "c",
+        "text": "Azure NetApp Files Ultra",
+        "explanation": "Possible but more than needed."
+      },
+      {
+        "id": "d",
+        "text": "Table Storage",
+        "explanation": "Not files."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Azure Files offers SMB shares with AD DS or Entra Kerberos authentication.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/files/storage-files-introduction"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.2",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "SAP HANA needs shared NFS storage with sub-millisecond latency and very high throughput. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure NetApp Files",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Files Standard",
+        "explanation": "Not for that latency."
+      },
+      {
+        "id": "c",
+        "text": "Blob Storage",
+        "explanation": "Object storage."
+      },
+      {
+        "id": "d",
+        "text": "Data Lake Storage",
+        "explanation": "Analytics storage."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "NetApp Files is certified for SAP HANA and high-performance workloads.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-netapp-files/azure-netapp-files-introduction"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.3-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Log files are read often for 2 weeks, rarely afterwards, and must be deleted after 1 year with no manual effort. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A lifecycle management policy: Hot → Cool after 14 days, delete after 365 days",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Keep everything in Hot and delete manually",
+        "explanation": "Costly and manual."
+      },
+      {
+        "id": "c",
+        "text": "Archive tier on upload",
+        "explanation": "Logs are read in the first 2 weeks."
+      },
+      {
+        "id": "d",
+        "text": "Premium block blob",
+        "explanation": "Unneeded performance."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Lifecycle rules automate tiering and deletion.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/blobs/lifecycle-management-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.3-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "An IoT app writes millions of small blobs per hour and needs consistently low latency. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A Premium block blob storage account",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Standard GPv2 Cool tier",
+        "explanation": "Higher transaction cost and latency."
+      },
+      {
+        "id": "c",
+        "text": "Archive tier",
+        "explanation": "Offline."
+      },
+      {
+        "id": "d",
+        "text": "Azure Files Standard",
+        "explanation": "Not object storage."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Premium block blob uses SSDs for high transaction rates and low latency.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/blobs/storage-blob-block-blob-premium"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.3-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.3",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Compliance archives must be kept 10 years, are almost never read, and can wait 15 hours for retrieval. The account must also use geo-redundancy. Which combination?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Archive tier on a GRS account",
+        "explanation": "Correct: Archive supports LRS, GRS and RA-GRS."
+      },
+      {
+        "id": "b",
+        "text": "Archive tier on a GZRS account",
+        "explanation": "Archive is not supported on GZRS."
+      },
+      {
+        "id": "c",
+        "text": "Cold tier on ZRS",
+        "explanation": "Costs more for data this cold."
+      },
+      {
+        "id": "d",
+        "text": "Hot tier on RA-GZRS",
+        "explanation": "Most expensive."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Archive is the cheapest tier and requires LRS, GRS or RA-GRS.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/blobs/access-tiers-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.4-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Financial records must be impossible to modify or delete for 7 years, even by administrators. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A time-based retention immutability policy (locked)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Soft delete for 365 days",
+        "explanation": "Data can still be changed."
+      },
+      {
+        "id": "c",
+        "text": "A CanNotDelete lock",
+        "explanation": "Protects the account, not blob data, and can be removed."
+      },
+      {
+        "id": "d",
+        "text": "RA-GZRS",
+        "explanation": "Durability, not WORM."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Locked time-based retention makes blobs WORM for the period.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/blobs/immutable-storage-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.4-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.4",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "You need a copy of blob data that survives even if an attacker deletes the whole storage account. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Vaulted backup for blobs in a Backup vault",
+        "explanation": "Correct: the copy lives outside the account."
+      },
+      {
+        "id": "b",
+        "text": "Soft delete and versioning",
+        "explanation": "Lost if the account is deleted."
+      },
+      {
+        "id": "c",
+        "text": "GRS",
+        "explanation": "Account deletion removes both copies."
+      },
+      {
+        "id": "d",
+        "text": "Lifecycle management",
+        "explanation": "Not protection."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Vaulted backup stores data in a separate vault.",
+    "docs": [
+      "https://learn.microsoft.com/azure/backup/blob-backup-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.2.4-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.2.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Data must survive a zone failure and a full regional outage, and the secondary must be readable at all times. Which redundancy?",
+    "options": [
+      {
+        "id": "a",
+        "text": "RA-GZRS",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "ZRS",
+        "explanation": "Single region."
+      },
+      {
+        "id": "c",
+        "text": "GRS",
+        "explanation": "No zones in the primary and secondary not readable."
+      },
+      {
+        "id": "d",
+        "text": "LRS",
+        "explanation": "One datacenter."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "RA-GZRS = zones + secondary region + read access.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/common/storage-redundancy"
+    ]
+  },
+  {
+    "id": "az305-x-2.3.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.3.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Nightly copies from an on-premises SQL Server to Data Lake Storage must be orchestrated with retries and monitoring. The server has no public endpoint. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Data Factory with a self-hosted integration runtime",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Stream Analytics",
+        "explanation": "For streams."
+      },
+      {
+        "id": "c",
+        "text": "AzCopy on a schedule",
+        "explanation": "No orchestration or monitoring."
+      },
+      {
+        "id": "d",
+        "text": "Event Grid",
+        "explanation": "Event routing, not data copy."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "A self-hosted IR lets Data Factory reach private sources.",
+    "docs": [
+      "https://learn.microsoft.com/azure/data-factory/concepts-integration-runtime"
+    ]
+  },
+  {
+    "id": "az305-x-2.3.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.3.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Hundreds of existing SSIS packages must run in Azure with minimal changes. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure-SSIS integration runtime in Data Factory",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Rewrite them in Databricks",
+        "explanation": "Major effort."
+      },
+      {
+        "id": "c",
+        "text": "Logic Apps",
+        "explanation": "Different tool."
+      },
+      {
+        "id": "d",
+        "text": "SQL Database elastic jobs",
+        "explanation": "Not for SSIS."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "The Azure-SSIS IR lifts and shifts SSIS packages.",
+    "docs": [
+      "https://learn.microsoft.com/azure/data-factory/concepts-integration-runtime"
+    ]
+  },
+  {
+    "id": "az305-x-2.3.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.3.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Factory machines send readings every second. An alert must fire within seconds when a 1-minute average exceeds a limit. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Event Hubs with Azure Stream Analytics",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Data Factory pipeline every hour",
+        "explanation": "Too slow."
+      },
+      {
+        "id": "c",
+        "text": "Synapse dedicated SQL pool",
+        "explanation": "Not real time."
+      },
+      {
+        "id": "d",
+        "text": "Blob storage with a lifecycle rule",
+        "explanation": "Not processing."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Stream Analytics computes windowed aggregates over live streams.",
+    "docs": [
+      "https://learn.microsoft.com/azure/stream-analytics/stream-analytics-introduction"
+    ]
+  },
+  {
+    "id": "az305-x-2.3.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.3.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Data scientists need notebooks and Apache Spark to build ML features on petabytes in a Delta Lake. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Databricks",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Data Factory",
+        "explanation": "Orchestration, not ML notebooks."
+      },
+      {
+        "id": "c",
+        "text": "Power BI",
+        "explanation": "Visualisation."
+      },
+      {
+        "id": "d",
+        "text": "Azure SQL Database",
+        "explanation": "Not for petabyte Spark workloads."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Databricks is the Spark lakehouse platform for engineering and ML.",
+    "docs": [
+      "https://learn.microsoft.com/azure/databricks/introduction/"
+    ]
+  },
+  {
+    "id": "az305-x-2.3.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.3.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A company wants one SaaS analytics platform covering data engineering, warehousing, real-time analytics and Power BI, with minimal infrastructure to manage. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Microsoft Fabric",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A set of VMs with open-source tools",
+        "explanation": "Heavy management."
+      },
+      {
+        "id": "c",
+        "text": "Azure Data Explorer only",
+        "explanation": "Covers telemetry analytics only."
+      },
+      {
+        "id": "d",
+        "text": "Azure Table Storage",
+        "explanation": "Not analytics."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Fabric unifies analytics workloads on OneLake as SaaS.",
+    "docs": [
+      "https://learn.microsoft.com/fabric/fundamentals/microsoft-fabric-overview"
+    ]
+  },
+  {
+    "id": "az305-x-2.3.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-2.3.2",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Engineers must run ad-hoc KQL queries over billions of telemetry records with results in seconds. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Data Explorer",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Synapse dedicated SQL pool",
+        "explanation": "Optimised for warehouse SQL, not KQL telemetry."
+      },
+      {
+        "id": "c",
+        "text": "Azure SQL Database",
+        "explanation": "Not at that scale for log analytics."
+      },
+      {
+        "id": "d",
+        "text": "Data Factory",
+        "explanation": "Moves data only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Data Explorer is built for fast log and time-series analytics with KQL.",
+    "docs": [
+      "https://learn.microsoft.com/azure/data-explorer/data-explorer-overview"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "An app's VMs must run in another region within a few hours of a regional outage, losing at most a few minutes of data. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Site Recovery replication to a secondary region",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Daily Azure Backup with cross-region restore",
+        "explanation": "RPO up to a day and slower recovery."
+      },
+      {
+        "id": "c",
+        "text": "Availability zones",
+        "explanation": "Don't protect against a regional outage."
+      },
+      {
+        "id": "d",
+        "text": "Snapshots in the same region",
+        "explanation": "Lost with the region."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Site Recovery provides minute-level RPO and orchestrated regional failover.",
+    "docs": [
+      "https://learn.microsoft.com/azure/site-recovery/site-recovery-overview"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.1",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "A workload has an RPO of 24 hours and an RTO of 48 hours. What is the most cost-effective recovery design?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Daily backups with Azure Backup",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Active-active in two regions",
+        "explanation": "Far more than needed."
+      },
+      {
+        "id": "c",
+        "text": "Site Recovery with recovery plans",
+        "explanation": "More cost than these targets need."
+      },
+      {
+        "id": "d",
+        "text": "No protection",
+        "explanation": "Doesn't meet the targets."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Relaxed targets are met by backup alone.",
+    "docs": [
+      "https://learn.microsoft.com/azure/backup/backup-overview"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.1",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Disaster recovery must be proven every quarter without affecting production. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Site Recovery test failover into an isolated network",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Planned failover of production every quarter",
+        "explanation": "Disrupts production."
+      },
+      {
+        "id": "c",
+        "text": "Restore a backup to the same VNet",
+        "explanation": "Risk of conflicts."
+      },
+      {
+        "id": "d",
+        "text": "Review the runbook only",
+        "explanation": "Not a test."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Test failover creates VMs in an isolated network while replication continues.",
+    "docs": [
+      "https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-dr-drill"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Ransomware encrypted a VM's disks this morning. You need it back as it was two days ago. What do you use?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Backup restore from a recovery point",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Site Recovery failover",
+        "explanation": "Replicas may contain the encrypted data."
+      },
+      {
+        "id": "c",
+        "text": "Availability set",
+        "explanation": "HA, not recovery."
+      },
+      {
+        "id": "d",
+        "text": "Redeploy the VM",
+        "explanation": "Same disks."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Point-in-time backups recover from corruption and ransomware.",
+    "docs": [
+      "https://learn.microsoft.com/azure/backup/backup-azure-arm-restore-vms"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Backups must survive even if an attacker with admin rights tries to delete them or shorten retention. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Immutable vault plus soft delete and multi-user authorization (Resource Guard)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A resource lock only",
+        "explanation": "Admins can remove locks."
+      },
+      {
+        "id": "c",
+        "text": "Daily backups to a second subscription without protection",
+        "explanation": "Still deletable."
+      },
+      {
+        "id": "d",
+        "text": "Site Recovery",
+        "explanation": "Not backup protection."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Immutability, soft delete and MUA protect backups against malicious admins.",
+    "docs": [
+      "https://learn.microsoft.com/azure/backup/backup-azure-immutable-vault-concept"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "File servers on-premises must back up selected folders to Azure without extra servers. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "The MARS agent with a Recovery Services vault",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Site Recovery",
+        "explanation": "Replicates whole machines."
+      },
+      {
+        "id": "c",
+        "text": "Azure Backup Server",
+        "explanation": "Needs a dedicated server."
+      },
+      {
+        "id": "d",
+        "text": "AzCopy",
+        "explanation": "Copy, not backup."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "The MARS agent backs up files, folders and system state directly to Azure.",
+    "docs": [
+      "https://learn.microsoft.com/azure/backup/backup-azure-about-mars"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.3-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A SQL database must fail over to another region with an RPO of seconds, and apps must not change connection strings. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "An auto-failover group with its listener endpoint",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Geo-restore",
+        "explanation": "RPO about an hour and long RTO."
+      },
+      {
+        "id": "c",
+        "text": "Long-term retention",
+        "explanation": "For compliance, not DR."
+      },
+      {
+        "id": "d",
+        "text": "Zone redundancy",
+        "explanation": "Single region."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Failover groups replicate asynchronously and provide stable listener endpoints.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/database/failover-group-sql-db"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.3-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Auditors require yearly backups of a SQL database kept for 7 years. What do you configure?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Long-term retention (LTR) with yearly backups for 7 years",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Point-in-time restore retention of 7 years",
+        "explanation": "PITR is limited to 35 days."
+      },
+      {
+        "id": "c",
+        "text": "Geo-replication",
+        "explanation": "Not retention."
+      },
+      {
+        "id": "d",
+        "text": "Export a BACPAC manually each year",
+        "explanation": "Manual and error-prone."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "LTR keeps full backups up to 10 years.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/database/long-term-retention-overview"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.3-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.3",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A developer deleted rows in a production Azure SQL database 30 minutes ago. What is the fastest supported recovery?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Point-in-time restore to a new database just before the deletion, then copy the rows back",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Fail over the failover group",
+        "explanation": "The geo-secondary has the deletion too."
+      },
+      {
+        "id": "c",
+        "text": "Restore the latest LTR backup",
+        "explanation": "Could be a week old."
+      },
+      {
+        "id": "d",
+        "text": "Geo-restore",
+        "explanation": "Older data and slower."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "PITR restores to any point in the retention window as a new database.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/database/recovery-using-backups"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.4-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Users overwrite blobs by mistake and occasionally delete them. You need recovery for 30 days at low effort. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Blob versioning plus soft delete (30 days)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "GRS",
+        "explanation": "Replicates the mistakes."
+      },
+      {
+        "id": "c",
+        "text": "Archive tier",
+        "explanation": "Cost tier, not protection."
+      },
+      {
+        "id": "d",
+        "text": "Daily AzCopy to another account",
+        "explanation": "Manual and costly."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Versioning recovers overwrites; soft delete recovers deletions.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/blobs/data-protection-overview"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.4-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "An Azure file share must be backed up daily with 30-day retention, and single files must be restorable by admins. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Backup for Azure Files",
+        "explanation": "Correct: snapshot-based policy with item-level restore."
+      },
+      {
+        "id": "b",
+        "text": "Blob soft delete",
+        "explanation": "Not for file shares."
+      },
+      {
+        "id": "c",
+        "text": "Site Recovery",
+        "explanation": "VM replication."
+      },
+      {
+        "id": "d",
+        "text": "Object replication",
+        "explanation": "Blob only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Azure Backup manages share snapshots (and vaulted copies) with retention and item-level restore.",
+    "docs": [
+      "https://learn.microsoft.com/azure/backup/azure-file-share-backup-overview"
+    ]
+  },
+  {
+    "id": "az305-x-3.1.4-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.1.4",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Blob data must be recoverable even if the storage account is deleted, with copies in another region. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Vaulted backup for blobs in a geo-redundant Backup vault",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Operational backup only",
+        "explanation": "Lives in the source account."
+      },
+      {
+        "id": "c",
+        "text": "Soft delete",
+        "explanation": "Lost with the account."
+      },
+      {
+        "id": "d",
+        "text": "RA-GZRS",
+        "explanation": "Account deletion removes all copies."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Vaulted backup copies data to a Backup vault, which can be geo-redundant.",
+    "docs": [
+      "https://learn.microsoft.com/azure/backup/blob-backup-overview"
+    ]
+  },
+  {
+    "id": "az305-x-3.2.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.2.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A VM-based web tier must keep running if a datacenter in the region fails. The region has availability zones. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A VM Scale Set across zones 1, 2 and 3 behind a zone-redundant Standard Load Balancer",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "An availability set",
+        "explanation": "One datacenter."
+      },
+      {
+        "id": "c",
+        "text": "A single larger VM",
+        "explanation": "Single point of failure."
+      },
+      {
+        "id": "d",
+        "text": "Two VMs in the same zone",
+        "explanation": "Same datacenter."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Zones are separate datacenters; spread instances across them.",
+    "docs": [
+      "https://learn.microsoft.com/azure/reliability/availability-zones-overview"
+    ]
+  },
+  {
+    "id": "az305-x-3.2.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.2.1",
+    "difficulty": 3,
+    "type": "architecture",
+    "answerMode": "single",
+    "stem": "An app must survive a full regional outage with near-zero downtime and serve users from the nearest region. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Active-active deployments in two regions behind Azure Front Door",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Active-passive with manual DNS change",
+        "explanation": "Slow failover."
+      },
+      {
+        "id": "c",
+        "text": "Zone-redundant deployment in one region",
+        "explanation": "Doesn't survive a regional outage."
+      },
+      {
+        "id": "d",
+        "text": "Daily backups to another region",
+        "explanation": "Hours of downtime."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Active-active behind a global router serves from healthy regions and fails over automatically.",
+    "docs": [
+      "https://learn.microsoft.com/azure/architecture/web-apps/app-service/architectures/multi-region"
+    ]
+  },
+  {
+    "id": "az305-x-3.2.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.2.1",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "An app needs a web tier (99.95%) and a database (99.99%) at the same time. What is its composite SLA?",
+    "options": [
+      {
+        "id": "a",
+        "text": "About 99.94%",
+        "explanation": "Correct: 0.9995 × 0.9999."
+      },
+      {
+        "id": "b",
+        "text": "99.99%",
+        "explanation": "Takes only the best part."
+      },
+      {
+        "id": "c",
+        "text": "99.95%",
+        "explanation": "Ignores the database."
+      },
+      {
+        "id": "d",
+        "text": "99.999%",
+        "explanation": "Composite availability is lower, not higher."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Services needed together multiply their SLAs.",
+    "docs": [
+      "https://learn.microsoft.com/azure/well-architected/reliability/metrics"
+    ]
+  },
+  {
+    "id": "az305-x-3.2.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.2.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "An Azure SQL database must survive a zone outage with no data loss and without changing regions. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Enable zone redundancy on the database",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Active geo-replication",
+        "explanation": "Targets regional failures; asynchronous."
+      },
+      {
+        "id": "c",
+        "text": "Long-term retention",
+        "explanation": "Backups, not HA."
+      },
+      {
+        "id": "d",
+        "text": "Elastic pool",
+        "explanation": "Resource sharing."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Zone-redundant configuration places synchronous replicas in different zones.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/database/high-availability-sla-local-zone-redundancy"
+    ]
+  },
+  {
+    "id": "az305-x-3.2.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.2.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "SQL Server on Azure VMs must stay available during a zone failure with automatic failover. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "An Always On availability group with replicas in different zones",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "One VM with Premium SSD",
+        "explanation": "Single point of failure."
+      },
+      {
+        "id": "c",
+        "text": "Azure Backup",
+        "explanation": "Recovery, not HA."
+      },
+      {
+        "id": "d",
+        "text": "SQL Database failover group",
+        "explanation": "For PaaS, not SQL on VMs."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Availability groups replicate databases across VMs placed in different zones.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/virtual-machines/windows/availability-group-overview"
+    ]
+  },
+  {
+    "id": "az305-x-3.2.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.2.2",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A SQL Managed Instance must continue in another region after a regional outage, and reports should read from the secondary. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A failover group for the managed instance",
+        "explanation": "Correct: readable secondary and listener endpoints."
+      },
+      {
+        "id": "b",
+        "text": "Active geo-replication",
+        "explanation": "Not available for Managed Instance."
+      },
+      {
+        "id": "c",
+        "text": "Zone redundancy",
+        "explanation": "Single region."
+      },
+      {
+        "id": "d",
+        "text": "Geo-restore only",
+        "explanation": "Long RTO."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Managed Instance uses failover groups for geo-replication.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/managed-instance/failover-group-sql-mi"
+    ]
+  },
+  {
+    "id": "az305-x-3.2.3-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.2.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A global app must accept writes in every region and stay writable during a regional outage. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Cosmos DB with multi-region writes",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Cosmos DB with a single write region",
+        "explanation": "Writes pause until failover."
+      },
+      {
+        "id": "c",
+        "text": "Table Storage with GRS",
+        "explanation": "Single write region."
+      },
+      {
+        "id": "d",
+        "text": "SQL Database geo-replication",
+        "explanation": "Single writable primary."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Multi-region writes let every region accept writes.",
+    "docs": [
+      "https://learn.microsoft.com/azure/cosmos-db/high-availability"
+    ]
+  },
+  {
+    "id": "az305-x-3.2.3-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.2.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Images must remain readable during a regional outage without waiting for failover, and survive a zone failure. Which redundancy?",
+    "options": [
+      {
+        "id": "a",
+        "text": "RA-GZRS",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "GZRS",
+        "explanation": "Secondary not readable until failover."
+      },
+      {
+        "id": "c",
+        "text": "ZRS",
+        "explanation": "No secondary region."
+      },
+      {
+        "id": "d",
+        "text": "LRS",
+        "explanation": "Single datacenter."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "RA-GZRS combines zones with a readable secondary region.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/common/storage-redundancy"
+    ]
+  },
+  {
+    "id": "az305-x-3.2.3-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-3.2.3",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "Which Cosmos DB setting automatically promotes a secondary region if the write region becomes unavailable?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Service-managed failover",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Session consistency",
+        "explanation": "Unrelated to failover."
+      },
+      {
+        "id": "c",
+        "text": "Autoscale throughput",
+        "explanation": "Capacity only."
+      },
+      {
+        "id": "d",
+        "text": "Analytical store",
+        "explanation": "Analytics only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Service-managed failover promotes a read region by the priority list.",
+    "docs": [
+      "https://learn.microsoft.com/azure/cosmos-db/high-availability"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A team must host a Java web API with deployment slots, custom domains and autoscale, and wants minimal operations. Which compute?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure App Service",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "AKS",
+        "explanation": "More operations than needed."
+      },
+      {
+        "id": "c",
+        "text": "Virtual machines",
+        "explanation": "Most operations."
+      },
+      {
+        "id": "d",
+        "text": "Azure Batch",
+        "explanation": "For parallel jobs."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "App Service is the managed web platform with slots and domains.",
+    "docs": [
+      "https://learn.microsoft.com/azure/architecture/guide/technology-choices/compute-decision-tree"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.1",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A workload must run on hardware not shared with any other customer for compliance, while keeping VM flexibility. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Dedicated Host",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Spot VMs",
+        "explanation": "Shared and evictable."
+      },
+      {
+        "id": "c",
+        "text": "Availability sets",
+        "explanation": "Shared hosts."
+      },
+      {
+        "id": "d",
+        "text": "Isolated App Service plan",
+        "explanation": "Not for arbitrary VMs."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Dedicated Host provides single-tenant physical servers for your VMs.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-machines/dedicated-hosts"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.1",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "Which question should you answer FIRST when choosing compute in the Azure compute decision tree?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Is it a lift-and-shift migration or a cloud-optimised/new app?",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Which region is cheapest?",
+        "explanation": "Later."
+      },
+      {
+        "id": "c",
+        "text": "Which VM size?",
+        "explanation": "Only if you end up on VMs."
+      },
+      {
+        "id": "d",
+        "text": "Which load balancer?",
+        "explanation": "Networking, later."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "The decision tree branches first on migrate-as-is versus build or modernise.",
+    "docs": [
+      "https://learn.microsoft.com/azure/architecture/guide/technology-choices/compute-decision-tree"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A 3D rendering job can be interrupted and restarted. Cost must be minimal. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Spot VMs",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Reserved instances",
+        "explanation": "For steady use."
+      },
+      {
+        "id": "c",
+        "text": "Dedicated Host",
+        "explanation": "Most expensive."
+      },
+      {
+        "id": "d",
+        "text": "Premium SSD v2 disks",
+        "explanation": "Storage, not compute pricing."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Spot uses spare capacity at deep discounts and can be evicted.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-machines/spot-vms"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "multiple",
+    "stem": "A SQL Server VM will run 24/7 for three years. You hold Windows Server and SQL Server licences with Software Assurance. Which TWO reduce cost most?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Reserved instances (or a savings plan)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Hybrid Benefit",
+        "explanation": "Correct."
+      },
+      {
+        "id": "c",
+        "text": "Spot VMs",
+        "explanation": "Evictable; not for a database."
+      },
+      {
+        "id": "d",
+        "text": "A larger VM size",
+        "explanation": "Raises cost."
+      }
+    ],
+    "correct": [
+      "a",
+      "b"
+    ],
+    "explanation": "Combine committed-use discounts with Hybrid Benefit for existing licences.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-machines/windows/hybrid-use-benefit-licensing"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.2",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Call-centre staff need a managed Windows desktop with company apps from home on personal devices. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Virtual Desktop",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "One VM per user with RDP from the internet",
+        "explanation": "Insecure and unmanaged."
+      },
+      {
+        "id": "c",
+        "text": "Azure Bastion",
+        "explanation": "Admin access to VMs, not user desktops."
+      },
+      {
+        "id": "d",
+        "text": "App Service",
+        "explanation": "Web apps only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Azure Virtual Desktop delivers desktops and apps to any device.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-desktop/overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.3-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Twelve microservices must scale on HTTP traffic and Service Bus queue length, including to zero. The team doesn't want to manage a cluster. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Container Apps",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "AKS",
+        "explanation": "Requires cluster management."
+      },
+      {
+        "id": "c",
+        "text": "Azure Container Instances",
+        "explanation": "No built-in autoscale or service discovery."
+      },
+      {
+        "id": "d",
+        "text": "VM Scale Sets",
+        "explanation": "Not container-native."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Container Apps runs microservices with KEDA scaling and no cluster to manage.",
+    "docs": [
+      "https://learn.microsoft.com/azure/container-apps/overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.3-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "The platform team needs Kubernetes custom resource definitions, operators and a service mesh. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Kubernetes Service",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Container Apps",
+        "explanation": "Doesn't expose the Kubernetes API."
+      },
+      {
+        "id": "c",
+        "text": "ACI",
+        "explanation": "No orchestration."
+      },
+      {
+        "id": "d",
+        "text": "App Service",
+        "explanation": "Not Kubernetes."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "AKS provides the full Kubernetes API.",
+    "docs": [
+      "https://learn.microsoft.com/azure/aks/what-is-aks"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.3-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Container images must be stored once and pulled from registries in three regions over private endpoints. Which registry design?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Container Registry Premium with geo-replication and private endpoints",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "ACR Basic in one region",
+        "explanation": "No geo-replication or private endpoints."
+      },
+      {
+        "id": "c",
+        "text": "Docker Hub public repository",
+        "explanation": "Not private."
+      },
+      {
+        "id": "d",
+        "text": "Blob storage",
+        "explanation": "Not a registry."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Geo-replication and private link require the Premium tier.",
+    "docs": [
+      "https://learn.microsoft.com/azure/container-registry/container-registry-geo-replication"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.4-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Every image uploaded to a container must be resized within seconds. Volume varies from zero to thousands per minute. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "An Azure Function triggered by Event Grid blob events on the Flex Consumption plan",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A VM polling the container every minute",
+        "explanation": "Wasteful and slow."
+      },
+      {
+        "id": "c",
+        "text": "Azure Batch",
+        "explanation": "For large batch jobs."
+      },
+      {
+        "id": "d",
+        "text": "A Logic App Standard with a timer",
+        "explanation": "Polling, not event-driven."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Event-driven functions scale automatically and cost nothing when idle.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-functions/flex-consumption-plan"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.4-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "An order workflow must call three services in sequence, wait up to 5 days for a manager's approval, and resume. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Durable Functions orchestration",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A single function with a sleep loop",
+        "explanation": "Exceeds timeouts and wastes compute."
+      },
+      {
+        "id": "c",
+        "text": "Azure Batch",
+        "explanation": "Not for workflows."
+      },
+      {
+        "id": "d",
+        "text": "Event Hubs",
+        "explanation": "Streaming ingestion."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Durable orchestrations keep state and wait for external events.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.4-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Business analysts must build a workflow that saves email attachments to SharePoint and creates a Salesforce record, with little code. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Logic Apps",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Functions",
+        "explanation": "Code-first."
+      },
+      {
+        "id": "c",
+        "text": "AKS",
+        "explanation": "Overkill."
+      },
+      {
+        "id": "d",
+        "text": "Azure Batch",
+        "explanation": "Parallel jobs."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Logic Apps provides managed connectors and a designer.",
+    "docs": [
+      "https://learn.microsoft.com/azure/logic-apps/logic-apps-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.5-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.5",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A bank runs 20,000 independent risk simulations each night on hundreds of cores, and wants the lowest cost. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Batch with Spot (low-priority) nodes",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "One very large VM",
+        "explanation": "Slow and a single point of failure."
+      },
+      {
+        "id": "c",
+        "text": "Azure Functions Consumption",
+        "explanation": "Not for long CPU-heavy jobs at this scale."
+      },
+      {
+        "id": "d",
+        "text": "App Service WebJobs",
+        "explanation": "Not designed for HPC."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Batch schedules parallel tasks across pools and supports Spot nodes.",
+    "docs": [
+      "https://learn.microsoft.com/azure/batch/batch-technical-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.5-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.5",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A containerised data-cleanup task must run every night for 20 minutes without managing VM pools. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Container Apps jobs (scheduled)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Batch with a dedicated pool",
+        "explanation": "Pool management."
+      },
+      {
+        "id": "c",
+        "text": "An always-on VM with cron",
+        "explanation": "Pays 24/7."
+      },
+      {
+        "id": "d",
+        "text": "Event Grid",
+        "explanation": "Event routing."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Container Apps jobs run containers on a schedule and stop when done.",
+    "docs": [
+      "https://learn.microsoft.com/azure/container-apps/jobs"
+    ]
+  },
+  {
+    "id": "az305-x-4.1.5-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.1.5",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Tightly coupled CFD simulations need low-latency interconnect between nodes and a fast parallel file system. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "HPC VM sizes with InfiniBand in a Batch or CycleCloud cluster, with Azure Managed Lustre",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Spot B-series VMs",
+        "explanation": "Burstable, no InfiniBand."
+      },
+      {
+        "id": "c",
+        "text": "Azure Functions",
+        "explanation": "Not for MPI workloads."
+      },
+      {
+        "id": "d",
+        "text": "Blob Storage Archive",
+        "explanation": "Offline storage."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "HPC series VMs with RDMA/InfiniBand and a parallel file system suit tightly coupled MPI jobs.",
+    "docs": [
+      "https://learn.microsoft.com/azure/high-performance-computing/"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Payments must be processed in order per customer, duplicates must be discarded, and failed messages kept for inspection. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Service Bus queue with sessions, duplicate detection and dead-lettering",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Queue Storage",
+        "explanation": "No ordering or duplicate detection."
+      },
+      {
+        "id": "c",
+        "text": "Event Grid",
+        "explanation": "Event routing, no FIFO."
+      },
+      {
+        "id": "d",
+        "text": "Event Hubs",
+        "explanation": "Streaming, not command processing."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Service Bus provides FIFO sessions, duplicate detection and dead-letter queues.",
+    "docs": [
+      "https://learn.microsoft.com/azure/service-bus-messaging/service-bus-azure-and-storage-queues-compared-contrasted"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "One order message must reach billing, shipping and analytics, and each service only wants certain order types. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A Service Bus topic with filtered subscriptions",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Three separate queues written by the sender",
+        "explanation": "Couples the sender to every consumer."
+      },
+      {
+        "id": "c",
+        "text": "Queue Storage",
+        "explanation": "No publish-subscribe."
+      },
+      {
+        "id": "d",
+        "text": "A shared database table",
+        "explanation": "Not messaging."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Topics and subscriptions implement publish-subscribe with filters.",
+    "docs": [
+      "https://learn.microsoft.com/azure/service-bus-messaging/service-bus-queues-topics-subscriptions"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.1",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "When should you choose Azure Queue Storage over Service Bus queues?",
+    "options": [
+      {
+        "id": "a",
+        "text": "When you need a simple queue that can grow beyond 80 GB and don't need FIFO or transactions",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "When you need ordered delivery",
+        "explanation": "Service Bus."
+      },
+      {
+        "id": "c",
+        "text": "When you need topics",
+        "explanation": "Service Bus."
+      },
+      {
+        "id": "d",
+        "text": "When you need duplicate detection",
+        "explanation": "Service Bus."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Queue Storage is simple and very large; Service Bus adds enterprise features.",
+    "docs": [
+      "https://learn.microsoft.com/azure/service-bus-messaging/service-bus-azure-and-storage-queues-compared-contrasted"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Whenever a resource is created in any subscription, a function must check its tags within seconds. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Event Grid system topic subscription for resource events",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Event Hubs",
+        "explanation": "Streaming platform."
+      },
+      {
+        "id": "c",
+        "text": "A timer function scanning every hour",
+        "explanation": "Slow."
+      },
+      {
+        "id": "d",
+        "text": "Service Bus queue",
+        "explanation": "Azure doesn't post resource events there."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Event Grid delivers Azure resource events to handlers.",
+    "docs": [
+      "https://learn.microsoft.com/azure/event-grid/overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Two million devices send telemetry every few seconds; several analytics apps must read the same stream independently. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Event Hubs with consumer groups",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Event Grid",
+        "explanation": "Discrete events, not high-volume streams."
+      },
+      {
+        "id": "c",
+        "text": "Service Bus queue",
+        "explanation": "Not designed for this throughput."
+      },
+      {
+        "id": "d",
+        "text": "Queue Storage",
+        "explanation": "One consumer pattern, lower throughput."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Event Hubs partitions scale ingestion; consumer groups let apps read independently.",
+    "docs": [
+      "https://learn.microsoft.com/azure/event-hubs/event-hubs-about"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.2",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "An existing Kafka-based producer must send to Azure without code changes, and data must also land in a data lake automatically. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Event Hubs with the Kafka endpoint and Capture",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Event Grid",
+        "explanation": "No Kafka protocol."
+      },
+      {
+        "id": "c",
+        "text": "Service Bus Premium",
+        "explanation": "No Kafka endpoint."
+      },
+      {
+        "id": "d",
+        "text": "IoT Hub only",
+        "explanation": "Device scenarios."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Event Hubs supports the Kafka protocol and Capture to storage.",
+    "docs": [
+      "https://learn.microsoft.com/azure/event-hubs/azure-event-hubs-apache-kafka-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.3-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Internal APIs must be published to partners with subscription keys, per-partner quotas, versioning and self-service documentation. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure API Management",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Application Gateway",
+        "explanation": "Layer 7 routing, no developer portal or products."
+      },
+      {
+        "id": "c",
+        "text": "Front Door",
+        "explanation": "Global edge, not API productisation."
+      },
+      {
+        "id": "d",
+        "text": "Event Grid",
+        "explanation": "Events."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "API Management provides products, policies, versions and a developer portal.",
+    "docs": [
+      "https://learn.microsoft.com/azure/api-management/api-management-key-concepts"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.3-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "APIs run in two on-premises datacenters and Azure. They must share one set of policies and a single control plane. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "API Management with self-hosted gateways on-premises",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Separate API gateways per site",
+        "explanation": "No central management."
+      },
+      {
+        "id": "c",
+        "text": "Application proxy",
+        "explanation": "Publishes web apps, not API products."
+      },
+      {
+        "id": "d",
+        "text": "Traffic Manager",
+        "explanation": "DNS routing only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Self-hosted gateways run API Management policies close to on-premises APIs.",
+    "docs": [
+      "https://learn.microsoft.com/azure/api-management/self-hosted-gateway-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.3-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.3",
+    "difficulty": 3,
+    "type": "configuration",
+    "answerMode": "single",
+    "stem": "Partners must be limited to 1,000 calls per hour each without changing backend code. Where do you implement it?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A rate-limit/quota policy in API Management",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "In each backend service",
+        "explanation": "Requires code changes."
+      },
+      {
+        "id": "c",
+        "text": "An NSG rule",
+        "explanation": "Layer 4 only."
+      },
+      {
+        "id": "d",
+        "text": "Azure Policy",
+        "explanation": "Not runtime traffic."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "API Management policies enforce rate limits and quotas per subscription.",
+    "docs": [
+      "https://learn.microsoft.com/azure/api-management/api-management-policies"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.4-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A product catalogue is read thousands of times per second but changes hourly. The database is overloaded. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Cache-aside with Azure Managed Redis and a TTL",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Scale the database to the largest size",
+        "explanation": "Expensive and doesn't remove repeated reads."
+      },
+      {
+        "id": "c",
+        "text": "Store the catalogue in Archive tier",
+        "explanation": "Offline storage."
+      },
+      {
+        "id": "d",
+        "text": "Add more web servers",
+        "explanation": "Load stays on the database."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "A distributed cache absorbs repeated reads; TTL keeps data fresh.",
+    "docs": [
+      "https://learn.microsoft.com/azure/architecture/patterns/cache-aside"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.4-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A global site's images and scripts load slowly for users far from the origin region. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Front Door with caching",
+        "explanation": "Correct: content cached at edge locations."
+      },
+      {
+        "id": "b",
+        "text": "Azure Managed Redis in the origin region",
+        "explanation": "Still far from users."
+      },
+      {
+        "id": "c",
+        "text": "A bigger App Service plan",
+        "explanation": "Doesn't reduce distance."
+      },
+      {
+        "id": "d",
+        "text": "ExpressRoute",
+        "explanation": "For private connectivity."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Edge caching serves static content close to users.",
+    "docs": [
+      "https://learn.microsoft.com/azure/frontdoor/front-door-caching"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.4-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.4",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "Several web servers must share user session state so any server can handle the next request. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A distributed cache such as Azure Managed Redis",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "In-process memory on each server",
+        "explanation": "Not shared."
+      },
+      {
+        "id": "c",
+        "text": "Sticky sessions only",
+        "explanation": "Breaks when a server fails."
+      },
+      {
+        "id": "d",
+        "text": "Table Storage Archive",
+        "explanation": "Not a tier."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "A shared cache lets any instance read session state.",
+    "docs": [
+      "https://learn.microsoft.com/azure/redis/overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.5-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.5",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Thirty microservices share settings that change without redeployment, and a new feature must be turned on for 10% of users. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure App Configuration with feature flags and dynamic refresh",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Environment variables in each container",
+        "explanation": "Redeploy per change."
+      },
+      {
+        "id": "c",
+        "text": "Key Vault secrets for every setting",
+        "explanation": "Meant for secrets."
+      },
+      {
+        "id": "d",
+        "text": "A config file in Blob Storage",
+        "explanation": "No feature management."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "App Configuration centralises settings and feature flags with filters.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-app-configuration/overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.5-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.5",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Apps read settings from App Configuration. Database passwords must not be stored there. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Store passwords in Key Vault and add Key Vault references in App Configuration",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Encrypt the passwords and store them as values",
+        "explanation": "Still secrets in the wrong store."
+      },
+      {
+        "id": "c",
+        "text": "Put passwords in code",
+        "explanation": "Never."
+      },
+      {
+        "id": "d",
+        "text": "Use a separate App Configuration store for secrets",
+        "explanation": "App Configuration isn't a secret store."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "App Configuration references Key Vault so secrets stay in Key Vault.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-app-configuration/use-key-vault-references-dotnet-core"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.5-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.5",
+    "difficulty": 3,
+    "type": "configuration",
+    "answerMode": "single",
+    "stem": "Dev, test and prod must read different values for the same keys from one App Configuration store. What do you use?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Labels on key-values per environment",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Three separate subscriptions",
+        "explanation": "Unnecessary for settings."
+      },
+      {
+        "id": "c",
+        "text": "Feature flags",
+        "explanation": "For enabling features."
+      },
+      {
+        "id": "d",
+        "text": "Tags on the store",
+        "explanation": "Metadata, not per-key values."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Labels let the same key hold different values per environment.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-app-configuration/concept-key-value"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.6-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.6",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A web app must be released with zero downtime and instant rollback. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Deploy to a staging slot, warm up, then swap",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Stop the app, deploy, start",
+        "explanation": "Downtime."
+      },
+      {
+        "id": "c",
+        "text": "Deploy to a new region each time",
+        "explanation": "Unnecessary."
+      },
+      {
+        "id": "d",
+        "text": "Edit files in production",
+        "explanation": "Unsafe."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Slot swap avoids downtime and can be reversed.",
+    "docs": [
+      "https://learn.microsoft.com/azure/app-service/deploy-staging-slots"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.6-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.6",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Every environment must be created identically from source control, and changes reviewed by pull request. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Infrastructure as code (Bicep or Terraform) deployed by CI/CD pipelines",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Portal deployments documented in a wiki",
+        "explanation": "Not repeatable."
+      },
+      {
+        "id": "c",
+        "text": "Exported templates edited by hand per environment",
+        "explanation": "Drift-prone."
+      },
+      {
+        "id": "d",
+        "text": "Resource locks",
+        "explanation": "Don't deploy."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "IaC in Git with pipelines gives repeatable, reviewed deployments.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.2.6-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.2.6",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Developers need to create short-lived environments from approved templates without raising tickets, with cost limits. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Deployment Environments",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Owner on a shared subscription",
+        "explanation": "No guardrails."
+      },
+      {
+        "id": "c",
+        "text": "Azure Blueprints",
+        "explanation": "Deprecated."
+      },
+      {
+        "id": "d",
+        "text": "Manual requests to the platform team",
+        "explanation": "Tickets."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Deployment Environments provides governed self-service from catalogs.",
+    "docs": [
+      "https://learn.microsoft.com/azure/deployment-environments/overview-what-is-azure-deployment-environments"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Before migrating any workload, the company must deploy management groups, a hub network, identity and policies. Which CAF methodology covers this?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Ready (Azure landing zones)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Strategy",
+        "explanation": "Motivations and outcomes."
+      },
+      {
+        "id": "c",
+        "text": "Plan",
+        "explanation": "Inventory and rationalisation."
+      },
+      {
+        "id": "d",
+        "text": "Adopt",
+        "explanation": "Moving workloads."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Ready prepares the landing zone before adoption.",
+    "docs": [
+      "https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Leadership must agree on business outcomes and build a business case for moving to Azure. Which CAF methodology?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Strategy",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Ready",
+        "explanation": "Technical preparation."
+      },
+      {
+        "id": "c",
+        "text": "Manage",
+        "explanation": "Operations."
+      },
+      {
+        "id": "d",
+        "text": "Govern",
+        "explanation": "Policies and guardrails."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Strategy defines motivations, outcomes and the business case.",
+    "docs": [
+      "https://learn.microsoft.com/azure/cloud-adoption-framework/strategy/"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.1",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A web app must move quickly now, but the team wants to use managed services with only small code changes. Which approach?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Replatform (for example to App Service and SQL Managed Instance)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Rehost to VMs",
+        "explanation": "No move to managed services."
+      },
+      {
+        "id": "c",
+        "text": "Rebuild from scratch",
+        "explanation": "Large effort."
+      },
+      {
+        "id": "d",
+        "text": "Retain on-premises",
+        "explanation": "Doesn't move."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Replatforming makes small changes to use PaaS.",
+    "docs": [
+      "https://learn.microsoft.com/azure/cloud-adoption-framework/plan/select-cloud-migration-strategy"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "You must discover 400 VMware VMs without installing agents on them, collect performance data and get Azure size and cost recommendations. What do you use?",
+    "options": [
+      {
+        "id": "a",
+        "text": "The Azure Migrate appliance with performance-based assessments",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Site Recovery",
+        "explanation": "Replication, not assessment."
+      },
+      {
+        "id": "c",
+        "text": "Azure Advisor",
+        "explanation": "Only for resources already in Azure."
+      },
+      {
+        "id": "d",
+        "text": "Manual spreadsheets",
+        "explanation": "Error-prone."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "The appliance discovers agentlessly and feeds assessments.",
+    "docs": [
+      "https://learn.microsoft.com/azure/migrate/migrate-services-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "You must find which servers communicate with each other so they move in the same wave. What do you use?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Migrate dependency analysis",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Network Watcher",
+        "explanation": "For Azure networks."
+      },
+      {
+        "id": "c",
+        "text": "Azure Monitor alerts",
+        "explanation": "Not on-premises dependency mapping."
+      },
+      {
+        "id": "d",
+        "text": "Cost Management",
+        "explanation": "Costs only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Dependency analysis maps server-to-server connections.",
+    "docs": [
+      "https://learn.microsoft.com/azure/migrate/concepts-dependency-visualization"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.2",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Before migrating, the business wants a comparison of on-premises costs versus Azure over 5 years. What do you use?",
+    "options": [
+      {
+        "id": "a",
+        "text": "The Azure Migrate business case",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A single VM assessment",
+        "explanation": "Doesn't compare total costs."
+      },
+      {
+        "id": "c",
+        "text": "Azure pricing calculator only",
+        "explanation": "No on-premises comparison from discovery data."
+      },
+      {
+        "id": "d",
+        "text": "Azure Advisor",
+        "explanation": "Not for on-premises."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "The business case compares on-premises and Azure TCO using discovered data.",
+    "docs": [
+      "https://learn.microsoft.com/azure/migrate/concepts-business-case-calculation"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.3-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "300 VMware VMs must move to Azure within 3 months with no code changes and a test before cutover. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Migrate agentless server migration (rehost) with test migrations",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Rebuild the apps as microservices",
+        "explanation": "Far too slow."
+      },
+      {
+        "id": "c",
+        "text": "Manual VHD uploads",
+        "explanation": "Error-prone at scale."
+      },
+      {
+        "id": "d",
+        "text": "Azure Batch",
+        "explanation": "Not for migration."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Azure Migrate replicates VMware VMs and supports test migration and cutover.",
+    "docs": [
+      "https://learn.microsoft.com/azure/migrate/tutorial-migrate-vmware"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.3-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A company wants to move its VMware environment to Azure while keeping vSphere tools and without converting VMs. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure VMware Solution",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Migrate rehost to Azure VMs",
+        "explanation": "Converts VMs to Azure VMs."
+      },
+      {
+        "id": "c",
+        "text": "AKS",
+        "explanation": "Containers."
+      },
+      {
+        "id": "d",
+        "text": "Azure Stack HCI",
+        "explanation": "On-premises."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Azure VMware Solution runs VMware natively on Azure.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-vmware/introduction"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.3-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Several ASP.NET web apps on IIS should move to a managed platform with minimal code change. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Replatform to Azure App Service using Azure Migrate web app migration",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Rehost the IIS servers as VMs",
+        "explanation": "Keeps server management."
+      },
+      {
+        "id": "c",
+        "text": "Rewrite as Functions",
+        "explanation": "Large change."
+      },
+      {
+        "id": "d",
+        "text": "Replace with SaaS",
+        "explanation": "No SaaS equivalent."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Azure Migrate assesses and migrates web apps to App Service.",
+    "docs": [
+      "https://learn.microsoft.com/azure/migrate/concepts-migration-webapps"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.4-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A 2 TB production SQL Server database must move to SQL Managed Instance with no more than 15 minutes of downtime. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Database Migration Service online migration",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Offline migration with backup and restore",
+        "explanation": "Downtime for the whole copy."
+      },
+      {
+        "id": "c",
+        "text": "BACPAC export/import",
+        "explanation": "Slow, offline."
+      },
+      {
+        "id": "d",
+        "text": "AzCopy of MDF files",
+        "explanation": "Not supported for MI."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Online migration syncs changes until a short cutover.",
+    "docs": [
+      "https://learn.microsoft.com/azure/dms/dms-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.4-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.4",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Databases use cross-database queries, CLR and SQL Agent. They must move to PaaS. Which target and tool?",
+    "options": [
+      {
+        "id": "a",
+        "text": "SQL Managed Instance, migrated with DMS or the Managed Instance link",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "SQL Database with DMS",
+        "explanation": "Those features aren't supported in SQL Database."
+      },
+      {
+        "id": "c",
+        "text": "Cosmos DB with Data Factory",
+        "explanation": "Not relational SQL Server."
+      },
+      {
+        "id": "d",
+        "text": "SQL Server on VMs with Data Box",
+        "explanation": "IaaS, not PaaS."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Managed Instance supports instance-level features; DMS or MI link migrate with low downtime.",
+    "docs": [
+      "https://learn.microsoft.com/azure/azure-sql/managed-instance/managed-instance-link-feature-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.4-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.4",
+    "difficulty": 2,
+    "type": "single",
+    "answerMode": "single",
+    "stem": "Which tool checks on-premises SQL Server databases for compatibility issues with Azure SQL targets before migration?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Migrate (SQL assessment)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Advisor",
+        "explanation": "Only for Azure resources."
+      },
+      {
+        "id": "c",
+        "text": "Azure Monitor",
+        "explanation": "Monitoring."
+      },
+      {
+        "id": "d",
+        "text": "Storage Explorer",
+        "explanation": "Storage."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Azure Migrate's SQL assessment reports readiness and recommended targets.",
+    "docs": [
+      "https://learn.microsoft.com/azure/migrate/concepts-azure-sql-assessment-calculation"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.5-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.5",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "600 TB of archives must move to Blob Storage. The office has a 200 Mbps link that is busy during the day. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Data Box (offline transfer)",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "AzCopy over the existing link",
+        "explanation": "Would take many months."
+      },
+      {
+        "id": "c",
+        "text": "Azure File Sync",
+        "explanation": "Keeps caches; not bulk ingest."
+      },
+      {
+        "id": "d",
+        "text": "ExpressRoute just for the copy",
+        "explanation": "Expensive and slow to provision."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Data Box ships large volumes offline when bandwidth is limited.",
+    "docs": [
+      "https://learn.microsoft.com/azure/databox/data-box-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.5-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.5",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Branch offices must keep fast local access to shared files while the master copy moves to Azure. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Files with Azure File Sync caching on local servers",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Data Box",
+        "explanation": "One-time transfer."
+      },
+      {
+        "id": "c",
+        "text": "Blob Storage with AzCopy",
+        "explanation": "No SMB caching."
+      },
+      {
+        "id": "d",
+        "text": "Azure NetApp Files",
+        "explanation": "No branch caching."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "File Sync tiers files to Azure while keeping hot files local.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/file-sync/file-sync-introduction"
+    ]
+  },
+  {
+    "id": "az305-x-4.3.5-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.3.5",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "50 TB of SMB and NFS shares must move to Azure Files and Blob over a good network link, managed centrally from Azure. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Storage Mover",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Data Box Heavy",
+        "explanation": "Unneeded when the network is good."
+      },
+      {
+        "id": "c",
+        "text": "Azure Backup",
+        "explanation": "Not migration."
+      },
+      {
+        "id": "d",
+        "text": "Site Recovery",
+        "explanation": "VM replication."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Storage Mover is the managed service for migrating file shares to Azure storage.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage-mover/service-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.1-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "VMs in a subnet must call a partner API that only accepts two known source IPs. The VMs have no public IPs. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A NAT gateway with two static public IPs on the subnet",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Default outbound access",
+        "explanation": "Not available on private subnets and IPs aren't fixed."
+      },
+      {
+        "id": "c",
+        "text": "A public IP on every VM",
+        "explanation": "More IPs and exposure."
+      },
+      {
+        "id": "d",
+        "text": "ExpressRoute",
+        "explanation": "Private connectivity, not internet egress."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "NAT gateway gives predictable, scalable outbound IPs.",
+    "docs": [
+      "https://learn.microsoft.com/azure/nat-gateway/nat-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.1-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.1",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A public web app in two regions needs WAF protection, global load balancing and caching. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Front Door Premium with WAF",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Application Gateway in each region only",
+        "explanation": "Regional, no global routing or caching."
+      },
+      {
+        "id": "c",
+        "text": "Traffic Manager only",
+        "explanation": "DNS routing without WAF or caching."
+      },
+      {
+        "id": "d",
+        "text": "Public Load Balancer",
+        "explanation": "Layer 4."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Front Door combines global routing, caching and WAF.",
+    "docs": [
+      "https://learn.microsoft.com/azure/frontdoor/front-door-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.1-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.1",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "All outbound internet traffic from spoke VNets must be filtered by FQDN and logged centrally. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Firewall in the hub with a 0.0.0.0/0 route from each spoke",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "NAT gateway in each spoke",
+        "explanation": "No FQDN filtering."
+      },
+      {
+        "id": "c",
+        "text": "NSGs with service tags",
+        "explanation": "No FQDN filtering or central logging."
+      },
+      {
+        "id": "d",
+        "text": "Front Door",
+        "explanation": "Inbound web traffic."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Route spoke egress through Azure Firewall for central filtering and logging.",
+    "docs": [
+      "https://learn.microsoft.com/azure/firewall/overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.2-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A datacenter needs 10 Gbps to Azure with predictable latency, and traffic must not cross the public internet. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "ExpressRoute",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Site-to-site VPN",
+        "explanation": "Over the internet."
+      },
+      {
+        "id": "c",
+        "text": "Point-to-site VPN",
+        "explanation": "For individual devices."
+      },
+      {
+        "id": "d",
+        "text": "VNet peering",
+        "explanation": "Azure-to-Azure only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "ExpressRoute provides private, high-bandwidth connectivity.",
+    "docs": [
+      "https://learn.microsoft.com/azure/expressroute/expressroute-introduction"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.2-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.2",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "The ExpressRoute circuit must have a lower-cost backup path if it fails. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A site-to-site VPN configured as failover for ExpressRoute private peering",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "A second VNet",
+        "explanation": "Not a path."
+      },
+      {
+        "id": "c",
+        "text": "Point-to-site VPN for every server",
+        "explanation": "Not a site backup."
+      },
+      {
+        "id": "d",
+        "text": "Traffic Manager",
+        "explanation": "DNS routing."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "ExpressRoute and site-to-site VPN can coexist, with VPN as backup.",
+    "docs": [
+      "https://learn.microsoft.com/azure/expressroute/use-s2s-vpn-as-backup-for-expressroute-privatepeering"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.2-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.2",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Eighty branch offices, three regions and many VNets need any-to-any connectivity with minimal routing administration. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Virtual WAN with hubs in each region",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Self-managed hub VNets with UDRs everywhere",
+        "explanation": "Heavy administration."
+      },
+      {
+        "id": "c",
+        "text": "Full-mesh VNet peering only",
+        "explanation": "Doesn't connect branches."
+      },
+      {
+        "id": "d",
+        "text": "Point-to-site VPN",
+        "explanation": "For users."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Virtual WAN provides managed hubs with automatic any-to-any routing.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-wan/virtual-wan-about"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.3-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "multiple",
+    "stem": "Tightly coupled VMs exchange many small messages and need the lowest, most consistent latency between them. Which TWO do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A proximity placement group",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Accelerated networking",
+        "explanation": "Correct."
+      },
+      {
+        "id": "c",
+        "text": "Global VNet peering across regions",
+        "explanation": "Adds distance."
+      },
+      {
+        "id": "d",
+        "text": "Traffic Manager",
+        "explanation": "DNS routing."
+      }
+    ],
+    "correct": [
+      "a",
+      "b"
+    ],
+    "explanation": "Co-location plus SR-IOV reduce latency and jitter.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-machines/co-location"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.3-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.3",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Two offices on different continents, both connected to Azure by ExpressRoute, must exchange data over Microsoft's backbone instead of the internet. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "ExpressRoute Global Reach",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Site-to-site VPN between the offices",
+        "explanation": "Over the internet."
+      },
+      {
+        "id": "c",
+        "text": "VNet peering",
+        "explanation": "Azure VNets only."
+      },
+      {
+        "id": "d",
+        "text": "Front Door",
+        "explanation": "Web traffic."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Global Reach links ExpressRoute circuits so sites communicate via Microsoft's network.",
+    "docs": [
+      "https://learn.microsoft.com/azure/expressroute/expressroute-global-reach"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.3-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.3",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Users worldwide complain that static content on a single-region site is slow. What is the most effective improvement?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Serve static content through Azure Front Door caching",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Increase the App Service plan size",
+        "explanation": "Distance remains."
+      },
+      {
+        "id": "c",
+        "text": "Enable accelerated networking",
+        "explanation": "VM feature, not user latency."
+      },
+      {
+        "id": "d",
+        "text": "Add an internal load balancer",
+        "explanation": "Doesn't reduce distance."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Edge caching brings content close to users.",
+    "docs": [
+      "https://learn.microsoft.com/azure/frontdoor/front-door-caching"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.4-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Outbound HTTPS traffic must be decrypted and inspected for malware and intrusion attempts. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Firewall Premium with TLS inspection and IDPS",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Firewall Standard",
+        "explanation": "No TLS inspection or IDPS."
+      },
+      {
+        "id": "c",
+        "text": "NSG flow logs",
+        "explanation": "Logging only."
+      },
+      {
+        "id": "d",
+        "text": "WAF",
+        "explanation": "Protects inbound web apps."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Firewall Premium adds TLS inspection and signature-based IDPS.",
+    "docs": [
+      "https://learn.microsoft.com/azure/firewall/premium-features"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.4-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.4",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A public website must be protected against OWASP top 10 attacks such as SQL injection. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Web Application Firewall on Front Door or Application Gateway",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "NSG rules",
+        "explanation": "Layer 4 only."
+      },
+      {
+        "id": "c",
+        "text": "DDoS Protection",
+        "explanation": "Volumetric attacks."
+      },
+      {
+        "id": "d",
+        "text": "Azure Bastion",
+        "explanation": "Admin access."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "WAF managed rule sets cover OWASP threats.",
+    "docs": [
+      "https://learn.microsoft.com/azure/web-application-firewall/overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.4-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.4",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "Security requires that certain ports (for example RDP from the internet) are always denied across all VNets, even if a team adds an NSG allow rule. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Virtual Network Manager security admin rules",
+        "explanation": "Correct: evaluated before NSGs and can't be overridden by teams."
+      },
+      {
+        "id": "b",
+        "text": "An NSG on every subnet",
+        "explanation": "Teams can change their NSGs."
+      },
+      {
+        "id": "c",
+        "text": "Azure Policy audit only",
+        "explanation": "Doesn't block traffic."
+      },
+      {
+        "id": "d",
+        "text": "Resource locks",
+        "explanation": "Don't filter traffic."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Security admin rules enforce organisation-wide guardrails before NSG rules.",
+    "docs": [
+      "https://learn.microsoft.com/azure/virtual-network-manager/concept-security-admins"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.5-1",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.5",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A TCP-based game service runs on VMs in one region and needs load balancing with health probes. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Azure Load Balancer",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Application Gateway",
+        "explanation": "HTTP(S) only."
+      },
+      {
+        "id": "c",
+        "text": "Front Door",
+        "explanation": "Global HTTP(S)."
+      },
+      {
+        "id": "d",
+        "text": "Traffic Manager",
+        "explanation": "DNS-based, global."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Regional, non-HTTP traffic uses Load Balancer.",
+    "docs": [
+      "https://learn.microsoft.com/azure/architecture/guide/technology-choices/load-balancing-overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.5-2",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.5",
+    "difficulty": 2,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "In one region, requests to /api must go to one pool and /images to another, with TLS termination and WAF. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Application Gateway",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Azure Load Balancer",
+        "explanation": "Layer 4, no path routing."
+      },
+      {
+        "id": "c",
+        "text": "Traffic Manager",
+        "explanation": "DNS-based."
+      },
+      {
+        "id": "d",
+        "text": "NAT gateway",
+        "explanation": "Outbound only."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Application Gateway provides regional layer 7 routing with WAF.",
+    "docs": [
+      "https://learn.microsoft.com/azure/application-gateway/overview"
+    ]
+  },
+  {
+    "id": "az305-x-4.4.5-3",
+    "exam": "az-305",
+    "objectiveId": "AZ305-4.4.5",
+    "difficulty": 3,
+    "type": "scenario",
+    "answerMode": "single",
+    "stem": "A non-HTTP service runs in two regions. Clients must be sent to the primary region and fail over automatically to the secondary. What do you recommend?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Traffic Manager with priority routing",
+        "explanation": "Correct."
+      },
+      {
+        "id": "b",
+        "text": "Front Door",
+        "explanation": "HTTP(S) only."
+      },
+      {
+        "id": "c",
+        "text": "Application Gateway",
+        "explanation": "Regional HTTP."
+      },
+      {
+        "id": "d",
+        "text": "Internal Load Balancer",
+        "explanation": "Regional and private."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Traffic Manager routes any protocol by DNS with priority failover.",
+    "docs": [
+      "https://learn.microsoft.com/azure/traffic-manager/traffic-manager-overview"
+    ]
+  }
+]

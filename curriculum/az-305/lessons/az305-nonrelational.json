@@ -1,0 +1,439 @@
+{
+  "id": "az305-nonrelational",
+  "exam": "az-305",
+  "title": "Design semi-structured and unstructured data storage",
+  "objectiveIds": [
+    "AZ305-2.2.1",
+    "AZ305-2.2.2"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Recommend storage for semi-structured data (Cosmos DB APIs, Table Storage) and unstructured data (Blob Storage, Data Lake Storage, Azure Files, Azure NetApp Files).",
+  "prerequisites": [
+    {
+      "text": "Storage accounts (AZ-104)",
+      "objectiveId": "AZ104-2.2.1",
+      "lessonId": "az104-storage-accounts"
+    }
+  ],
+  "foundation": [
+    "Semi-structured data has a shape but not fixed columns: JSON documents, key-value pairs, graphs. Unstructured data is files and objects: images, videos, backups.",
+    "Azure Cosmos DB stores semi-structured data with low latency anywhere in the world. Blob Storage stores any amount of files cheaply."
+  ],
+  "engineer": [
+    "Cosmos DB: choose the API by app needs: NoSQL (native, newest features), MongoDB (RU-based or vCore-based; keep MongoDB drivers), Apache Cassandra, Apache Gremlin (graph), Table (Table Storage compatible, with global distribution and secondary indexes) and PostgreSQL (distributed relational). Design the partition key for high cardinality and even distribution; choose provisioned throughput (manual or autoscale) or serverless; set the consistency level (strong, bounded staleness, session (default), consistent prefix, eventual); add regions and optionally multi-region writes.",
+    "Azure Table Storage: simple key-value storage inside a storage account, cheapest option, without global distribution or latency SLAs.",
+    "Unstructured: Blob Storage (block blobs for files, append blobs for logs, page blobs for VHDs), Data Lake Storage (hierarchical namespace: real directories, POSIX ACLs, analytics engines), Azure Files (SMB and NFS shares, identity-based access, Azure File Sync), Azure NetApp Files (enterprise NAS with sub-millisecond latency for SAP HANA, HPC and databases), and Azure Managed Lustre for HPC scratch."
+  ],
+  "animation": {
+    "id": "az305-nosql-sim",
+    "caption": "Choose the Cosmos DB API or Table Storage, and the right unstructured store."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Global app",
+        "x": 165,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "cosmos",
+        "label": "Cosmos DB",
+        "x": 420,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "tbl",
+        "label": "Table Storage",
+        "x": 675,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "blob",
+        "label": "Blob Storage",
+        "x": 166,
+        "y": 161,
+        "kind": "storage"
+      },
+      {
+        "id": "adls",
+        "label": "Data Lake Storage",
+        "x": 420,
+        "y": 161,
+        "kind": "storage"
+      },
+      {
+        "id": "files",
+        "label": "Azure Files",
+        "x": 674,
+        "y": 161,
+        "kind": "storage"
+      },
+      {
+        "id": "anf",
+        "label": "Azure NetApp Files",
+        "x": 420,
+        "y": 270,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "app",
+        "to": "cosmos"
+      },
+      {
+        "from": "app",
+        "to": "tbl"
+      },
+      {
+        "from": "app",
+        "to": "blob"
+      }
+    ]
+  },
+  "example": {
+    "title": "A global retail platform",
+    "body": [
+      "The product catalogue and shopping carts use Cosmos DB for NoSQL with /tenantId as partition key, in three regions with session consistency. A recommendation graph uses the Gremlin API.",
+      "Product images live in Blob Storage, the analytics lake uses Data Lake Storage, store file shares move to Azure Files, and the SAP HANA system uses Azure NetApp Files."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Create Azure Cosmos DB account: choose API, capacity mode, regions, multi-region writes.",
+      "Storage account > Advanced: Enable hierarchical namespace (Data Lake Storage).",
+      "Azure NetApp Files: create a NetApp account, capacity pool (service level) and volume."
+    ],
+    "cli": "az cosmosdb create -g rg-data -n cosmos-retail --locations regionName=westeurope failoverPriority=0 --locations regionName=eastus failoverPriority=1 --default-consistency-level Session\naz storage account create -g rg-data -n stlakeretail --sku Standard_ZRS --kind StorageV2 --hns true",
+    "powershell": "New-AzCosmosDBAccount -ResourceGroupName rg-data -Name cosmos-retail -Location westeurope,eastus -DefaultConsistencyLevel Session"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-nosql-sim",
+    "objective": "Choose the store for each kind of data.",
+    "duration": 15,
+    "steps": [
+      "Answer every case in both trainers."
+    ],
+    "expected": [
+      "Cosmos DB API follows the app; Table Storage for cheap key-value",
+      "Data Lake for analytics; NetApp Files for enterprise NAS"
+    ],
+    "validation": [
+      {
+        "id": "semi-structured-correct",
+        "text": "Chose the right semi-structured store"
+      },
+      {
+        "id": "unstructured-correct",
+        "text": "Chose the right unstructured store"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing a low-cardinality partition key",
+      "Using Blob Storage where an SMB share is needed"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Cosmos DB requests are throttled (429) on one partition while others are idle.",
+      "cause": "Hot partition from a low-cardinality key.",
+      "fix": "Choose a high-cardinality partition key (or hierarchical partition keys)."
+    },
+    {
+      "symptom": "Spark jobs on blob storage are slow when renaming folders.",
+      "cause": "Flat namespace: folder rename copies every blob.",
+      "fix": "Use Data Lake Storage (hierarchical namespace) for analytics."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Cosmos DB Table API vs Table Storage",
+      "difference": "Cosmos adds global distribution, latency SLAs and automatic indexing at higher cost."
+    },
+    {
+      "service": "Azure Files vs NetApp Files",
+      "difference": "Files: general-purpose shares; NetApp Files: high-performance enterprise workloads."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Cosmos DB is only for NoSQL documents.",
+      "reality": "It offers several APIs, including MongoDB, Cassandra, Gremlin and PostgreSQL."
+    },
+    {
+      "myth": "Strong consistency is always best.",
+      "reality": "It increases latency and limits availability; session is the default for good reason."
+    }
+  ],
+  "architectureDecisions": [
+    "Cosmos DB API by app need; partition key by cardinality.",
+    "Table Storage when cheap and simple is enough.",
+    "Blob for objects, Data Lake for analytics, Files for shares, NetApp Files for enterprise NAS."
+  ],
+  "docs": [
+    {
+      "title": "Choose an API in Azure Cosmos DB",
+      "url": "https://learn.microsoft.com/azure/cosmos-db/choose-api"
+    },
+    {
+      "title": "Consistency levels in Cosmos DB",
+      "url": "https://learn.microsoft.com/azure/cosmos-db/consistency-levels"
+    },
+    {
+      "title": "Partitioning in Cosmos DB",
+      "url": "https://learn.microsoft.com/azure/cosmos-db/partitioning-overview"
+    },
+    {
+      "title": "Introduction to Data Lake Storage",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/data-lake-storage-introduction"
+    },
+    {
+      "title": "What is Azure NetApp Files?",
+      "url": "https://learn.microsoft.com/azure/azure-netapp-files/azure-netapp-files-introduction"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Store documents, key-values, files and objects in the service built for each.",
+    "learn": [
+      "Cosmos DB APIs, partitions, consistency",
+      "Table Storage for cheap key-value",
+      "Blob, Data Lake, Files, NetApp Files"
+    ],
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Global app",
+        "x": 157,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "cosmos",
+        "label": "Cosmos DB",
+        "x": 400,
+        "y": 75,
+        "kind": "database",
+        "sub": "NoSQL, Mongo, Gremlin…"
+      },
+      {
+        "id": "tbl",
+        "label": "Table Storage",
+        "x": 643,
+        "y": 75,
+        "kind": "database",
+        "sub": "cheap key-value"
+      },
+      {
+        "id": "blob",
+        "label": "Blob Storage",
+        "x": 158,
+        "y": 215,
+        "kind": "storage",
+        "sub": "objects"
+      },
+      {
+        "id": "adls",
+        "label": "Data Lake Storage",
+        "x": 400,
+        "y": 215,
+        "kind": "storage",
+        "sub": "analytics"
+      },
+      {
+        "id": "files",
+        "label": "Azure Files",
+        "x": 642,
+        "y": 215,
+        "kind": "storage",
+        "sub": "SMB / NFS"
+      },
+      {
+        "id": "anf",
+        "label": "Azure NetApp Files",
+        "x": 400,
+        "y": 360,
+        "kind": "storage",
+        "sub": "enterprise NAS"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Not everything fits in tables",
+        "body": [
+          "Shopping carts are JSON, device settings are key-values, and there are millions of images and huge analytics files."
+        ],
+        "show": [
+          "app"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Cosmos DB",
+        "title": "Semi-structured, low latency, global",
+        "body": [
+          "Pick the API your app speaks (NoSQL, MongoDB, Cassandra, Gremlin, Table). Choose a partition key with many distinct values so load spreads evenly. Session consistency is the sensible default."
+        ],
+        "show": [
+          "app",
+          "cosmos"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "cosmos",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "A bad partition key causes throttling on one hot partition."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Table",
+        "title": "When cheap and simple wins",
+        "body": [
+          "Table Storage keeps key-value data in a storage account at very low cost, without global distribution."
+        ],
+        "show": [
+          "app",
+          "cosmos",
+          "tbl"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "cosmos"
+          },
+          {
+            "from": "app",
+            "to": "tbl",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Files and objects",
+        "title": "Four unstructured stores",
+        "body": [
+          "Blob: objects at any scale. Data Lake Storage: blob with real folders and ACLs for analytics. Azure Files: SMB/NFS shares. Azure NetApp Files: very fast enterprise NAS for SAP, HPC and databases."
+        ],
+        "show": [
+          "app",
+          "cosmos",
+          "tbl",
+          "blob",
+          "adls",
+          "files",
+          "anf"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "cosmos"
+          },
+          {
+            "from": "app",
+            "to": "tbl"
+          },
+          {
+            "from": "app",
+            "to": "blob",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Non-relational design",
+        "body": [
+          "Shape decides the store."
+        ],
+        "show": [
+          "app",
+          "cosmos",
+          "tbl",
+          "blob",
+          "adls",
+          "files",
+          "anf"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "cosmos"
+          },
+          {
+            "from": "app",
+            "to": "tbl"
+          },
+          {
+            "from": "app",
+            "to": "blob"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "recap": [
+          "Cosmos DB: API by app, high-cardinality partition key",
+          "Table Storage: cheapest key-value",
+          "Blob / Data Lake / Files / NetApp Files"
+        ]
+      }
+    ]
+  }
+}

@@ -24,7 +24,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CUR = ROOT / "curriculum"
-EXAMS = ["az-900", "az-104", "ai-901", "aws-clf-c02"]
+EXAMS = ["az-900", "az-104", "az-305", "ai-901", "aws-clf-c02"]
 MIN_QUESTIONS = 2
 APPLIED_TYPES = {"scenario", "configuration", "troubleshooting", "architecture", "command", "ordering", "matching"}
 REQUIRED_LESSON_FIELDS = ["learningObjective", "prerequisites", "foundation", "engineer", "animation", "diagram",

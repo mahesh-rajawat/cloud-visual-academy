@@ -991,5 +991,254 @@
     "fidelity": "accurate-model",
     "testFile": "frontend/src/simulations/groups/ai.test.ts",
     "description": "Analyze audio and video, choose Extract, Classify or Generate, and poll results in an app."
+  },
+  {
+    "id": "az305-monitor-sim",
+    "title": "Logging and monitoring design",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-1.1.1",
+      "AZ305-1.1.2",
+      "AZ305-1.1.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Choose log destinations, monitoring features and workspace designs for real requirements."
+  },
+  {
+    "id": "az305-authn-sim",
+    "title": "Authentication and identity design",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-1.2.1",
+      "AZ305-1.2.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Pick hybrid sign-in methods and identity solutions for employees, partners, customers and workloads."
+  },
+  {
+    "id": "az305-authz-sim",
+    "title": "Authorization design",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-1.2.3",
+      "AZ305-1.2.4"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Choose RBAC, custom roles, PIM and ABAC for Azure, and application proxy, Private Access or Domain Services for on-premises."
+  },
+  {
+    "id": "az305-secrets-sim",
+    "title": "Secrets, keys and certificates",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-1.2.5"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Choose Key Vault Standard, Premium, Managed HSM or App Configuration for each requirement."
+  },
+  {
+    "id": "az305-governance-sim",
+    "title": "Governance design",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-1.3.1",
+      "AZ305-1.3.2",
+      "AZ305-1.3.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Decide where policy, billing, lifecycle and metadata belong, and pick compliance and identity-governance tools."
+  },
+  {
+    "id": "az305-sql-sim",
+    "title": "Relational data stores and tiers",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-2.1.1",
+      "AZ305-2.1.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Pick SQL Database, Managed Instance, SQL on VMs or open-source databases, then the service tier and compute model."
+  },
+  {
+    "id": "az305-sql-scale-sim",
+    "title": "Scaling and protecting relational data",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-2.1.3",
+      "AZ305-2.1.4"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Choose scale-up, read scale-out, pools or sharding, and TDE, Always Encrypted, masking, row-level security or auditing."
+  },
+  {
+    "id": "az305-nosql-sim",
+    "title": "Semi-structured and unstructured data",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-2.2.1",
+      "AZ305-2.2.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Choose the Cosmos DB API or Table Storage, and Blob, Data Lake, Files or NetApp Files."
+  },
+  {
+    "id": "az305-storage-design-sim",
+    "title": "Cost, performance and durability of storage",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-2.2.3",
+      "AZ305-2.2.4"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Balance account type, access tier and lifecycle rules, and choose redundancy, immutability, soft delete or vaulted backup."
+  },
+  {
+    "id": "az305-data-int-sim",
+    "title": "Data integration and analysis",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-2.3.1",
+      "AZ305-2.3.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Pick Data Factory, Databricks, Synapse, Stream Analytics, Fabric or Data Explorer for each data job."
+  },
+  {
+    "id": "az305-bcdr-sim",
+    "title": "Backup and disaster recovery design",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-3.1.1",
+      "AZ305-3.1.2",
+      "AZ305-3.1.3",
+      "AZ305-3.1.4"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Pick Azure Backup, Site Recovery, failover groups, point-in-time restore or long-term retention for each recovery requirement."
+  },
+  {
+    "id": "az305-ha-sim",
+    "title": "High availability design and composite SLA",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-3.2.1",
+      "AZ305-3.2.2",
+      "AZ305-3.2.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Choose zones, availability sets or multi-region designs, data replication options, and calculate a composite SLA."
+  },
+  {
+    "id": "az305-compute-sim",
+    "title": "Compute, VM and container design",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-4.1.1",
+      "AZ305-4.1.2",
+      "AZ305-4.1.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Pick App Service, Container Apps, AKS, VMs, ACI or Virtual Desktop, and the VM pricing and placement option."
+  },
+  {
+    "id": "az305-serverless-sim",
+    "title": "Serverless and batch design",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-4.1.4",
+      "AZ305-4.1.5"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Choose Functions, Durable Functions, Logic Apps, Batch or Container Apps jobs."
+  },
+  {
+    "id": "az305-messaging-sim",
+    "title": "Messaging, events and APIs",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-4.2.1",
+      "AZ305-4.2.2",
+      "AZ305-4.2.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Choose Queue Storage, Service Bus, Event Grid or Event Hubs for each messaging need."
+  },
+  {
+    "id": "az305-app-config-sim",
+    "title": "Caching, configuration and deployment",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-4.2.4",
+      "AZ305-4.2.5",
+      "AZ305-4.2.6"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Choose API Management, Redis, edge caching, App Configuration and the deployment approach."
+  },
+  {
+    "id": "az305-migrate-plan-sim",
+    "title": "Cloud Adoption Framework and assessment",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-4.3.1",
+      "AZ305-4.3.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Place migration activities in the right CAF phase and use Azure Migrate to discover and assess."
+  },
+  {
+    "id": "az305-migrate-sim",
+    "title": "Migrating workloads, databases and files",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-4.3.3",
+      "AZ305-4.3.4",
+      "AZ305-4.3.5"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Pick the migration strategy and tool for servers, apps, databases and unstructured data."
+  },
+  {
+    "id": "az305-net-connect-sim",
+    "title": "Internet and hybrid connectivity",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-4.4.1",
+      "AZ305-4.4.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Choose NAT gateway, Front Door, VPN, ExpressRoute, Virtual WAN or ExpressRoute with VPN failover."
+  },
+  {
+    "id": "az305-net-design-sim",
+    "title": "Network performance, security and load balancing",
+    "exam": "az-305",
+    "objectiveIds": [
+      "AZ305-4.4.3",
+      "AZ305-4.4.4",
+      "AZ305-4.4.5"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az305.test.ts",
+    "description": "Choose performance features, security layers and the right load balancer or router."
   }
 ]

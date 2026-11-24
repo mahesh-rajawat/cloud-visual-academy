@@ -1,0 +1,591 @@
+{
+  "id": "az305-high-availability",
+  "exam": "az-305",
+  "title": "Design for high availability",
+  "objectiveIds": [
+    "AZ305-3.2.1",
+    "AZ305-3.2.2",
+    "AZ305-3.2.3"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Recommend high availability for compute, relational data and semi-structured and unstructured data, and calculate composite SLAs.",
+  "prerequisites": [
+    {
+      "text": "Availability sets and zones (AZ-104)",
+      "objectiveId": "AZ104-3.2.6",
+      "lessonId": "az104-vm-availability"
+    }
+  ],
+  "foundation": [
+    "High availability means the app keeps running when a part fails. Availability zones protect against a datacenter failure; a second region protects against a regional one.",
+    "Every service has an SLA. When an app needs several services at once, their SLAs multiply, so the whole is less available than each part. Redundant copies raise availability again."
+  ],
+  "engineer": [
+    "Compute: spread VMs or VM Scale Sets (Flexible orchestration) across availability zones behind a zone-redundant Standard Load Balancer or Application Gateway v2; use zone-redundant App Service plans, Container Apps environments, AKS node pools across zones and Functions on zone-redundant plans. Availability sets only for regions without zones. Multi-region: active-passive (warm or cold standby) or active-active behind Front Door or Traffic Manager, with health probes and automated failover.",
+    "Relational data: Azure SQL Database and Managed Instance include built-in HA; enable zone redundancy for zone failures; use active geo-replication or failover groups for regional resilience and readable secondaries. SQL Server on VMs: Always On availability groups across zones or regions. PostgreSQL and MySQL flexible server: zone-redundant HA with a standby replica.",
+    "Semi-structured and unstructured data: Cosmos DB with availability zones and multiple regions (service-managed failover; multi-region writes for the highest availability, with conflict resolution); storage redundancy ZRS, GZRS or RA-GZRS; RA- endpoints let apps read during a regional outage.",
+    "Composite SLA: services needed in series multiply (99.95% × 99.99% ≈ 99.94%). N independent copies in parallel: 1 − (1 − SLA)^N. Add the global router's SLA in series. Use the Well-Architected Framework reliability pillar to set targets, find single points of failure and design health modelling."
+  ],
+  "animation": {
+    "id": "az305-ha-sim",
+    "caption": "Pick zone, set or multi-region designs, data HA options, and calculate composite SLAs."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "fd",
+        "label": "Front Door",
+        "x": 170,
+        "y": 56,
+        "kind": "network"
+      },
+      {
+        "id": "r1",
+        "label": "Region 1",
+        "x": 420,
+        "y": 56,
+        "kind": "network"
+      },
+      {
+        "id": "r2",
+        "label": "Region 2",
+        "x": 670,
+        "y": 56,
+        "kind": "network"
+      },
+      {
+        "id": "z1",
+        "label": "Zone 1",
+        "x": 170,
+        "y": 161,
+        "kind": "compute"
+      },
+      {
+        "id": "z2",
+        "label": "Zone 2",
+        "x": 420,
+        "y": 161,
+        "kind": "compute"
+      },
+      {
+        "id": "z3",
+        "label": "Zone 3",
+        "x": 670,
+        "y": 161,
+        "kind": "compute"
+      },
+      {
+        "id": "sql",
+        "label": "SQL zone-redundant + geo",
+        "x": 180,
+        "y": 270,
+        "kind": "storage"
+      },
+      {
+        "id": "cos",
+        "label": "Cosmos multi-region",
+        "x": 454,
+        "y": 270,
+        "kind": "storage"
+      },
+      {
+        "id": "st",
+        "label": "RA-GZRS storage",
+        "x": 694,
+        "y": 270,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "r1",
+        "to": "z1"
+      },
+      {
+        "from": "r1",
+        "to": "z2"
+      },
+      {
+        "from": "r1",
+        "to": "z3"
+      },
+      {
+        "from": "z2",
+        "to": "sql"
+      },
+      {
+        "from": "fd",
+        "to": "r1"
+      },
+      {
+        "from": "fd",
+        "to": "r2"
+      }
+    ]
+  },
+  "example": {
+    "title": "99.99% for an online shop",
+    "body": [
+      "Single region: App Service (zone-redundant), SQL Database (zone-redundant) and a cache give about 99.84% composite — below target. The architect deploys the stack in two regions, active-active behind Front Door.",
+      "Two regions raise the stack to about 99.9997% before the router; multiplied by Front Door's SLA the design clears 99.99%. Product data uses Cosmos DB with multi-region writes; images use RA-GZRS storage."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "App Service plan > Zone redundancy; VM Scale Set > Availability zones.",
+      "SQL database > Compute + storage > Zone redundancy; Failover groups.",
+      "Cosmos DB > Replicate data globally; Multi-region writes."
+    ],
+    "cli": "az appservice plan create -g rg-web -n asp-shop --sku P1v3 --zone-redundant --number-of-workers 2\naz sql db update -g rg-data -s sql-weu -n db-shop --zone-redundant true\naz cosmosdb update -g rg-data -n cosmos-shop --enable-multiple-write-locations true",
+    "powershell": "Update-AzCosmosDBAccount -ResourceGroupName rg-data -Name cosmos-shop -EnableMultipleWriteLocations:$true"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-ha-sim",
+    "objective": "Design HA for compute and data, then check the composite SLA.",
+    "duration": 15,
+    "steps": [
+      "Answer every case in both trainers.",
+      "Open the composite SLA calculator: read the starting single-region result, try 'One region without the cache', then 'Same stack in two regions', and compare each with the 99.95% target."
+    ],
+    "expected": [
+      "Zones for datacenter failure; regions for regional failure",
+      "SLAs multiply in series; redundancy raises them"
+    ],
+    "validation": [
+      {
+        "id": "high-availability-correct",
+        "text": "Chose the right availability design"
+      },
+      {
+        "id": "data-ha-correct",
+        "text": "Chose the right data availability option"
+      },
+      {
+        "id": "sla-multi-region",
+        "text": "Calculated a two-region composite SLA"
+      },
+      {
+        "id": "sla-meets",
+        "text": "Reached the business target"
+      }
+    ],
+    "failureScenarios": [
+      "Assuming a chain of services is as available as its best part",
+      "Using availability sets where zones exist"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Downtime during a zone outage even though VMs were in a scale set.",
+      "cause": "Scale set not spread across zones.",
+      "fix": "Deploy the scale set across zones 1, 2 and 3 with a zone-redundant load balancer."
+    },
+    {
+      "symptom": "Composite availability is lower than every single service's SLA.",
+      "cause": "Dependencies multiply.",
+      "fix": "Remove dependencies, add redundancy or a second region."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Active-active vs active-passive",
+      "difference": "Active-active serves from both regions (higher cost, near-zero failover); active-passive keeps a standby (lower cost, longer RTO)."
+    },
+    {
+      "service": "Zone-redundant vs geo-redundant",
+      "difference": "Zones: one region, survives a datacenter outage; geo: another region, survives a regional outage."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "A 99.99% database makes the app 99.99%.",
+      "reality": "The app's availability is the product of everything it depends on."
+    },
+    {
+      "myth": "Availability sets protect against datacenter failure.",
+      "reality": "They protect against rack failures inside one datacenter."
+    }
+  ],
+  "architectureDecisions": [
+    "Zone-redundant by default where available.",
+    "Second region only when RTO/SLA needs it.",
+    "Calculate composite SLA and remove single points of failure."
+  ],
+  "docs": [
+    {
+      "title": "What are availability zones?",
+      "url": "https://learn.microsoft.com/azure/reliability/availability-zones-overview"
+    },
+    {
+      "title": "Reliability: target metrics (composite SLA)",
+      "url": "https://learn.microsoft.com/azure/well-architected/reliability/metrics"
+    },
+    {
+      "title": "Azure SQL high availability",
+      "url": "https://learn.microsoft.com/azure/azure-sql/database/high-availability-sla-local-zone-redundancy"
+    },
+    {
+      "title": "High availability in Cosmos DB",
+      "url": "https://learn.microsoft.com/azure/reliability/reliability-cosmos-db-nosql"
+    },
+    {
+      "title": "Multi-region web app",
+      "url": "https://learn.microsoft.com/azure/architecture/web-apps/app-service/architectures/multi-region"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Keep the app up when a rack, a datacenter or a whole region fails — and prove it with numbers.",
+    "learn": [
+      "Zones vs sets vs regions for compute",
+      "HA for relational data",
+      "HA for Cosmos DB and storage",
+      "Composite SLA maths"
+    ],
+    "nodes": [
+      {
+        "id": "fd",
+        "label": "Front Door",
+        "x": 162,
+        "y": 75,
+        "kind": "globe",
+        "sub": "global router"
+      },
+      {
+        "id": "r1",
+        "label": "Region 1",
+        "x": 400,
+        "y": 75,
+        "kind": "globe"
+      },
+      {
+        "id": "r2",
+        "label": "Region 2",
+        "x": 638,
+        "y": 75,
+        "kind": "globe"
+      },
+      {
+        "id": "z1",
+        "label": "Zone 1",
+        "x": 162,
+        "y": 215,
+        "kind": "compute"
+      },
+      {
+        "id": "z2",
+        "label": "Zone 2",
+        "x": 400,
+        "y": 215,
+        "kind": "compute"
+      },
+      {
+        "id": "z3",
+        "label": "Zone 3",
+        "x": 638,
+        "y": 215,
+        "kind": "compute"
+      },
+      {
+        "id": "sql",
+        "label": "SQL zone-redundant + geo",
+        "x": 171,
+        "y": 360,
+        "kind": "database"
+      },
+      {
+        "id": "cos",
+        "label": "Cosmos multi-region",
+        "x": 432,
+        "y": 360,
+        "kind": "database"
+      },
+      {
+        "id": "st",
+        "label": "RA-GZRS storage",
+        "x": 661,
+        "y": 360,
+        "kind": "storage"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "The target is 99.99%",
+        "body": [
+          "The business wants less than 5 minutes of downtime a month. Where can things fail, and what does each part promise?"
+        ],
+        "show": [
+          "r1"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Compute",
+        "title": "Zones, sets and regions",
+        "body": [
+          "Spread instances across availability zones (separate datacenters) behind a zone-redundant load balancer. Availability sets only protect against rack failures, for regions without zones. A second region protects against regional failure."
+        ],
+        "show": [
+          "r1",
+          "z1",
+          "z2",
+          "z3"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "r1",
+            "to": "z1",
+            "fresh": true
+          },
+          {
+            "from": "r1",
+            "to": "z2",
+            "fresh": true
+          },
+          {
+            "from": "r1",
+            "to": "z3",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Relational",
+        "title": "SQL stays up",
+        "body": [
+          "Turn on zone redundancy for zone failures. Add geo-replication or a failover group for regional failures and readable secondaries."
+        ],
+        "show": [
+          "r1",
+          "z1",
+          "z2",
+          "z3",
+          "sql"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "r1",
+            "to": "z1"
+          },
+          {
+            "from": "r1",
+            "to": "z2"
+          },
+          {
+            "from": "r1",
+            "to": "z3"
+          },
+          {
+            "from": "z2",
+            "to": "sql",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Other data",
+        "title": "Cosmos DB and storage",
+        "body": [
+          "Cosmos DB with zones and multiple regions; multi-region writes for the highest availability. Storage with ZRS, GZRS or RA-GZRS for reads during a regional outage."
+        ],
+        "show": [
+          "r1",
+          "z1",
+          "z2",
+          "z3",
+          "sql",
+          "cos",
+          "st"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "r1",
+            "to": "z1"
+          },
+          {
+            "from": "r1",
+            "to": "z2"
+          },
+          {
+            "from": "r1",
+            "to": "z3"
+          },
+          {
+            "from": "z2",
+            "to": "sql"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "The maths",
+        "title": "Composite SLA",
+        "body": [
+          "Things you need together multiply: 99.95% × 99.99% × 99.9% ≈ 99.84%. Two independent copies: 1 − (1 − 0.9984)² ≈ 99.9997%. Then multiply by the router's SLA."
+        ],
+        "show": [
+          "r1",
+          "z1",
+          "z2",
+          "z3",
+          "sql",
+          "cos",
+          "st",
+          "fd",
+          "r2"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "r1",
+            "to": "z1"
+          },
+          {
+            "from": "r1",
+            "to": "z2"
+          },
+          {
+            "from": "r1",
+            "to": "z3"
+          },
+          {
+            "from": "z2",
+            "to": "sql"
+          },
+          {
+            "from": "fd",
+            "to": "r1",
+            "fresh": true
+          },
+          {
+            "from": "fd",
+            "to": "r2",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Try it in the composite SLA calculator below."
+        },
+        "stats": [
+          {
+            "label": "1 region",
+            "value": "≈ 99.84%"
+          },
+          {
+            "label": "2 regions + router",
+            "value": "≈ 99.99%"
+          }
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "HA design",
+        "body": [
+          "Remove single points of failure."
+        ],
+        "show": [
+          "r1",
+          "z1",
+          "z2",
+          "z3",
+          "sql",
+          "cos",
+          "st",
+          "fd",
+          "r2"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "r1",
+            "to": "z1"
+          },
+          {
+            "from": "r1",
+            "to": "z2"
+          },
+          {
+            "from": "r1",
+            "to": "z3"
+          },
+          {
+            "from": "z2",
+            "to": "sql"
+          },
+          {
+            "from": "fd",
+            "to": "r1"
+          },
+          {
+            "from": "fd",
+            "to": "r2"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Zones by default; sets only without zones; regions for regional failure",
+          "SQL: zone-redundant + failover group",
+          "Cosmos multi-region; ZRS/GZRS/RA-GZRS",
+          "Series multiply; parallel = 1 − (1 − SLA)^N"
+        ]
+      }
+    ]
+  }
+}

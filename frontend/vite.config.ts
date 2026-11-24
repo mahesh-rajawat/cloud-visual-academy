@@ -24,5 +24,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     css: false,
+    // Tests cover every exam's content, including exams hidden in the default build.
+    env: { VITE_EXAMS: 'all' },
   },
 })

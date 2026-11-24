@@ -1,0 +1,595 @@
+{
+  "id": "az305-authentication",
+  "exam": "az-305",
+  "title": "Design authentication and identity management",
+  "objectiveIds": [
+    "AZ305-1.2.1",
+    "AZ305-1.2.2"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Recommend an authentication solution (hybrid sign-in, MFA, passwordless, Conditional Access) and an identity management solution for employees, partners, customers and workloads.",
+  "prerequisites": [
+    {
+      "text": "Microsoft Entra users and groups (AZ-104)",
+      "objectiveId": "AZ104-1.1.1",
+      "lessonId": "az104-entra-users-groups"
+    },
+    {
+      "text": "Self-service password reset (AZ-104)",
+      "objectiveId": "AZ104-1.1.5",
+      "lessonId": "az104-sspr"
+    }
+  ],
+  "foundation": [
+    "Authentication proves who someone is. In Azure that job belongs to Microsoft Entra ID.",
+    "Employees often already exist in on-premises Active Directory. You copy them to Entra ID so they use one account everywhere, and decide how their password is checked.",
+    "Partners, customers and apps are different kinds of identity, each with its own Entra feature."
+  ],
+  "engineer": [
+    "Hybrid sign-in with Microsoft Entra Connect Sync or Cloud Sync: password hash sync (PHS, recommended default: no on-premises dependency at sign-in, enables leaked-credential detection in ID Protection), pass-through authentication (PTA: agents validate against AD in real time; use when on-premises policies such as logon hours must apply at sign-in), or federation with AD FS (only for requirements Entra ID cannot meet, such as some third-party smart-card or MFA integrations). Seamless SSO gives domain-joined devices silent sign-in.",
+    "Strong authentication: MFA through the Authentication methods policy, passwordless (Windows Hello for Business, FIDO2 security keys and passkeys, Microsoft Authenticator), and Conditional Access (Entra ID P1) to require MFA or compliant devices by user, app, location and risk. Risk-based policies use ID Protection (P2). Security defaults suit small tenants without P1.",
+    "Identity types: employees (members, synced or cloud-only); partners with B2B collaboration (guests use their own credentials; cross-tenant access settings control trust); customers with Microsoft Entra External ID in an external tenant (customer sign-up, social identity providers; the successor to Azure AD B2C, which is no longer available to new customers); workloads with managed identities (system- or user-assigned) for Azure resources, service principals for apps, and workload identity federation for GitHub Actions, Kubernetes and other OIDC issuers so no secrets are stored.",
+    "Identity management at scale: dynamic groups and group-based licensing, administrative units to delegate administration to part of the directory, and Microsoft Entra roles assigned with least privilege."
+  ],
+  "animation": {
+    "id": "az305-authn-sim",
+    "caption": "Pick the hybrid sign-in method and the identity solution for each kind of user or workload."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "ad",
+        "label": "On-premises AD",
+        "x": 165,
+        "y": 56,
+        "kind": "identity"
+      },
+      {
+        "id": "sync",
+        "label": "Entra Connect",
+        "x": 407,
+        "y": 56,
+        "kind": "scope"
+      },
+      {
+        "id": "entra",
+        "label": "Microsoft Entra ID",
+        "x": 664,
+        "y": 56,
+        "kind": "identity"
+      },
+      {
+        "id": "ca",
+        "label": "Conditional Access",
+        "x": 163,
+        "y": 161,
+        "kind": "security"
+      },
+      {
+        "id": "guest",
+        "label": "Partner (B2B)",
+        "x": 405,
+        "y": 161,
+        "kind": "user"
+      },
+      {
+        "id": "cust",
+        "label": "Customer (External ID)",
+        "x": 662,
+        "y": 161,
+        "kind": "user"
+      },
+      {
+        "id": "app",
+        "label": "Azure Function",
+        "x": 168,
+        "y": 270,
+        "kind": "compute"
+      },
+      {
+        "id": "mi",
+        "label": "Managed identity",
+        "x": 420,
+        "y": 270,
+        "kind": "security"
+      },
+      {
+        "id": "kv",
+        "label": "Key Vault",
+        "x": 672,
+        "y": 270,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "ad",
+        "to": "sync"
+      },
+      {
+        "from": "sync",
+        "to": "entra"
+      },
+      {
+        "from": "entra",
+        "to": "ca"
+      },
+      {
+        "from": "guest",
+        "to": "entra",
+        "label": "guest"
+      },
+      {
+        "from": "cust",
+        "to": "entra",
+        "label": "external tenant"
+      },
+      {
+        "from": "app",
+        "to": "mi"
+      },
+      {
+        "from": "mi",
+        "to": "kv",
+        "label": "token"
+      }
+    ]
+  },
+  "example": {
+    "title": "A manufacturer moving to Microsoft 365 and Azure",
+    "body": [
+      "15,000 AD users sync with Entra Connect Sync and password hash sync, so sign-in keeps working even during a datacenter outage. Conditional Access requires MFA outside the office and compliant devices for admins.",
+      "Suppliers access a procurement app as B2B guests; the customer portal uses External ID with email and social sign-up; Azure Functions use managed identities, and GitHub Actions deploy with workload identity federation."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Hybrid Identity Administrator for Connect; Conditional Access Administrator for policies"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Microsoft Entra admin center > Hybrid management > Microsoft Entra Connect: choose sync tool and sign-in method.",
+      "Protection > Conditional Access > Create new policy.",
+      "Protection > Authentication methods > Policies: enable passkeys / Authenticator.",
+      "External Identities > Cross-tenant access settings."
+    ],
+    "cli": "az identity create -g rg-app -n id-orders\naz webapp identity assign -g rg-app -n app-orders --identities id-orders",
+    "powershell": "New-AzUserAssignedIdentity -ResourceGroupName rg-app -Name id-orders -Location westeurope"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-authn-sim",
+    "objective": "Pick the sign-in method and identity type for each requirement.",
+    "duration": 15,
+    "steps": [
+      "Answer every case in both trainers.",
+      "Compare password hash sync with pass-through authentication."
+    ],
+    "expected": [
+      "Password hash sync is the default",
+      "Managed identities and workload identity federation remove secrets"
+    ],
+    "validation": [
+      {
+        "id": "hybrid-auth-correct",
+        "text": "Chose the right hybrid sign-in method"
+      },
+      {
+        "id": "identity-type-correct",
+        "text": "Chose the right identity solution"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing federation without a requirement for it",
+      "Using B2B for millions of consumers"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Users can't sign in when the on-premises datacenter is down.",
+      "cause": "Pass-through authentication or federation depends on on-premises servers.",
+      "fix": "Enable password hash sync (also as a backup method)."
+    },
+    {
+      "symptom": "A pipeline's client secret expired and deployments failed.",
+      "cause": "Secrets need rotation.",
+      "fix": "Use workload identity federation (no secret) for GitHub Actions or Azure DevOps."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "B2B vs External ID (customers)",
+      "difference": "B2B: partners as guests in your workforce tenant; External ID: customer accounts in an external tenant for your apps."
+    },
+    {
+      "service": "System- vs user-assigned managed identity",
+      "difference": "System-assigned lives and dies with one resource; user-assigned is a standalone identity shared by several resources."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Password hash sync sends passwords to the cloud.",
+      "reality": "It syncs a hash of the password hash; the password itself never leaves."
+    },
+    {
+      "myth": "Federation is more secure by default.",
+      "reality": "It adds infrastructure and failure points; PHS plus MFA and Conditional Access is Microsoft's recommendation."
+    }
+  ],
+  "architectureDecisions": [
+    "PHS by default; PTA or federation only for specific requirements.",
+    "Conditional Access with MFA or passwordless for everyone.",
+    "No secrets for workloads: managed identity or workload identity federation."
+  ],
+  "docs": [
+    {
+      "title": "Choose the right authentication method for hybrid identity",
+      "url": "https://learn.microsoft.com/entra/identity/hybrid/connect/choose-ad-authn"
+    },
+    {
+      "title": "What is Conditional Access?",
+      "url": "https://learn.microsoft.com/entra/identity/conditional-access/overview"
+    },
+    {
+      "title": "External Identities overview",
+      "url": "https://learn.microsoft.com/entra/external-id/external-identities-overview"
+    },
+    {
+      "title": "Managed identities for Azure resources",
+      "url": "https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Give every person and app a trusted identity, with strong sign-in and no secrets in code.",
+    "learn": [
+      "Hybrid sign-in: PHS, PTA, federation",
+      "Strong authentication and Conditional Access",
+      "Partners and customers",
+      "Identities for workloads"
+    ],
+    "nodes": [
+      {
+        "id": "ad",
+        "label": "On-premises AD",
+        "x": 157,
+        "y": 75,
+        "kind": "identity"
+      },
+      {
+        "id": "sync",
+        "label": "Entra Connect",
+        "x": 388,
+        "y": 75,
+        "kind": "service",
+        "sub": "sync users"
+      },
+      {
+        "id": "entra",
+        "label": "Microsoft Entra ID",
+        "x": 632,
+        "y": 75,
+        "kind": "identity"
+      },
+      {
+        "id": "ca",
+        "label": "Conditional Access",
+        "x": 155,
+        "y": 215,
+        "kind": "security",
+        "sub": "MFA, device, risk"
+      },
+      {
+        "id": "guest",
+        "label": "Partner (B2B)",
+        "x": 386,
+        "y": 215,
+        "kind": "user"
+      },
+      {
+        "id": "cust",
+        "label": "Customer (External ID)",
+        "x": 630,
+        "y": 215,
+        "kind": "user"
+      },
+      {
+        "id": "app",
+        "label": "Azure Function",
+        "x": 160,
+        "y": 360,
+        "kind": "compute"
+      },
+      {
+        "id": "mi",
+        "label": "Managed identity",
+        "x": 400,
+        "y": 360,
+        "kind": "security",
+        "sub": "no secrets"
+      },
+      {
+        "id": "kv",
+        "label": "Key Vault",
+        "x": 640,
+        "y": 360,
+        "kind": "security"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Many kinds of users, one sign-in system",
+        "body": [
+          "Employees are in on-premises AD, partners have their own accounts, customers sign up online, and apps need to call Azure. Each needs the right identity."
+        ],
+        "show": [
+          "entra"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Hybrid",
+        "title": "Sync employees and choose how passwords are checked",
+        "body": [
+          "Entra Connect copies users from AD. Then:",
+          "• Password hash sync — the cloud checks a hash; works even if on-premises is down (recommended)\n• Pass-through — on-premises agents check the password live\n• Federation — on-premises servers do the sign-in (only when you must)"
+        ],
+        "show": [
+          "entra",
+          "ad",
+          "sync"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ad",
+            "to": "sync",
+            "fresh": true
+          },
+          {
+            "from": "sync",
+            "to": "entra",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Strong sign-in",
+        "title": "MFA and Conditional Access",
+        "body": [
+          "Conditional Access policies decide when to ask for MFA, require a compliant device or block risky sign-ins. Passwordless methods (passkeys, Windows Hello, Authenticator) are the strongest and easiest."
+        ],
+        "show": [
+          "entra",
+          "ad",
+          "sync",
+          "ca"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ad",
+            "to": "sync"
+          },
+          {
+            "from": "sync",
+            "to": "entra"
+          },
+          {
+            "from": "entra",
+            "to": "ca",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Conditional Access needs Entra ID P1; risk-based policies need P2."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Outsiders",
+        "title": "Partners and customers",
+        "body": [
+          "Partners: B2B guests sign in with their own work account. Customers: Microsoft Entra External ID gives your app sign-up and sign-in with email or social accounts."
+        ],
+        "show": [
+          "entra",
+          "ad",
+          "sync",
+          "ca",
+          "guest",
+          "cust"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ad",
+            "to": "sync"
+          },
+          {
+            "from": "sync",
+            "to": "entra"
+          },
+          {
+            "from": "entra",
+            "to": "ca"
+          },
+          {
+            "from": "guest",
+            "to": "entra",
+            "label": "guest",
+            "fresh": true
+          },
+          {
+            "from": "cust",
+            "to": "entra",
+            "label": "external tenant",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Workloads",
+        "title": "Apps get identities too",
+        "body": [
+          "An Azure Function uses a managed identity to reach Key Vault — no password to store or rotate. Pipelines outside Azure (GitHub Actions) use workload identity federation."
+        ],
+        "show": [
+          "entra",
+          "ad",
+          "sync",
+          "ca",
+          "guest",
+          "cust",
+          "app",
+          "mi",
+          "kv"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ad",
+            "to": "sync"
+          },
+          {
+            "from": "sync",
+            "to": "entra"
+          },
+          {
+            "from": "entra",
+            "to": "ca"
+          },
+          {
+            "from": "guest",
+            "to": "entra",
+            "label": "guest"
+          },
+          {
+            "from": "cust",
+            "to": "entra",
+            "label": "external tenant"
+          },
+          {
+            "from": "app",
+            "to": "mi",
+            "fresh": true
+          },
+          {
+            "from": "mi",
+            "to": "kv",
+            "label": "token",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Authentication design",
+        "body": [
+          "One identity system, strong sign-in, no secrets."
+        ],
+        "show": [
+          "entra",
+          "ad",
+          "sync",
+          "ca",
+          "guest",
+          "cust",
+          "app",
+          "mi",
+          "kv"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ad",
+            "to": "sync"
+          },
+          {
+            "from": "sync",
+            "to": "entra"
+          },
+          {
+            "from": "entra",
+            "to": "ca"
+          },
+          {
+            "from": "guest",
+            "to": "entra",
+            "label": "guest"
+          },
+          {
+            "from": "cust",
+            "to": "entra",
+            "label": "external tenant"
+          },
+          {
+            "from": "app",
+            "to": "mi"
+          },
+          {
+            "from": "mi",
+            "to": "kv",
+            "label": "token"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "PHS by default (PTA/federation only if required)",
+          "Conditional Access + MFA/passwordless",
+          "B2B for partners, External ID for customers",
+          "Managed identity / workload identity federation for apps"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,489 @@
+{
+  "id": "az305-network-optimize",
+  "exam": "az-305",
+  "title": "Optimise network performance and security, and choose load balancing",
+  "objectiveIds": [
+    "AZ305-4.4.3",
+    "AZ305-4.4.4",
+    "AZ305-4.4.5"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Recommend solutions to optimise network performance and security, and a load-balancing and routing solution.",
+  "prerequisites": [
+    {
+      "text": "Load balancing (AZ-104)",
+      "objectiveId": "AZ104-4.3.2",
+      "lessonId": "az104-load-balancer"
+    },
+    {
+      "text": "NSGs (AZ-104)",
+      "objectiveId": "AZ104-4.2.1",
+      "lessonId": "az104-nsg-asg"
+    }
+  ],
+  "foundation": [
+    "Fast networks keep data close (same region, zone or rack) and take short, private paths.",
+    "Secure networks use layers: perimeter (DDoS, WAF), central firewall, segmentation (NSGs), and private access to services.",
+    "Load balancing has a simple rule: global or regional, web or any protocol."
+  ],
+  "engineer": [
+    "Performance: accelerated networking (SR-IOV) on supported VM sizes; proximity placement groups and same-zone placement for chatty tiers; choose regions close to users; Front Door or CDN for edge delivery; ExpressRoute (FastPath, Global Reach) for hybrid latency and throughput; Traffic Manager performance routing; VNet peering instead of gateways between VNets; private endpoints for low-latency private access.",
+    "Security layers: DDoS Network Protection (or IP Protection) for public IPs; Web Application Firewall on Front Door or Application Gateway; Azure Firewall (Standard: L3–L7 rules, FQDN filtering, threat intelligence; Premium: TLS inspection, IDPS, URL filtering) in the hub; NSGs and ASGs for micro-segmentation; Azure Virtual Network Manager security admin rules for organisation-wide guardrails; Private Link and disabled public network access for PaaS; Bastion for admin access; Network Watcher and VNet flow logs for visibility; Zero Trust principles.",
+    "Load balancing and routing decision: global + HTTP(S) → Front Door; global + any protocol → Traffic Manager (DNS-based) or cross-region Load Balancer; regional + HTTP(S) → Application Gateway (path routing, TLS termination, WAF) or Application Gateway for Containers; regional + TCP/UDP → Load Balancer (internal or public, HA ports for NVAs, Gateway Load Balancer for inline appliances). Combine them: Front Door → Application Gateway → internal Load Balancer."
+  ],
+  "animation": {
+    "id": "az305-net-design-sim",
+    "caption": "Choose performance features, security layers and the right load balancer."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "users",
+        "label": "Users",
+        "x": 168,
+        "y": 56,
+        "kind": "user"
+      },
+      {
+        "id": "ddos",
+        "label": "DDoS Protection",
+        "x": 415,
+        "y": 56,
+        "kind": "security"
+      },
+      {
+        "id": "fd",
+        "label": "Front Door + WAF",
+        "x": 668,
+        "y": 56,
+        "kind": "network"
+      },
+      {
+        "id": "agw",
+        "label": "Application Gateway",
+        "x": 178,
+        "y": 161,
+        "kind": "network"
+      },
+      {
+        "id": "fw",
+        "label": "Azure Firewall",
+        "x": 436,
+        "y": 161,
+        "kind": "security"
+      },
+      {
+        "id": "lb",
+        "label": "Load Balancer",
+        "x": 677,
+        "y": 161,
+        "kind": "network"
+      },
+      {
+        "id": "ppg",
+        "label": "Proximity placement group",
+        "x": 190,
+        "y": 270,
+        "kind": "compute"
+      },
+      {
+        "id": "nsg",
+        "label": "NSGs + ASGs",
+        "x": 459,
+        "y": 270,
+        "kind": "security"
+      },
+      {
+        "id": "pl",
+        "label": "Private Link",
+        "x": 689,
+        "y": 270,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "users",
+        "to": "ddos"
+      },
+      {
+        "from": "ddos",
+        "to": "fd"
+      },
+      {
+        "from": "fd",
+        "to": "agw"
+      },
+      {
+        "from": "agw",
+        "to": "lb"
+      }
+    ]
+  },
+  "example": {
+    "title": "A secure, fast global storefront",
+    "body": [
+      "Front Door Premium with WAF fronts the site; each region has Application Gateway routing /api and /static, and an internal Load Balancer for the order service. DDoS Network Protection covers the public IPs.",
+      "Azure Firewall Premium inspects outbound TLS; spokes are segmented with NSGs and ASGs; PaaS services use private endpoints. Latency-sensitive trading VMs use accelerated networking in a proximity placement group."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "VM > Networking > Accelerated networking; Proximity placement groups.",
+      "Azure Firewall policy: Premium features (TLS inspection, IDPS).",
+      "DDoS protection plan: associate with VNets.",
+      "Front Door / Application Gateway: WAF policy."
+    ],
+    "cli": "az network nic update -g rg-app -n nic-trade01 --accelerated-networking true\naz ppg create -g rg-app -n ppg-trading -l westeurope -t Standard\naz network ddos-protection create -g rg-net -n ddos-plan --vnets vnet-hub",
+    "powershell": "New-AzProximityPlacementGroup -ResourceGroupName rg-app -Name ppg-trading -Location westeurope -ProximityPlacementGroupType Standard"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-net-design-sim",
+    "objective": "Choose performance, security and load-balancing options.",
+    "duration": 15,
+    "steps": [
+      "Answer every case in both trainers."
+    ],
+    "expected": [
+      "PPG + accelerated networking for lowest latency",
+      "Layered security; global vs regional, web vs any protocol"
+    ],
+    "validation": [
+      {
+        "id": "net-design-correct",
+        "text": "Chose the right network feature"
+      },
+      {
+        "id": "lb-route-correct",
+        "text": "Chose the right load balancer or router"
+      }
+    ],
+    "failureScenarios": [
+      "Using Traffic Manager when WAF is needed",
+      "Relying on NSGs alone for FQDN filtering"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Latency between app and database VMs is inconsistent.",
+      "cause": "VMs placed far apart; no accelerated networking.",
+      "fix": "Use a proximity placement group and enable accelerated networking."
+    },
+    {
+      "symptom": "A website is hit by SQL injection attempts.",
+      "cause": "No WAF.",
+      "fix": "Enable WAF managed rules on Front Door or Application Gateway."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Firewall vs NSG",
+      "difference": "Firewall: central, stateful, FQDN and threat intelligence; NSG: distributed L3/L4 allow/deny per subnet or NIC."
+    },
+    {
+      "service": "Front Door vs Traffic Manager",
+      "difference": "Front Door proxies HTTP(S) with WAF and caching; Traffic Manager only answers DNS."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "One security control is enough.",
+      "reality": "Defence in depth: DDoS, WAF, firewall, NSGs, private access."
+    },
+    {
+      "myth": "Traffic Manager sees the traffic.",
+      "reality": "It works at DNS level; clients connect directly to endpoints."
+    }
+  ],
+  "architectureDecisions": [
+    "Accelerated networking and PPGs for latency-sensitive tiers.",
+    "Layer DDoS + WAF + Firewall + NSGs + Private Link.",
+    "Pick the load balancer by global/regional and HTTP/any."
+  ],
+  "docs": [
+    {
+      "title": "Load-balancing options",
+      "url": "https://learn.microsoft.com/azure/architecture/guide/technology-choices/load-balancing-overview"
+    },
+    {
+      "title": "Accelerated networking",
+      "url": "https://learn.microsoft.com/azure/virtual-network/accelerated-networking-overview"
+    },
+    {
+      "title": "Proximity placement groups",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/co-location"
+    },
+    {
+      "title": "Azure Firewall Premium features",
+      "url": "https://learn.microsoft.com/azure/firewall/premium-features"
+    },
+    {
+      "title": "Azure DDoS Protection",
+      "url": "https://learn.microsoft.com/azure/ddos-protection/ddos-protection-overview"
+    },
+    {
+      "title": "What is Private Link?",
+      "url": "https://learn.microsoft.com/azure/private-link/private-link-overview"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Make traffic fast and safe, and send it to the right place.",
+    "learn": [
+      "Performance: placement and accelerated networking",
+      "Security in layers",
+      "Choosing a load balancer"
+    ],
+    "nodes": [
+      {
+        "id": "users",
+        "label": "Users",
+        "x": 160,
+        "y": 75,
+        "kind": "user"
+      },
+      {
+        "id": "ddos",
+        "label": "DDoS Protection",
+        "x": 395,
+        "y": 75,
+        "kind": "security"
+      },
+      {
+        "id": "fd",
+        "label": "Front Door + WAF",
+        "x": 636,
+        "y": 75,
+        "kind": "globe",
+        "sub": "global, HTTP"
+      },
+      {
+        "id": "agw",
+        "label": "Application Gateway",
+        "x": 170,
+        "y": 215,
+        "kind": "network",
+        "sub": "regional, HTTP"
+      },
+      {
+        "id": "fw",
+        "label": "Azure Firewall",
+        "x": 415,
+        "y": 215,
+        "kind": "security",
+        "sub": "central"
+      },
+      {
+        "id": "lb",
+        "label": "Load Balancer",
+        "x": 645,
+        "y": 215,
+        "kind": "network",
+        "sub": "regional, TCP/UDP"
+      },
+      {
+        "id": "ppg",
+        "label": "Proximity placement group",
+        "x": 181,
+        "y": 360,
+        "kind": "compute",
+        "sub": "close together"
+      },
+      {
+        "id": "nsg",
+        "label": "NSGs + ASGs",
+        "x": 437,
+        "y": 360,
+        "kind": "security"
+      },
+      {
+        "id": "pl",
+        "label": "Private Link",
+        "x": 656,
+        "y": 360,
+        "kind": "network"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Slow, exposed, or both",
+        "body": [
+          "Trading VMs need microseconds, the website faces attacks, and traffic must reach the right backend."
+        ],
+        "show": [
+          "users"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Fast",
+        "title": "Keep it close and offload work",
+        "body": [
+          "Proximity placement groups keep VMs physically close; accelerated networking offloads packet processing to hardware. Choose regions near users and cache at the edge."
+        ],
+        "show": [
+          "users",
+          "ppg"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Secure",
+        "title": "Defence in layers",
+        "body": [
+          "DDoS Protection on public IPs, a web application firewall on the entry point, Azure Firewall in the hub for central filtering, NSGs and ASGs for segmentation, and Private Link so PaaS services stay off the internet."
+        ],
+        "show": [
+          "users",
+          "ppg",
+          "ddos",
+          "fw",
+          "nsg",
+          "pl"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "ddos",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Route",
+        "title": "Two questions pick the balancer",
+        "body": [
+          "Global or regional? Web (HTTP/S) or any protocol? Global + web: Front Door. Regional + web: Application Gateway. Regional + any: Load Balancer. Global + any: Traffic Manager."
+        ],
+        "show": [
+          "users",
+          "ppg",
+          "ddos",
+          "fw",
+          "nsg",
+          "pl",
+          "fd",
+          "agw",
+          "lb"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "ddos"
+          },
+          {
+            "from": "ddos",
+            "to": "fd",
+            "fresh": true
+          },
+          {
+            "from": "fd",
+            "to": "agw",
+            "fresh": true
+          },
+          {
+            "from": "agw",
+            "to": "lb",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Designs often chain them: Front Door → Application Gateway → internal Load Balancer."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Optimise the network",
+        "body": [
+          "Close, layered, correctly routed."
+        ],
+        "show": [
+          "users",
+          "ppg",
+          "ddos",
+          "fw",
+          "nsg",
+          "pl",
+          "fd",
+          "agw",
+          "lb"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "ddos"
+          },
+          {
+            "from": "ddos",
+            "to": "fd"
+          },
+          {
+            "from": "fd",
+            "to": "agw"
+          },
+          {
+            "from": "agw",
+            "to": "lb"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "recap": [
+          "PPG + accelerated networking",
+          "DDoS, WAF, Firewall, NSG/ASG, Private Link",
+          "Front Door / App Gateway / Load Balancer / Traffic Manager"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,600 @@
+{
+  "id": "az305-compute",
+  "exam": "az-305",
+  "title": "Design compute: workload requirements, VMs and containers",
+  "objectiveIds": [
+    "AZ305-4.1.1",
+    "AZ305-4.1.2",
+    "AZ305-4.1.3"
+  ],
+  "estimatedMinutes": 50,
+  "learningObjective": "Specify compute components from workload requirements, and recommend VM-based and container-based solutions.",
+  "prerequisites": [
+    {
+      "text": "Creating VMs (AZ-104)",
+      "objectiveId": "AZ104-3.2.1",
+      "lessonId": "az104-vm-create"
+    },
+    {
+      "text": "Containers (AZ-104)",
+      "objectiveId": "AZ104-3.3.2",
+      "lessonId": "az104-containers"
+    }
+  ],
+  "foundation": [
+    "Choose compute by asking how much control you need. The less you manage, the more time you spend on the app.",
+    "From least to most control: serverless functions, App Service, Container Apps, Kubernetes (AKS), virtual machines.",
+    "Then size it, decide how it scales, and pick the cheapest pricing that still fits."
+  ],
+  "engineer": [
+    "Requirements to components: hosting model (code or container), OS and runtime needs, scale pattern (steady, bursty, event-driven, scale to zero), state, network isolation (VNet integration, private endpoints), availability (zones, regions), compliance (dedicated hosts, confidential computing), and cost model. The Azure compute decision tree in the Architecture Center starts from lift-and-shift versus cloud-optimised.",
+    "VM-based: size families (B burstable, D general purpose, E memory, F compute, L storage, M large memory, N GPU, H HPC), Trusted Launch and confidential VMs, managed disk types, Virtual Machine Scale Sets (Flexible) for scale-out, availability zones, proximity placement groups for latency, Azure Dedicated Host for single-tenant physical servers, Spot VMs for interruptible work, reservations or savings plans and Azure Hybrid Benefit for steady workloads, Azure Virtual Desktop for desktops and apps, and Azure VMware Solution to run VMware workloads natively.",
+    "Container-based: Azure Container Apps (serverless microservices, KEDA scaling to zero, revisions, Dapr, jobs), AKS (full Kubernetes API, node pools, operators, service mesh; AKS Automatic simplifies operations), Azure Container Instances (single container groups on demand), App Service for containers (web apps in containers), Azure Container Registry (Premium for geo-replication and private endpoints)."
+  ],
+  "animation": {
+    "id": "az305-compute-sim",
+    "caption": "Pick the compute service, then the VM pricing and placement option."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "req",
+        "label": "Workload needs",
+        "x": 174,
+        "y": 56,
+        "kind": "user"
+      },
+      {
+        "id": "fn",
+        "label": "Functions",
+        "x": 426,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "as",
+        "label": "App Service",
+        "x": 672,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "aca",
+        "label": "Container Apps",
+        "x": 168,
+        "y": 161,
+        "kind": "compute"
+      },
+      {
+        "id": "aks",
+        "label": "AKS",
+        "x": 415,
+        "y": 161,
+        "kind": "compute"
+      },
+      {
+        "id": "vm",
+        "label": "Virtual machines",
+        "x": 667,
+        "y": 161,
+        "kind": "compute"
+      },
+      {
+        "id": "spot",
+        "label": "Spot",
+        "x": 170,
+        "y": 270,
+        "kind": "scope"
+      },
+      {
+        "id": "ri",
+        "label": "Reservations",
+        "x": 420,
+        "y": 270,
+        "kind": "scope"
+      },
+      {
+        "id": "vmss",
+        "label": "Scale sets",
+        "x": 670,
+        "y": 270,
+        "kind": "scope"
+      }
+    ],
+    "edges": [
+      {
+        "from": "req",
+        "to": "fn"
+      },
+      {
+        "from": "req",
+        "to": "as"
+      },
+      {
+        "from": "req",
+        "to": "aca"
+      },
+      {
+        "from": "vm",
+        "to": "vmss"
+      },
+      {
+        "from": "vm",
+        "to": "spot"
+      },
+      {
+        "from": "vm",
+        "to": "ri"
+      }
+    ]
+  },
+  "example": {
+    "title": "Choosing compute for a logistics platform",
+    "body": [
+      "The customer portal runs on App Service; ten microservices run on Container Apps scaling on queue length; the routing engine with custom operators runs on AKS.",
+      "A legacy Windows app moves as-is to VMs in a zone-spread scale set with reservations; nightly re-optimisation jobs use Spot VMs; dispatchers get Azure Virtual Desktop."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Create a resource: App Service / Container Apps / Kubernetes service / Virtual machine.",
+      "VM > Size, Availability options (zones, scale set), Spot discount.",
+      "Reservations > Purchase; Advisor cost recommendations."
+    ],
+    "cli": "az containerapp create -g rg-app -n orders --environment cae-prod --image acrcontoso.azurecr.io/orders:1.0 --min-replicas 0 --max-replicas 30\naz vm create -g rg-batch -n vm-spot01 --image Ubuntu2204 --size Standard_D4s_v5 --priority Spot --eviction-policy Deallocate --max-price -1",
+    "powershell": "New-AzContainerApp -ResourceGroupName rg-app -Name orders -EnvironmentId $env.Id -Location westeurope"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-compute-sim",
+    "objective": "Match each workload to compute and VM options.",
+    "duration": 15,
+    "steps": [
+      "Answer every case in both trainers."
+    ],
+    "expected": [
+      "Most managed service that meets requirements",
+      "Spot for interruptible, reservations for steady"
+    ],
+    "validation": [
+      {
+        "id": "compute-correct",
+        "text": "Chose the right compute service"
+      },
+      {
+        "id": "vm-choice-correct",
+        "text": "Chose the right VM option"
+      }
+    ],
+    "failureScenarios": [
+      "Defaulting to VMs for web apps",
+      "Running AKS for a few simple containers"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Spot VM workloads stop unexpectedly.",
+      "cause": "Azure evicted the Spot VMs for capacity.",
+      "fix": "Use Spot only for interruptible work and checkpoint progress."
+    },
+    {
+      "symptom": "Small team overwhelmed by AKS upgrades and node management.",
+      "cause": "More control than needed.",
+      "fix": "Consider Container Apps or AKS Automatic."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Container Apps vs AKS",
+      "difference": "Container Apps: serverless, no cluster to manage; AKS: full Kubernetes control."
+    },
+    {
+      "service": "Reservations vs Spot",
+      "difference": "Reservations: committed steady use at a discount; Spot: spare capacity, evictable, deepest discount."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Containers always need Kubernetes.",
+      "reality": "Container Apps and ACI run containers without managing a cluster."
+    },
+    {
+      "myth": "VMs are the default for migration.",
+      "reality": "They are the fastest path, but PaaS reduces long-term operations."
+    }
+  ],
+  "architectureDecisions": [
+    "Start at the most managed compute and move down only for a reason.",
+    "Right-size VMs and use reservations/Hybrid Benefit for steady use.",
+    "Container Apps for microservices; AKS when you need Kubernetes itself."
+  ],
+  "docs": [
+    {
+      "title": "Choose an Azure compute service",
+      "url": "https://learn.microsoft.com/azure/architecture/guide/technology-choices/compute-decision-tree"
+    },
+    {
+      "title": "Choose an Azure container service",
+      "url": "https://learn.microsoft.com/azure/architecture/guide/choose-azure-container-service"
+    },
+    {
+      "title": "Azure Spot VMs",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/spot-vms"
+    },
+    {
+      "title": "Virtual machine sizes",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/sizes/overview"
+    },
+    {
+      "title": "Azure Container Apps overview",
+      "url": "https://learn.microsoft.com/azure/container-apps/overview"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Run each workload on the most managed compute that meets its needs, at the right size and price.",
+    "learn": [
+      "From requirements to compute",
+      "VM-based solutions: size, scale, price",
+      "Container-based solutions"
+    ],
+    "nodes": [
+      {
+        "id": "req",
+        "label": "Workload needs",
+        "x": 166,
+        "y": 75,
+        "kind": "user",
+        "sub": "control, scale, cost"
+      },
+      {
+        "id": "fn",
+        "label": "Functions",
+        "x": 406,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "as",
+        "label": "App Service",
+        "x": 640,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "aca",
+        "label": "Container Apps",
+        "x": 160,
+        "y": 215,
+        "kind": "compute"
+      },
+      {
+        "id": "aks",
+        "label": "AKS",
+        "x": 395,
+        "y": 215,
+        "kind": "compute"
+      },
+      {
+        "id": "vm",
+        "label": "Virtual machines",
+        "x": 635,
+        "y": 215,
+        "kind": "compute"
+      },
+      {
+        "id": "spot",
+        "label": "Spot",
+        "x": 162,
+        "y": 360,
+        "kind": "cost",
+        "sub": "interruptible"
+      },
+      {
+        "id": "ri",
+        "label": "Reservations",
+        "x": 400,
+        "y": 360,
+        "kind": "cost",
+        "sub": "steady 24/7"
+      },
+      {
+        "id": "vmss",
+        "label": "Scale sets",
+        "x": 638,
+        "y": 360,
+        "kind": "service",
+        "sub": "scale out"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Many workloads, many compute options",
+        "body": [
+          "Web apps, microservices, a legacy Windows app and nightly batch jobs all need somewhere to run."
+        ],
+        "show": [
+          "req"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Ladder",
+        "title": "Less to manage at the top",
+        "body": [
+          "Functions and App Service: you bring code. Container Apps: you bring containers, Azure runs them. AKS: you run Kubernetes. VMs: you run everything."
+        ],
+        "show": [
+          "req",
+          "fn",
+          "as",
+          "aca",
+          "aks",
+          "vm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "req",
+            "to": "fn",
+            "fresh": true
+          },
+          {
+            "from": "req",
+            "to": "as",
+            "fresh": true
+          },
+          {
+            "from": "req",
+            "to": "aca",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Move down the ladder only when a requirement forces you to."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "VMs",
+        "title": "Size, scale, pay less",
+        "body": [
+          "Pick the size family by CPU, memory, GPU or storage needs. Scale sets add VMs with load. Spot VMs for work that can be interrupted; reservations or savings plans for VMs that run all the time."
+        ],
+        "show": [
+          "req",
+          "fn",
+          "as",
+          "aca",
+          "aks",
+          "vm",
+          "spot",
+          "ri",
+          "vmss"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "req",
+            "to": "fn"
+          },
+          {
+            "from": "req",
+            "to": "as"
+          },
+          {
+            "from": "req",
+            "to": "aca"
+          },
+          {
+            "from": "vm",
+            "to": "vmss",
+            "fresh": true
+          },
+          {
+            "from": "vm",
+            "to": "spot",
+            "fresh": true
+          },
+          {
+            "from": "vm",
+            "to": "ri",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Containers",
+        "title": "Container Apps or AKS",
+        "body": [
+          "Container Apps runs microservices without a cluster and scales to zero. AKS gives full Kubernetes when you need operators, custom networking or node control."
+        ],
+        "show": [
+          "req",
+          "fn",
+          "as",
+          "aca",
+          "aks",
+          "vm",
+          "spot",
+          "ri",
+          "vmss"
+        ],
+        "focus": [
+          "aca",
+          "aks"
+        ],
+        "edges": [
+          {
+            "from": "req",
+            "to": "fn"
+          },
+          {
+            "from": "req",
+            "to": "as"
+          },
+          {
+            "from": "req",
+            "to": "aca"
+          },
+          {
+            "from": "vm",
+            "to": "vmss"
+          },
+          {
+            "from": "vm",
+            "to": "spot"
+          },
+          {
+            "from": "vm",
+            "to": "ri"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Compute design",
+        "body": [
+          "Least management that meets the need."
+        ],
+        "show": [
+          "req",
+          "fn",
+          "as",
+          "aca",
+          "aks",
+          "vm",
+          "spot",
+          "ri",
+          "vmss"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "req",
+            "to": "fn"
+          },
+          {
+            "from": "req",
+            "to": "as"
+          },
+          {
+            "from": "req",
+            "to": "aca"
+          },
+          {
+            "from": "vm",
+            "to": "vmss"
+          },
+          {
+            "from": "vm",
+            "to": "spot"
+          },
+          {
+            "from": "vm",
+            "to": "ri"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "recap": [
+          "Functions → App Service → Container Apps → AKS → VMs",
+          "VM family, scale sets, Spot, reservations",
+          "Container Apps for microservices; AKS for Kubernetes control"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Compare compute options with the pricing calculator",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Free. Uses the public Azure pricing calculator; nothing is deployed.",
+    "before": [
+      "A browser. No Azure sign-in is needed."
+    ],
+    "steps": [
+      {
+        "do": "Open azure.microsoft.com/pricing/calculator. Add a Virtual Machines estimate: your region, D2s v5, Linux, 730 hours.",
+        "see": "A monthly pay-as-you-go price."
+      },
+      {
+        "do": "In the same item, switch savings options to 1-year and 3-year reserved, then Spot (if shown).",
+        "see": "Large discounts for commitment; the deepest for Spot.",
+        "tip": "Spot fits interruptible work only."
+      },
+      {
+        "do": "Add an App Service estimate: Linux, Premium v3 P1v3, 1 instance.",
+        "see": "A price for managed web hosting (no OS to patch)."
+      },
+      {
+        "do": "Add an Azure Container Apps estimate (Consumption) with a few million requests and a modest vCPU-second usage.",
+        "see": "Usage-based cost that can drop near zero when idle."
+      },
+      {
+        "do": "Compare the three for a small web API that is idle at night.",
+        "see": "Container Apps or App Service usually cost less to operate than a VM you must patch."
+      }
+    ],
+    "check": [
+      "You can explain when reservations, Spot and serverless each save money."
+    ],
+    "cleanup": [
+      "Nothing to delete."
+    ],
+    "screens": [
+      {
+        "title": "Choose a compute service",
+        "url": "https://learn.microsoft.com/azure/architecture/guide/technology-choices/compute-decision-tree"
+      },
+      {
+        "title": "Azure Spot VMs",
+        "url": "https://learn.microsoft.com/azure/virtual-machines/spot-vms"
+      }
+    ]
+  }
+}

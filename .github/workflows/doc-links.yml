@@ -1,0 +1,24 @@
+name: Check documentation links
+
+# Microsoft moves Learn pages from time to time. Run this manually, and it also runs every Monday.
+on:
+  workflow_dispatch:
+    inputs:
+      exams:
+        description: Exams to check (space-separated)
+        default: az-104 az-305
+  schedule:
+    - cron: '0 5 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python scripts/check_doc_links.py ${{ github.event.inputs.exams || 'az-104 az-305' }}

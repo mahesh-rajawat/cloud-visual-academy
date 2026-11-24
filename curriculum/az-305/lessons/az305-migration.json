@@ -1,0 +1,607 @@
+{
+  "id": "az305-migration",
+  "exam": "az-305",
+  "title": "Migrate workloads, databases and unstructured data",
+  "objectiveIds": [
+    "AZ305-4.3.3",
+    "AZ305-4.3.4",
+    "AZ305-4.3.5"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Recommend solutions for migrating workloads to IaaS and PaaS, migrating databases, and migrating unstructured data.",
+  "prerequisites": [
+    {
+      "text": "Migration planning",
+      "objectiveId": "AZ305-4.3.1",
+      "lessonId": "az305-migration-planning"
+    }
+  ],
+  "foundation": [
+    "After planning, each workload moves with the right tool: Azure Migrate for servers and web apps, Database Migration Service for databases, and transfer tools for files.",
+    "Online migrations keep the source running and sync until a short cutover. Offline migrations stop the source while copying — simpler, but longer downtime."
+  ],
+  "engineer": [
+    "Workloads: Azure Migrate server migration (agentless for VMware and Hyper-V, agent-based for physical servers and other clouds) with test migrations and cutover; App Service migration for ASP.NET and Java web apps; Azure VMware Solution to move VMware estates without converting VMs; containerise apps to AKS or Container Apps when refactoring.",
+    "Databases: choose the target first (SQL Database, SQL Managed Instance, SQL Server on VMs, PostgreSQL or MySQL flexible server, Cosmos DB); assess compatibility with Azure Migrate; migrate with Azure Database Migration Service (online for minimal downtime or offline), Managed Instance link (near-real-time replication to MI), log replay service, or backup and restore to SQL Server on VMs. Native tools for open-source databases (DMS, pg_dump, MySQL replication).",
+    "Unstructured data: AzCopy (scriptable network copy), Azure Storage Mover (managed migration of file shares to Azure Files and Blob), Azure File Sync (keep local caches while centralising in Azure Files), Azure Data Box family (offline transfer for tens to hundreds of TB or more, when the network is slow), Data Factory for scheduled copies from other clouds or SaaS."
+  ],
+  "animation": {
+    "id": "az305-migrate-sim",
+    "caption": "Pick the strategy and tool for each server, app, database and data set."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "srv",
+        "label": "Servers",
+        "x": 121,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "am",
+        "label": "Azure Migrate",
+        "x": 320,
+        "y": 56,
+        "kind": "scope"
+      },
+      {
+        "id": "vm",
+        "label": "Azure VMs",
+        "x": 520,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "aps",
+        "label": "App Service",
+        "x": 719,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "sql",
+        "label": "SQL Server",
+        "x": 140,
+        "y": 161,
+        "kind": "storage"
+      },
+      {
+        "id": "dms",
+        "label": "Database Migration Service",
+        "x": 400,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "mi",
+        "label": "SQL Managed Instance",
+        "x": 680,
+        "y": 161,
+        "kind": "storage"
+      },
+      {
+        "id": "files",
+        "label": "File shares",
+        "x": 105,
+        "y": 270,
+        "kind": "storage"
+      },
+      {
+        "id": "mover",
+        "label": "Storage Mover / AzCopy",
+        "x": 316,
+        "y": 270,
+        "kind": "scope"
+      },
+      {
+        "id": "box",
+        "label": "Data Box",
+        "x": 527,
+        "y": 270,
+        "kind": "storage"
+      },
+      {
+        "id": "azf",
+        "label": "Azure Files / Blob",
+        "x": 722,
+        "y": 270,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "srv",
+        "to": "am"
+      },
+      {
+        "from": "am",
+        "to": "vm"
+      },
+      {
+        "from": "am",
+        "to": "aps"
+      },
+      {
+        "from": "sql",
+        "to": "dms"
+      },
+      {
+        "from": "dms",
+        "to": "mi",
+        "label": "sync, then cutover"
+      },
+      {
+        "from": "files",
+        "to": "mover"
+      },
+      {
+        "from": "files",
+        "to": "box"
+      },
+      {
+        "from": "mover",
+        "to": "azf"
+      },
+      {
+        "from": "box",
+        "to": "azf"
+      }
+    ]
+  },
+  "example": {
+    "title": "Wave 3: the finance system",
+    "body": [
+      "The app servers are rehosted with Azure Migrate (agentless VMware) after a test migration; the web front end is replatformed to App Service.",
+      "The 3 TB SQL Server database moves to SQL Managed Instance with an online DMS migration and a 10-minute cutover. 400 TB of scanned archives ship on Data Box; branch file shares move to Azure Files with Azure File Sync caching."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Azure Migrate > Migration and modernization > Replicate / Test migration / Migrate.",
+      "Azure Database Migration Service > New migration (online/offline).",
+      "Storage Mover > Projects > Job definitions; Data Box > Order."
+    ],
+    "cli": "az datamigration sql-managed-instance create --source-location '{...}' --target-location '{...}' --migration-service <dms-id> \\\n  --scope <mi-id> -g rg-migrate --managed-instance-name sqlmi-fin --target-db-name findb\nazcopy copy 'C:\\shares\\docs' 'https://stfin.blob.core.windows.net/docs?<SAS>' --recursive",
+    "powershell": "New-AzDataMigrationToSqlManagedInstance -ResourceGroupName rg-migrate -ManagedInstanceName sqlmi-fin -TargetDbName findb -Kind SqlMI -Scope <mi-id> -MigrationService <dms-id>"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-migrate-sim",
+    "objective": "Pick the migration strategy and tool.",
+    "duration": 15,
+    "steps": [
+      "Answer every case."
+    ],
+    "expected": [
+      "Online DMS for minimal downtime",
+      "Data Box when the network is the bottleneck"
+    ],
+    "validation": [
+      {
+        "id": "migrate-how-correct",
+        "text": "Chose the right migration approach or tool"
+      }
+    ],
+    "failureScenarios": [
+      "Copying hundreds of TB over a slow link",
+      "Offline database migration when downtime must be minutes"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Database cutover takes hours.",
+      "cause": "Offline migration of a large database.",
+      "fix": "Use an online migration (DMS or MI link) and cut over after sync."
+    },
+    {
+      "symptom": "File copy will take months over the WAN.",
+      "cause": "Network bandwidth too low for the volume.",
+      "fix": "Use Azure Data Box for the bulk, then sync the delta online."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Online vs offline database migration",
+      "difference": "Online syncs changes until cutover (minutes of downtime); offline stops writes during the copy."
+    },
+    {
+      "service": "Storage Mover vs File Sync",
+      "difference": "Storage Mover migrates shares to Azure; File Sync keeps on-premises caches of Azure file shares."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Lift and shift is always cheapest.",
+      "reality": "Rehosting is fastest, but PaaS often costs less to run."
+    },
+    {
+      "myth": "Data Box is only for petabytes.",
+      "reality": "It suits tens of TB when bandwidth is limited too."
+    }
+  ],
+  "architectureDecisions": [
+    "Rehost fast; replatform where effort is low and value high.",
+    "Online database migration for production.",
+    "Network copy when bandwidth allows; Data Box when it doesn't."
+  ],
+  "docs": [
+    {
+      "title": "Azure Migrate: migration and modernization",
+      "url": "https://learn.microsoft.com/azure/migrate/migrate-services-overview"
+    },
+    {
+      "title": "Azure Database Migration Service",
+      "url": "https://learn.microsoft.com/azure/dms/dms-overview"
+    },
+    {
+      "title": "Azure Storage Mover",
+      "url": "https://learn.microsoft.com/azure/storage-mover/service-overview"
+    },
+    {
+      "title": "Azure Data Box",
+      "url": "https://learn.microsoft.com/azure/databox/data-box-overview"
+    },
+    {
+      "title": "Azure File Sync",
+      "url": "https://learn.microsoft.com/azure/storage/file-sync/file-sync-introduction"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Move servers, apps, databases and files with the right tool and the least downtime.",
+    "learn": [
+      "Servers and apps: rehost or replatform",
+      "Databases: online vs offline",
+      "Files and big data: network or Data Box"
+    ],
+    "nodes": [
+      {
+        "id": "srv",
+        "label": "Servers",
+        "x": 115,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "am",
+        "label": "Azure Migrate",
+        "x": 305,
+        "y": 75,
+        "kind": "service",
+        "sub": "rehost"
+      },
+      {
+        "id": "vm",
+        "label": "Azure VMs",
+        "x": 495,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "aps",
+        "label": "App Service",
+        "x": 685,
+        "y": 75,
+        "kind": "compute",
+        "sub": "replatform"
+      },
+      {
+        "id": "sql",
+        "label": "SQL Server",
+        "x": 133,
+        "y": 215,
+        "kind": "database"
+      },
+      {
+        "id": "dms",
+        "label": "Database Migration Service",
+        "x": 381,
+        "y": 215,
+        "kind": "service",
+        "sub": "online / offline"
+      },
+      {
+        "id": "mi",
+        "label": "SQL Managed Instance",
+        "x": 648,
+        "y": 215,
+        "kind": "database"
+      },
+      {
+        "id": "files",
+        "label": "File shares",
+        "x": 100,
+        "y": 360,
+        "kind": "storage"
+      },
+      {
+        "id": "mover",
+        "label": "Storage Mover / AzCopy",
+        "x": 301,
+        "y": 360,
+        "kind": "service"
+      },
+      {
+        "id": "box",
+        "label": "Data Box",
+        "x": 502,
+        "y": 360,
+        "kind": "storage",
+        "sub": "offline"
+      },
+      {
+        "id": "azf",
+        "label": "Azure Files / Blob",
+        "x": 688,
+        "y": 360,
+        "kind": "storage"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Plan done — now move it",
+        "body": [
+          "Each kind of workload needs its own path, and the business wants downtime measured in minutes."
+        ],
+        "show": [
+          "srv",
+          "sql",
+          "files"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Workloads",
+        "title": "Rehost or replatform",
+        "body": [
+          "Azure Migrate replicates servers to Azure VMs with a test migration before cutover. Web apps can replatform to App Service with small changes."
+        ],
+        "show": [
+          "srv",
+          "sql",
+          "files",
+          "am",
+          "vm",
+          "aps"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "srv",
+            "to": "am",
+            "fresh": true
+          },
+          {
+            "from": "am",
+            "to": "vm",
+            "fresh": true
+          },
+          {
+            "from": "am",
+            "to": "aps",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Databases",
+        "title": "Online keeps downtime short",
+        "body": [
+          "Database Migration Service copies the database and, in online mode, keeps syncing changes until you cut over. Offline is simpler but the source stops during the copy."
+        ],
+        "show": [
+          "srv",
+          "sql",
+          "files",
+          "am",
+          "vm",
+          "aps",
+          "dms",
+          "mi"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "srv",
+            "to": "am"
+          },
+          {
+            "from": "am",
+            "to": "vm"
+          },
+          {
+            "from": "am",
+            "to": "aps"
+          },
+          {
+            "from": "sql",
+            "to": "dms",
+            "fresh": true
+          },
+          {
+            "from": "dms",
+            "to": "mi",
+            "label": "sync, then cutover",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Files",
+        "title": "Network or ship it",
+        "body": [
+          "Storage Mover or AzCopy copy over the network. When the volume is huge or the link slow, Data Box ships disks to Azure. File Sync keeps branch caches afterwards."
+        ],
+        "show": [
+          "srv",
+          "sql",
+          "files",
+          "am",
+          "vm",
+          "aps",
+          "dms",
+          "mi",
+          "mover",
+          "box",
+          "azf"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "srv",
+            "to": "am"
+          },
+          {
+            "from": "am",
+            "to": "vm"
+          },
+          {
+            "from": "am",
+            "to": "aps"
+          },
+          {
+            "from": "sql",
+            "to": "dms"
+          },
+          {
+            "from": "dms",
+            "to": "mi",
+            "label": "sync, then cutover"
+          },
+          {
+            "from": "files",
+            "to": "mover",
+            "fresh": true
+          },
+          {
+            "from": "files",
+            "to": "box",
+            "fresh": true
+          },
+          {
+            "from": "mover",
+            "to": "azf",
+            "fresh": true
+          },
+          {
+            "from": "box",
+            "to": "azf",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Migration execution",
+        "body": [
+          "Right tool per workload."
+        ],
+        "show": [
+          "srv",
+          "sql",
+          "files",
+          "am",
+          "vm",
+          "aps",
+          "dms",
+          "mi",
+          "mover",
+          "box",
+          "azf"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "srv",
+            "to": "am"
+          },
+          {
+            "from": "am",
+            "to": "vm"
+          },
+          {
+            "from": "am",
+            "to": "aps"
+          },
+          {
+            "from": "sql",
+            "to": "dms"
+          },
+          {
+            "from": "dms",
+            "to": "mi",
+            "label": "sync, then cutover"
+          },
+          {
+            "from": "files",
+            "to": "mover"
+          },
+          {
+            "from": "files",
+            "to": "box"
+          },
+          {
+            "from": "mover",
+            "to": "azf"
+          },
+          {
+            "from": "box",
+            "to": "azf"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "recap": [
+          "Azure Migrate rehost; App Service replatform",
+          "DMS online for minimal downtime",
+          "AzCopy / Storage Mover vs Data Box; File Sync for caches"
+        ]
+      }
+    ]
+  }
+}

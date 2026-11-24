@@ -1,4 +1,4 @@
-export type ExamSlug = 'az-900' | 'az-104' | 'ai-901' | 'aws-clf-c02'
+export type ExamSlug = 'az-900' | 'az-104' | 'az-305' | 'ai-901' | 'aws-clf-c02'
 
 export interface Objective {
   id: string

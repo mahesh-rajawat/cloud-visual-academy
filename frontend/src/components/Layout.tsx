@@ -1,27 +1,28 @@
 import { useState, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '../services/AppContext'
+import { EXAMS, PLAN_EXAMS, examEnabled, registries } from '../services/curriculum'
 
-const NAV: Array<{ to: string; label: string; icon: string }> = [
+type NavItem = { to: string; label: string; icon: string; show?: boolean }
+
+/** Sidebar entries; exam-specific pages appear only when their exam is enabled (see VITE_EXAMS). */
+const NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: '◧' },
-  { to: '/course/az-104', label: 'AZ-104 (priority)', icon: '★' },
-  { to: '/course/az-900', label: 'AZ-900', icon: '▤' },
-  { to: '/course/ai-901', label: 'AI-901', icon: '▤' },
-  { to: '/course/aws-clf-c02', label: 'AWS CLF-C02', icon: '▤' },
-  { to: '/sprint', label: 'AZ-104 study plan', icon: '▦' },
-  { to: '/clear-up', label: 'Clear the confusion', icon: '⇆' },
-  { to: '/exam-guide', label: 'Exam-day guide', icon: '✎' },
-  { to: '/diagnostic', label: 'AZ-900 diagnostic', icon: '✓' },
+  ...EXAMS.map((e): NavItem => ({ to: `/course/${e}`, label: e === 'az-104' ? 'AZ-104 (priority)' : registries[e].examCode, icon: e === 'az-104' ? '★' : '▤' })),
+  { to: '/sprint', label: 'Study plan', icon: '▦', show: PLAN_EXAMS.length > 0 },
+  { to: '/clear-up', label: 'Clear the confusion', icon: '⇆', show: examEnabled('az-104') },
+  { to: '/exam-guide', label: 'Exam-day guide', icon: '✎', show: examEnabled('az-104') },
+  { to: '/diagnostic', label: 'AZ-900 diagnostic', icon: '✓', show: examEnabled('az-900') },
   { to: '/practice', label: 'Practice exams', icon: '✎' },
   { to: '/reviews', label: 'Daily recall', icon: '↻' },
   { to: '/animations', label: 'Animation library', icon: '▶' },
   { to: '/labs', label: 'Labs', icon: '⚙' },
-  { to: '/compare', label: 'Azure ↔ AWS', icon: '⇄' },
+  { to: '/compare', label: 'Azure ↔ AWS', icon: '⇄', show: examEnabled('aws-clf-c02') },
   { to: '/coverage', label: 'Coverage audit', icon: '☰' },
   { to: '/analytics', label: 'Analytics', icon: '◔' },
   { to: '/bookmarks', label: 'Bookmarks', icon: '⚑' },
   { to: '/settings', label: 'Settings', icon: '⚙' },
-]
+].filter((n) => n.show !== false)
 
 export function Layout({ children }: { children: ReactNode }) {
   const { online, error, setError } = useApp()

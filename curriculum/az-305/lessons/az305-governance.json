@@ -1,0 +1,695 @@
+{
+  "id": "az305-governance",
+  "exam": "az-305",
+  "title": "Design governance",
+  "objectiveIds": [
+    "AZ305-1.3.1",
+    "AZ305-1.3.2",
+    "AZ305-1.3.3"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Recommend a structure of management groups, subscriptions and resource groups with a tagging strategy, a compliance solution, and an identity governance solution.",
+  "prerequisites": [
+    {
+      "text": "Management groups (AZ-104)",
+      "objectiveId": "AZ104-1.3.7",
+      "lessonId": "az104-management-groups"
+    },
+    {
+      "text": "Azure Policy and tags (AZ-104)",
+      "objectiveId": "AZ104-1.3.1",
+      "lessonId": "az104-policy-tags"
+    }
+  ],
+  "foundation": [
+    "Governance keeps a growing Azure estate organised, compliant and affordable.",
+    "Think of four levels: management groups (rules for many subscriptions), subscriptions (billing and limits), resource groups (things that live and die together) and tags (labels for reporting).",
+    "Then decide how to enforce rules (Azure Policy), prove compliance, and keep people's access right over time."
+  ],
+  "engineer": [
+    "Hierarchy: keep management groups shallow (up to six levels below the tenant root) and organised by policy needs, not the org chart. The Azure landing zone reference uses Platform (Identity, Management, Connectivity), Landing zones (Corp, Online), Sandbox and Decommissioned. Subscriptions are units of scale, billing and isolation (quotas, limits, RBAC boundary); separate production from non-production. Resource groups hold resources with the same lifecycle; a resource belongs to one group.",
+    "Tagging: define a small mandatory set (for example CostCenter, Environment, Owner, Application) and enforce it with Azure Policy (Require a tag, Inherit a tag from the resource group or subscription with Modify). Tags are not inherited by default. Cost Management can group and allocate costs by tag.",
+    "Compliance: Azure Policy initiatives (built-in regulatory initiatives such as ISO 27001, NIST, PCI DSS) assigned at management groups with Deny, Audit, Modify and DeployIfNotExists; exemptions for justified exceptions; Defender for Cloud's regulatory compliance dashboard to report; resource locks for critical resources; Microsoft Purview Compliance Manager for Microsoft 365 and data compliance. Azure Blueprints is deprecated: use template specs, deployment stacks and policy instead.",
+    "Identity governance (Microsoft Entra ID Governance / P2): access reviews (recurring certification of group, app and role access, including guests), entitlement management (access packages with approval, expiry and connected organisations), Privileged Identity Management, lifecycle workflows (joiner-mover-leaver automation) and terms of use."
+  ],
+  "animation": {
+    "id": "az305-governance-sim",
+    "caption": "Decide where each governance control belongs and which tool proves compliance."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "root",
+        "label": "Tenant root group",
+        "x": 175,
+        "y": 56,
+        "kind": "scope"
+      },
+      {
+        "id": "plat",
+        "label": "Platform",
+        "x": 428,
+        "y": 56,
+        "kind": "scope"
+      },
+      {
+        "id": "lz",
+        "label": "Landing zones",
+        "x": 674,
+        "y": 56,
+        "kind": "scope"
+      },
+      {
+        "id": "sub",
+        "label": "Subscription",
+        "x": 170,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "rg",
+        "label": "Resource group",
+        "x": 420,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "tag",
+        "label": "Tags",
+        "x": 670,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "pol",
+        "label": "Azure Policy",
+        "x": 166,
+        "y": 270,
+        "kind": "security"
+      },
+      {
+        "id": "dfc",
+        "label": "Defender for Cloud",
+        "x": 423,
+        "y": 270,
+        "kind": "security"
+      },
+      {
+        "id": "rev",
+        "label": "Access reviews",
+        "x": 677,
+        "y": 270,
+        "kind": "identity"
+      }
+    ],
+    "edges": [
+      {
+        "from": "root",
+        "to": "plat"
+      },
+      {
+        "from": "root",
+        "to": "lz"
+      },
+      {
+        "from": "lz",
+        "to": "sub"
+      },
+      {
+        "from": "sub",
+        "to": "rg"
+      },
+      {
+        "from": "pol",
+        "to": "tag",
+        "label": "require / inherit"
+      },
+      {
+        "from": "pol",
+        "to": "lz",
+        "label": "assigned"
+      },
+      {
+        "from": "dfc",
+        "to": "pol",
+        "label": "reports"
+      }
+    ]
+  },
+  "example": {
+    "title": "A landing-zone hierarchy for a holding company",
+    "body": [
+      "Under the tenant root: Platform (identity, management, connectivity subscriptions), Landing zones with Corp and Online, Sandbox and Decommissioned. 'Allowed locations' and 'Require tag CostCenter' are assigned at the top management group; Corp denies public IPs.",
+      "Quarterly access reviews remove guests who no longer need access, contractors get time-limited access packages, and lifecycle workflows disable leavers on their last day."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Management groups: create the hierarchy and move subscriptions.",
+      "Policy > Assignments: assign initiatives at management groups; Exemptions.",
+      "Defender for Cloud > Regulatory compliance.",
+      "Microsoft Entra admin center > Identity governance: access reviews, entitlement management, lifecycle workflows."
+    ],
+    "cli": "az account management-group create --name mg-landingzones --parent mg-contoso\naz policy assignment create --name require-costcenter --scope /providers/Microsoft.Management/managementGroups/mg-contoso \\\n  --policy \"Require a tag on resources\" --params '{\"tagName\":{\"value\":\"CostCenter\"}}'",
+    "powershell": "New-AzManagementGroup -GroupName mg-landingzones -ParentId /providers/Microsoft.Management/managementGroups/mg-contoso"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-governance-sim",
+    "objective": "Place governance controls and pick compliance and identity-governance tools.",
+    "duration": 15,
+    "steps": [
+      "Answer every case in the three trainers."
+    ],
+    "expected": [
+      "Policy at management groups; billing at subscriptions",
+      "Access reviews and access packages for people"
+    ],
+    "validation": [
+      {
+        "id": "hierarchy-correct",
+        "text": "Chose the right governance level"
+      },
+      {
+        "id": "compliance-correct",
+        "text": "Chose the right compliance solution"
+      },
+      {
+        "id": "id-governance-correct",
+        "text": "Chose the right identity governance feature"
+      }
+    ],
+    "failureScenarios": [
+      "Mirroring the org chart in management groups",
+      "Expecting tags to inherit automatically"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Cost reports show many resources with no CostCenter.",
+      "cause": "Tags not enforced, and not inherited.",
+      "fix": "Assign 'Require a tag' (Deny) for new resources and 'Inherit a tag from the resource group' (Modify) with remediation."
+    },
+    {
+      "symptom": "A policy blocks a justified exception for one sandbox.",
+      "cause": "No exemption.",
+      "fix": "Create a policy exemption (Waiver) with an expiry date."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Management group vs subscription",
+      "difference": "Management groups organise and apply policy/RBAC; subscriptions are the billing, quota and isolation boundary."
+    },
+    {
+      "service": "Access reviews vs PIM",
+      "difference": "Access reviews certify existing access periodically; PIM makes privileged access just-in-time."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Tags flow down from resource groups automatically.",
+      "reality": "Only with a Modify policy."
+    },
+    {
+      "myth": "Management groups should mirror departments.",
+      "reality": "Design them around policy and access needs."
+    }
+  ],
+  "architectureDecisions": [
+    "Shallow, policy-driven management group hierarchy (landing zones).",
+    "Mandatory tags enforced by policy.",
+    "Regulatory initiatives + Defender for Cloud reporting.",
+    "Access reviews, access packages and lifecycle workflows for people."
+  ],
+  "docs": [
+    {
+      "title": "Management group design (Cloud Adoption Framework)",
+      "url": "https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/design-area/resource-org-management-groups"
+    },
+    {
+      "title": "Azure Policy overview",
+      "url": "https://learn.microsoft.com/azure/governance/policy/overview"
+    },
+    {
+      "title": "Regulatory compliance in Defender for Cloud",
+      "url": "https://learn.microsoft.com/azure/defender-for-cloud/regulatory-compliance-dashboard"
+    },
+    {
+      "title": "Microsoft Entra ID Governance",
+      "url": "https://learn.microsoft.com/entra/id-governance/identity-governance-overview"
+    },
+    {
+      "title": "Define your tagging strategy",
+      "url": "https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-tagging"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Organise subscriptions so rules, costs and access stay under control as you grow.",
+    "learn": [
+      "Management groups, subscriptions, resource groups, tags",
+      "A tagging strategy enforced by policy",
+      "Proving compliance",
+      "Keeping people's access right"
+    ],
+    "nodes": [
+      {
+        "id": "root",
+        "label": "Tenant root group",
+        "x": 167,
+        "y": 75,
+        "kind": "service"
+      },
+      {
+        "id": "plat",
+        "label": "Platform",
+        "x": 408,
+        "y": 75,
+        "kind": "service",
+        "sub": "identity, network"
+      },
+      {
+        "id": "lz",
+        "label": "Landing zones",
+        "x": 642,
+        "y": 75,
+        "kind": "service",
+        "sub": "Corp, Online"
+      },
+      {
+        "id": "sub",
+        "label": "Subscription",
+        "x": 162,
+        "y": 215,
+        "kind": "cost",
+        "sub": "billing + quotas"
+      },
+      {
+        "id": "rg",
+        "label": "Resource group",
+        "x": 400,
+        "y": 215,
+        "kind": "service",
+        "sub": "same lifecycle"
+      },
+      {
+        "id": "tag",
+        "label": "Tags",
+        "x": 638,
+        "y": 215,
+        "kind": "cost",
+        "sub": "CostCenter, Env"
+      },
+      {
+        "id": "pol",
+        "label": "Azure Policy",
+        "x": 158,
+        "y": 360,
+        "kind": "security",
+        "sub": "deny, audit, modify"
+      },
+      {
+        "id": "dfc",
+        "label": "Defender for Cloud",
+        "x": 403,
+        "y": 360,
+        "kind": "security",
+        "sub": "compliance view"
+      },
+      {
+        "id": "rev",
+        "label": "Access reviews",
+        "x": 645,
+        "y": 360,
+        "kind": "identity"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Forty subscriptions and no rules",
+        "body": [
+          "Resources appear in any region, nobody knows who pays, and old access never goes away."
+        ],
+        "show": [
+          "root"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Hierarchy",
+        "title": "Four levels, four jobs",
+        "body": [
+          "Management groups: apply policy and access to many subscriptions. Subscriptions: billing and limits. Resource groups: things deployed and deleted together. Tags: labels for reports."
+        ],
+        "show": [
+          "root",
+          "plat",
+          "lz",
+          "sub",
+          "rg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "root",
+            "to": "plat",
+            "fresh": true
+          },
+          {
+            "from": "root",
+            "to": "lz",
+            "fresh": true
+          },
+          {
+            "from": "lz",
+            "to": "sub",
+            "fresh": true
+          },
+          {
+            "from": "sub",
+            "to": "rg",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Organise management groups by the rules they need, not by the org chart."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Tags",
+        "title": "A small, enforced set of tags",
+        "body": [
+          "Choose a few mandatory tags (CostCenter, Environment, Owner). Azure Policy requires them on new resources and can copy them from the resource group, because tags are not inherited by themselves."
+        ],
+        "show": [
+          "root",
+          "plat",
+          "lz",
+          "sub",
+          "rg",
+          "tag",
+          "pol"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "root",
+            "to": "plat"
+          },
+          {
+            "from": "root",
+            "to": "lz"
+          },
+          {
+            "from": "lz",
+            "to": "sub"
+          },
+          {
+            "from": "sub",
+            "to": "rg"
+          },
+          {
+            "from": "pol",
+            "to": "tag",
+            "label": "require / inherit",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Compliance",
+        "title": "Enforce with policy, report with Defender",
+        "body": [
+          "Assign built-in regulatory initiatives at management groups. Defender for Cloud shows how you score against standards like ISO 27001 or PCI DSS."
+        ],
+        "show": [
+          "root",
+          "plat",
+          "lz",
+          "sub",
+          "rg",
+          "tag",
+          "pol",
+          "dfc"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "root",
+            "to": "plat"
+          },
+          {
+            "from": "root",
+            "to": "lz"
+          },
+          {
+            "from": "lz",
+            "to": "sub"
+          },
+          {
+            "from": "sub",
+            "to": "rg"
+          },
+          {
+            "from": "pol",
+            "to": "tag",
+            "label": "require / inherit"
+          },
+          {
+            "from": "pol",
+            "to": "lz",
+            "label": "assigned",
+            "fresh": true
+          },
+          {
+            "from": "dfc",
+            "to": "pol",
+            "label": "reports",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "People",
+        "title": "Identity governance",
+        "body": [
+          "Access reviews ask owners every quarter whether access is still needed. Access packages give time-limited bundles of access. PIM keeps admin rights just-in-time. Lifecycle workflows handle joiners and leavers."
+        ],
+        "show": [
+          "root",
+          "plat",
+          "lz",
+          "sub",
+          "rg",
+          "tag",
+          "pol",
+          "dfc",
+          "rev"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "root",
+            "to": "plat"
+          },
+          {
+            "from": "root",
+            "to": "lz"
+          },
+          {
+            "from": "lz",
+            "to": "sub"
+          },
+          {
+            "from": "sub",
+            "to": "rg"
+          },
+          {
+            "from": "pol",
+            "to": "tag",
+            "label": "require / inherit"
+          },
+          {
+            "from": "pol",
+            "to": "lz",
+            "label": "assigned"
+          },
+          {
+            "from": "dfc",
+            "to": "pol",
+            "label": "reports"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Governance design",
+        "body": [
+          "Structure, rules, proof, people."
+        ],
+        "show": [
+          "root",
+          "plat",
+          "lz",
+          "sub",
+          "rg",
+          "tag",
+          "pol",
+          "dfc",
+          "rev"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "root",
+            "to": "plat"
+          },
+          {
+            "from": "root",
+            "to": "lz"
+          },
+          {
+            "from": "lz",
+            "to": "sub"
+          },
+          {
+            "from": "sub",
+            "to": "rg"
+          },
+          {
+            "from": "pol",
+            "to": "tag",
+            "label": "require / inherit"
+          },
+          {
+            "from": "pol",
+            "to": "lz",
+            "label": "assigned"
+          },
+          {
+            "from": "dfc",
+            "to": "pol",
+            "label": "reports"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "MG = policy/RBAC; subscription = billing; RG = lifecycle; tags = reporting",
+          "Mandatory tags via Policy (Require + Inherit)",
+          "Regulatory initiatives + Defender for Cloud",
+          "Access reviews, access packages, PIM, lifecycle workflows"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Enforce a rule with Azure Policy and watch it block a deployment",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Free. Policy assignments and compliance scans cost nothing.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription. Work in a resource group called rg-az305-lab.",
+      "If rg-az305-lab does not exist yet: Resource groups > Create > name rg-az305-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Policy' > Assignments > Assign policy. Scope: your subscription, resource group rg-az305-lab. Policy definition: search 'Allowed locations'.",
+        "see": "The built-in 'Allowed locations' definition selected.",
+        "tip": "Assigning at a resource group keeps the lab from affecting anything else. In a real design you'd assign at a management group."
+      },
+      {
+        "do": "Parameters: Allowed locations = only your lab region. Review + create > Create.",
+        "see": "The assignment appears; it can take up to 30 minutes to take effect, usually less."
+      },
+      {
+        "do": "Try to create a storage account in rg-az305-lab in a DIFFERENT region (for example West US).",
+        "see": "Validation fails with 'RequestDisallowedByPolicy'.",
+        "tip": "This is a Deny effect: the request is stopped before anything is created."
+      },
+      {
+        "do": "Create the storage account again in your lab region (any unique name, Standard LRS).",
+        "see": "It deploys successfully."
+      },
+      {
+        "do": "Policy > Compliance > select the assignment.",
+        "see": "Resources listed as compliant; a scan may take a while to appear."
+      },
+      {
+        "do": "Policy > Assignments > select it > Create exemption (look but don't save).",
+        "see": "Exemption options: Waiver or Mitigated, with an expiry date."
+      }
+    ],
+    "check": [
+      "The out-of-region deployment was blocked; the in-region one worked."
+    ],
+    "cleanup": [
+      "Policy > Assignments: delete the Allowed locations assignment.",
+      "Resource groups > rg-az305-lab > Delete resource group > type the name > Delete."
+    ],
+    "screens": [
+      {
+        "title": "Tutorial: create and manage policies",
+        "url": "https://learn.microsoft.com/azure/governance/policy/tutorials/create-and-manage"
+      },
+      {
+        "title": "Azure Policy effects",
+        "url": "https://learn.microsoft.com/azure/governance/policy/concepts/effect-basics"
+      }
+    ]
+  }
+}

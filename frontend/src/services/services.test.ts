@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildSprint, type PlanInput } from './sprint'
 import { isCorrect, selectAdaptive, shuffle } from './exam'
-import { allObjectives, lessons, questions, registries, sprintPlan, findObjective } from './curriculum'
+import { allObjectives, lessons, parseExams, questions, registries, sprintPlan, sprintPlans, findObjective } from './curriculum'
 import type { Question } from './types'
 
 const baseInput = (over: Partial<PlanInput> = {}): PlanInput => ({
@@ -91,5 +91,40 @@ describe('exam engine', () => {
     const pool = [q({ id: 'a' }), q({ id: 'b' }), q({ id: 'c' })]
     const sel = selectAdaptive(pool, { count: 1, seed: 1, weakObjectives: new Set(), wrongQuestions: new Set(['c']), seenQuestions: new Set(['a', 'b', 'c']), targetDifficulty: 2 })
     expect(sel[0]!.id).toBe('c')
+  })
+})
+
+describe('exam visibility (VITE_EXAMS)', () => {
+  it('defaults to AZ-104 only', () => {
+    expect(parseExams(undefined)).toEqual(['az-104'])
+    expect(parseExams('')).toEqual(['az-104'])
+    expect(parseExams('nonsense')).toEqual(['az-104'])
+  })
+  it('accepts a comma-separated list or all', () => {
+    expect(parseExams('az-104, az-305')).toEqual(['az-104', 'az-305'])
+    expect(parseExams('AZ-305')).toEqual(['az-305'])
+    expect(parseExams('all')).toHaveLength(5)
+  })
+})
+
+describe('AZ-305 study plan', () => {
+  const p = sprintPlans['az-305']!
+  const input = (offset: number): PlanInput => ({
+    days: p.days,
+    objectives: allObjectives('az-305').map((o) => ({ id: o.id, skillId: o.id.split('.').slice(0, 2).join('.'), handsOn: o.handsOn, completed: false, weak: false })),
+    start: new Date(2026, 10, 23 + offset), weekdayHours: 1.75, weekendHours: 2,
+    activityMinutes: p.activityMinutes, objectiveMinutes: p.objectiveMinutes, struggleMultiplier: p.struggleMultiplier, dailyRecallMinutes: p.dailyRecallMinutes,
+  })
+  it('covers all 49 objectives in 5 weeks', () => {
+    expect(allObjectives('az-305')).toHaveLength(49)
+    expect(p.days).toHaveLength(35)
+    expect(new Set(p.days.flatMap((d) => d.skills)).size).toBe(49)
+  })
+  it.each([0, 1, 2, 3, 4, 5, 6])('fits the default hours without rolling topics, leaving the last week for revision (offset %i)', (offset) => {
+    const plan = buildSprint(input(offset))
+    expect(plan.warnings).toEqual([])
+    const items = plan.days.flatMap((d) => d.items.map((i) => ({ ...i, day: d.day })))
+    expect(items.filter((i) => i.rolledFrom)).toEqual([])
+    expect(Math.max(...items.map((i) => i.day))).toBeLessThanOrEqual(28)
   })
 })

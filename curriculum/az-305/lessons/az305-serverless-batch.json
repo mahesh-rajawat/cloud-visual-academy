@@ -1,0 +1,466 @@
+{
+  "id": "az305-serverless-batch",
+  "exam": "az-305",
+  "title": "Design serverless and batch compute",
+  "objectiveIds": [
+    "AZ305-4.1.4",
+    "AZ305-4.1.5"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Recommend serverless solutions (Functions, Durable Functions, Logic Apps, Container Apps) and batch processing solutions (Azure Batch, Container Apps jobs, Spot capacity).",
+  "prerequisites": [
+    {
+      "text": "Compute design",
+      "objectiveId": "AZ305-4.1.1",
+      "lessonId": "az305-compute"
+    }
+  ],
+  "foundation": [
+    "Serverless means you write code or a workflow and Azure runs it only when something happens. You pay for what runs.",
+    "Batch processing means running lots of work in parallel, such as thousands of simulations overnight."
+  ],
+  "engineer": [
+    "Azure Functions: event-driven code (HTTP, timers, queues, Event Grid, Event Hubs, Cosmos DB change feed). Hosting: Flex Consumption (recommended serverless plan: fast scale, scale to zero, VNet integration, always-ready instances), Premium (pre-warmed instances, longer runs), Dedicated (App Service plan). Durable Functions add stateful orchestration: function chaining, fan-out/fan-in, async HTTP APIs, monitors and human interaction.",
+    "Azure Logic Apps: low-code workflows with hundreds of managed connectors (Microsoft 365, SAP, Salesforce), Consumption (multi-tenant, pay per action) or Standard (single-tenant, VNet integration, stateful and stateless workflows). Good for integration owned by citizen developers or integration teams.",
+    "Batch: Azure Batch schedules large parallel and HPC workloads on pools of VMs (including Spot/low-priority nodes and GPU or HPC sizes) with job and task management and auto-scaling formulas; Container Apps jobs run containerised tasks on demand, on a schedule or triggered by events; HPC options include H-series VMs with InfiniBand and Azure Managed Lustre storage."
+  ],
+  "animation": {
+    "id": "az305-serverless-sim",
+    "caption": "Choose Functions, Durable Functions, Logic Apps, Batch or Container Apps jobs."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "ev",
+        "label": "Event",
+        "x": 166,
+        "y": 56,
+        "kind": "user"
+      },
+      {
+        "id": "fn",
+        "label": "Azure Functions",
+        "x": 412,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "df",
+        "label": "Durable Functions",
+        "x": 666,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "la",
+        "label": "Logic Apps",
+        "x": 235,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "ext",
+        "label": "SAP, Teams, Salesforce",
+        "x": 578,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "batch",
+        "label": "Azure Batch",
+        "x": 254,
+        "y": 270,
+        "kind": "compute"
+      },
+      {
+        "id": "spot",
+        "label": "Spot nodes",
+        "x": 586,
+        "y": 270,
+        "kind": "scope"
+      }
+    ],
+    "edges": [
+      {
+        "from": "ev",
+        "to": "fn"
+      },
+      {
+        "from": "fn",
+        "to": "df"
+      },
+      {
+        "from": "df",
+        "to": "la"
+      },
+      {
+        "from": "la",
+        "to": "ext"
+      },
+      {
+        "from": "batch",
+        "to": "spot"
+      }
+    ]
+  },
+  "example": {
+    "title": "An insurance claims pipeline",
+    "body": [
+      "Uploaded claim photos trigger a function that resizes and classifies them. A Durable Functions orchestration waits for an assessor's approval, then pays out.",
+      "A Logic App posts approved claims to Teams and the finance SAP system. Monthly risk simulations run on Azure Batch with Spot nodes."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Function App > Create: hosting plan (Flex Consumption / Premium / Dedicated).",
+      "Logic App > Create: Consumption or Standard.",
+      "Batch account > Pools: VM size, Spot nodes, autoscale formula."
+    ],
+    "cli": "az functionapp create -g rg-app -n func-claims --storage-account stclaims --flexconsumption-location westeurope --runtime dotnet-isolated --runtime-version 8.0\naz batch pool create --id pool-sim --vm-size Standard_D4s_v5 --target-low-priority-nodes 50 --image canonical:0001-com-ubuntu-server-jammy:22_04-lts --node-agent-sku-id \"batch.node.ubuntu 22.04\"",
+    "powershell": "New-AzFunctionApp -ResourceGroupName rg-app -Name func-claims -StorageAccountName stclaims -Runtime DotNet -FunctionsVersion 4 -Location westeurope"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-serverless-sim",
+    "objective": "Pick the serverless or batch service.",
+    "duration": 15,
+    "steps": [
+      "Answer every case."
+    ],
+    "expected": [
+      "Durable Functions for long-running stateful flows",
+      "Batch for massive parallel work"
+    ],
+    "validation": [
+      {
+        "id": "serverless-correct",
+        "text": "Chose the right serverless or batch service"
+      }
+    ],
+    "failureScenarios": [
+      "Using a timer loop in a function to wait for approval",
+      "Running HPC jobs on one big VM"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "A function times out waiting for an external approval.",
+      "cause": "Functions are short-lived and stateless.",
+      "fix": "Use a Durable Functions orchestration with an external event."
+    },
+    {
+      "symptom": "Batch jobs take too long to start each night.",
+      "cause": "Pool scales from zero.",
+      "fix": "Use an autoscale formula that pre-provisions before the job window."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Functions vs Logic Apps",
+      "difference": "Functions: code-first; Logic Apps: designer-first with connectors."
+    },
+    {
+      "service": "Azure Batch vs Container Apps jobs",
+      "difference": "Batch: large VM pools and HPC scheduling; Container Apps jobs: containerised tasks without managing pools."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Serverless means no limits.",
+      "reality": "Plans have execution, scale and memory limits."
+    },
+    {
+      "myth": "Logic Apps can't run in a VNet.",
+      "reality": "Logic Apps Standard supports VNet integration."
+    }
+  ],
+  "architectureDecisions": [
+    "Flex Consumption Functions for event-driven code.",
+    "Durable Functions for stateful orchestration.",
+    "Batch (with Spot) for large parallel jobs."
+  ],
+  "docs": [
+    {
+      "title": "Azure Functions overview",
+      "url": "https://learn.microsoft.com/azure/azure-functions/functions-overview"
+    },
+    {
+      "title": "Flex Consumption plan",
+      "url": "https://learn.microsoft.com/azure/azure-functions/flex-consumption-plan"
+    },
+    {
+      "title": "Durable Functions",
+      "url": "https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-overview"
+    },
+    {
+      "title": "What is Azure Logic Apps?",
+      "url": "https://learn.microsoft.com/azure/logic-apps/logic-apps-overview"
+    },
+    {
+      "title": "What is Azure Batch?",
+      "url": "https://learn.microsoft.com/azure/batch/batch-technical-overview"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Run code only when something happens, and run huge parallel jobs without managing servers.",
+    "learn": [
+      "Functions and Flex Consumption",
+      "Durable Functions and Logic Apps",
+      "Batch processing"
+    ],
+    "nodes": [
+      {
+        "id": "ev",
+        "label": "Event",
+        "x": 158,
+        "y": 75,
+        "kind": "user",
+        "sub": "blob, queue, HTTP"
+      },
+      {
+        "id": "fn",
+        "label": "Azure Functions",
+        "x": 392,
+        "y": 75,
+        "kind": "compute",
+        "sub": "event-driven"
+      },
+      {
+        "id": "df",
+        "label": "Durable Functions",
+        "x": 634,
+        "y": 75,
+        "kind": "compute",
+        "sub": "stateful"
+      },
+      {
+        "id": "la",
+        "label": "Logic Apps",
+        "x": 224,
+        "y": 215,
+        "kind": "service",
+        "sub": "connectors"
+      },
+      {
+        "id": "ext",
+        "label": "SAP, Teams, Salesforce",
+        "x": 550,
+        "y": 215,
+        "kind": "service"
+      },
+      {
+        "id": "batch",
+        "label": "Azure Batch",
+        "x": 242,
+        "y": 360,
+        "kind": "compute",
+        "sub": "VM pools"
+      },
+      {
+        "id": "spot",
+        "label": "Spot nodes",
+        "x": 558,
+        "y": 360,
+        "kind": "cost"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Work that comes and goes",
+        "body": [
+          "Photos arrive at random, approvals take days, and simulations need 1,000 cores once a month."
+        ],
+        "show": [
+          "ev"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Functions",
+        "title": "Code that runs on events",
+        "body": [
+          "A function wakes up for each event and scales out with load. The Flex Consumption plan scales fast, can scale to zero, and supports VNet integration."
+        ],
+        "show": [
+          "ev",
+          "fn"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ev",
+            "to": "fn",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Workflows",
+        "title": "State and integration",
+        "body": [
+          "Durable Functions remember where they are, so an order can wait days for approval. Logic Apps build workflows in a designer with hundreds of connectors."
+        ],
+        "show": [
+          "ev",
+          "fn",
+          "df",
+          "la",
+          "ext"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ev",
+            "to": "fn"
+          },
+          {
+            "from": "fn",
+            "to": "df",
+            "fresh": true
+          },
+          {
+            "from": "df",
+            "to": "la",
+            "fresh": true
+          },
+          {
+            "from": "la",
+            "to": "ext",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Batch",
+        "title": "Thousands of tasks in parallel",
+        "body": [
+          "Azure Batch creates a pool of VMs, runs the tasks and scales the pool away. Spot nodes cut cost for work that can be retried."
+        ],
+        "show": [
+          "ev",
+          "fn",
+          "df",
+          "la",
+          "ext",
+          "batch",
+          "spot"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ev",
+            "to": "fn"
+          },
+          {
+            "from": "fn",
+            "to": "df"
+          },
+          {
+            "from": "df",
+            "to": "la"
+          },
+          {
+            "from": "la",
+            "to": "ext"
+          },
+          {
+            "from": "batch",
+            "to": "spot",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Serverless and batch",
+        "body": [
+          "Pay for work done."
+        ],
+        "show": [
+          "ev",
+          "fn",
+          "df",
+          "la",
+          "ext",
+          "batch",
+          "spot"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ev",
+            "to": "fn"
+          },
+          {
+            "from": "fn",
+            "to": "df"
+          },
+          {
+            "from": "df",
+            "to": "la"
+          },
+          {
+            "from": "la",
+            "to": "ext"
+          },
+          {
+            "from": "batch",
+            "to": "spot"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "recap": [
+          "Functions (Flex Consumption) for events",
+          "Durable Functions for state; Logic Apps for connectors",
+          "Batch + Spot for parallel jobs"
+        ]
+      }
+    ]
+  }
+}

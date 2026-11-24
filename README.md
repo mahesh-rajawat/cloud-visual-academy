@@ -23,6 +23,17 @@ npm run dev        # http://localhost:5173 (proxies /api to :8000)
 
 Optional: `docker compose up --build`, then open http://localhost:4173. This path has not been tested yet.
 
+## Choosing which exams the app shows
+
+The app shows only AZ-104 by default; the content for the other exams stays in the repository.
+
+- **Website (GitHub Pages):** in the GitHub repository open Settings → Secrets and variables → Actions → Variables, and add a
+  repository variable `CVA_EXAMS`, for example `az-104,az-305` or `all`. Then re-run the "Deploy read-only site to GitHub Pages"
+  workflow (Actions tab → the workflow → Run workflow), or push any change.
+- **Locally:** copy `frontend/.env.example` to `frontend/.env.local` and set `VITE_EXAMS` the same way, then restart `npm run dev`.
+
+Valid values: `az-104`, `az-305`, `az-900`, `ai-901`, `aws-clf-c02` (comma-separated), or `all`. Tests always run with all exams.
+
 ## Tests and audits
 
 ```bash
@@ -44,6 +55,7 @@ If Playwright's own browser is not installed, run `npx playwright install chromi
 |---|---|---|---|
 | AZ-900 | July 20, 2026 | 3 | 57 |
 | AZ-104 | April 17, 2026 | 5 | 82 |
+| AZ-305 | April 17, 2026 | 4 | 49 |
 | AI-901 | April 15, 2026 | 2 | 29 |
 | CLF-C02 | guide v1.3, October 29, 2026 | 4 | 135 (+111 in-scope services) |
 
@@ -54,6 +66,7 @@ objective is hands-on, and official documentation links.
 | Exam | Objectives complete | Lessons | Questions | Notes |
 |---|---|---|---|---|
 | AZ-104 | **82 / 82** | 47 | 394 | All five domains. Every lesson opens in an easy **lite walkthrough** plus the simulator and a **real-Azure hands-on lab** (plain-language steps, what you should see, cost level, clean-up, links to Microsoft Learn pages with portal screenshots, and space for your own screenshots, saved locally). Content: `scripts/content/_az104_d*.py` (walkthroughs, labs, fact updates) and `_az104_q*.py` (162 extra exam-style questions), applied by `zz_az104_overlay.py` and `az104_examq.py`. A 56-day plan (topics in weeks 1–7, mocks and revision in week 8), a "Clear the confusion" page (`/clear-up`: templates and CLI, networking and look-alike services side by side with drills) and an exam-day guide (`/exam-guide`) complete the track |
+| AZ-305 | **49 / 49** | 20 | 147 | Design exam. Every lesson has an easy walkthrough and a design trainer (realistic requirements → recommended service, with the reason), plus a composite SLA calculator; 8 lessons add a free or near-free real-Azure lab. Content: `scripts/content/az305_d*.py`, labs in `_az305_labs.py`, trainers in `frontend/src/simulations/groups/az305.ts`. 35-day plan (topics in weeks 1–4, mocks in week 5) |
 | AZ-900 | **57 / 57** | 25 | 254 | One focused lesson per 1–4 objectives, each with its own animation group; 12 of the questions form the short foundations diagnostic |
 | AI-901 | **29 / 29** | 19 | 124 | One focused lesson per 1–3 objectives, each with its own animation group. Written for Microsoft Foundry and Foundry Tools; no AI-900 material reused; Python samples use azure-ai-projects 2.x and the Responses API |
 | CLF-C02 | **135 / 135** | 19 | 270 | Includes in-scope services. Every lesson opens in a **lite walkthrough** (7–8 steps: problem → techniques → case → recap, with a diagram that builds up step by step); "Full lesson" switches to the lab, configuration and troubleshooting view. Walkthrough content: `scripts/content/_aws_walk*.py` |

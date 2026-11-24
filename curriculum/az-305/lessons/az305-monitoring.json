@@ -1,0 +1,653 @@
+{
+  "id": "az305-monitoring",
+  "exam": "az-305",
+  "title": "Design logging and monitoring",
+  "objectiveIds": [
+    "AZ305-1.1.1",
+    "AZ305-1.1.2",
+    "AZ305-1.1.3"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Recommend a logging solution (workspaces, tables, retention), a way to route logs (diagnostic settings, data collection rules) and the monitoring features that fit each workload.",
+  "prerequisites": [
+    {
+      "text": "Azure Monitor metrics and logs (AZ-104)",
+      "objectiveId": "AZ104-5.1.1",
+      "lessonId": "az104-monitor-metrics-logs"
+    },
+    {
+      "text": "Alerts and action groups (AZ-104)",
+      "objectiveId": "AZ104-5.1.4",
+      "lessonId": "az104-alerts"
+    }
+  ],
+  "foundation": [
+    "Monitoring answers two questions: is it healthy right now (metrics, alerts), and what happened (logs).",
+    "Azure collects platform metrics automatically. Logs need a decision: which logs, sent where, kept how long, and who may read them.",
+    "Most designs use one central Log Analytics workspace, a few diagnostic settings to send logs there, and the right 'insights' feature for each kind of workload."
+  ],
+  "engineer": [
+    "Workspace design: start with a single workspace and add more only for a reason: data residency (a workspace stores data in its region), separate tenants or billing owners (for example customers of a service provider, queried across with Azure Lighthouse), or very different access needs that resource-context RBAC and table-level RBAC cannot meet.",
+    "Cost and retention: table plans (Analytics for frequent queries and alerts, Basic for cheaper high-volume troubleshooting logs, Auxiliary for low-cost long-term audit data), interactive retention up to 2 years and long-term retention up to 12 years in total, commitment tiers for predictable ingestion, and data collection rule transformations to drop unneeded columns before ingestion.",
+    "Routing: diagnostic settings send resource logs, the activity log and platform metrics to a Log Analytics workspace (query and alert), a storage account (cheap archive), Event Hubs (stream to third-party SIEMs and tools) or an Azure Monitor partner integration. One resource can have several diagnostic settings. For VMs and Arc servers, the Azure Monitor Agent plus data collection rules (DCRs) decide what guest data is collected and where it goes. Apply settings at scale with Azure Policy (DeployIfNotExists).",
+    "Monitoring solutions: Application Insights (workspace-based APM with distributed tracing and availability tests), VM insights (performance and dependency map), Container insights and managed Prometheus/Grafana for AKS, Network Watcher (connection monitor, flow logs), storage and network insights, Microsoft Sentinel (SIEM/SOAR on the workspace), Azure Monitor alerts with action groups, and workbooks or dashboards to visualise.",
+    "Alerting design: alert on symptoms users feel (failed requests, latency) as well as causes (CPU); use dynamic thresholds for noisy metrics; route with action groups and suppress during maintenance with alert processing rules."
+  ],
+  "animation": {
+    "id": "az305-monitor-sim",
+    "caption": "Choose where logs go, which monitoring feature fits, and how many workspaces you need."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "apps",
+        "label": "Apps and resources",
+        "x": 169,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "ds",
+        "label": "Diagnostic settings",
+        "x": 433,
+        "y": 56,
+        "kind": "scope"
+      },
+      {
+        "id": "law",
+        "label": "Log Analytics",
+        "x": 684,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "st",
+        "label": "Storage account",
+        "x": 162,
+        "y": 161,
+        "kind": "storage"
+      },
+      {
+        "id": "eh",
+        "label": "Event Hubs",
+        "x": 401,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "ai",
+        "label": "Application Insights",
+        "x": 659,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "sent",
+        "label": "Microsoft Sentinel",
+        "x": 258,
+        "y": 270,
+        "kind": "security"
+      },
+      {
+        "id": "alert",
+        "label": "Alerts",
+        "x": 594,
+        "y": 270,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "apps",
+        "to": "ds"
+      },
+      {
+        "from": "ds",
+        "to": "law",
+        "label": "query"
+      },
+      {
+        "from": "ds",
+        "to": "st",
+        "label": "archive"
+      },
+      {
+        "from": "ds",
+        "to": "eh",
+        "label": "stream"
+      },
+      {
+        "from": "apps",
+        "to": "ai"
+      },
+      {
+        "from": "ai",
+        "to": "law"
+      },
+      {
+        "from": "law",
+        "to": "sent"
+      },
+      {
+        "from": "law",
+        "to": "alert"
+      }
+    ]
+  },
+  "example": {
+    "title": "A retail company's monitoring design",
+    "body": [
+      "All subscriptions send activity logs and resource logs to one central workspace in West Europe through diagnostic settings applied by Azure Policy. App teams see only their own resources with resource-context access.",
+      "Security audit logs are also sent to a storage account with a 7-year immutable policy, and the SOC streams firewall logs to its existing SIEM through Event Hubs. Web apps use Application Insights; AKS clusters use Container insights."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Monitor > Diagnostic settings: choose a resource, add a setting, pick categories and destinations.",
+      "Log Analytics workspace > Tables: set the table plan and retention.",
+      "Monitor > Data collection rules: define what VMs send and where.",
+      "Policy > Definitions: search 'Enable logging by category group' to deploy diagnostic settings at scale."
+    ],
+    "cli": "az monitor log-analytics workspace create -g rg-mon -n law-central -l westeurope --retention-time 90\naz monitor diagnostic-settings create --name to-law --resource <resource-id> \\\n  --workspace law-central --logs '[{\"categoryGroup\":\"allLogs\",\"enabled\":true}]'",
+    "powershell": "New-AzOperationalInsightsWorkspace -ResourceGroupName rg-mon -Name law-central -Location westeurope -RetentionInDays 90"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-monitor-sim",
+    "objective": "Design where each log goes and which monitoring feature to use.",
+    "duration": 15,
+    "steps": [
+      "Open each trainer and answer every requirement.",
+      "For a wrong answer, read why the recommended option fits better."
+    ],
+    "expected": [
+      "Query and alerts → Log Analytics; cheap archive → storage; external SIEM → Event Hubs",
+      "Start with one workspace"
+    ],
+    "validation": [
+      {
+        "id": "log-route-correct",
+        "text": "Chose the right log destination"
+      },
+      {
+        "id": "monitor-tool-correct",
+        "text": "Chose the right monitoring solution"
+      },
+      {
+        "id": "workspace-design-correct",
+        "text": "Chose the right workspace design"
+      }
+    ],
+    "failureScenarios": [
+      "Creating a workspace per team",
+      "Archiving years of logs in the Analytics plan"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Log costs are much higher than expected.",
+      "cause": "Verbose logs ingested into the Analytics plan, and all categories enabled.",
+      "fix": "Send only needed categories, use the Basic or Auxiliary plan for high-volume logs, and add DCR transformations."
+    },
+    {
+      "symptom": "Teams can't find each other's logs, and cross-workspace queries are slow.",
+      "cause": "Too many workspaces.",
+      "fix": "Consolidate into fewer workspaces and use resource-context RBAC."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Metrics vs logs",
+      "difference": "Metrics are numbers, near real time, kept 93 days; logs are detailed records queried with KQL."
+    },
+    {
+      "service": "Sentinel vs Defender for Cloud",
+      "difference": "Sentinel is a SIEM/SOAR for investigation; Defender for Cloud is posture management and workload protection."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "You need a workspace per application.",
+      "reality": "One central workspace with RBAC is usually best."
+    },
+    {
+      "myth": "Diagnostic settings are on by default.",
+      "reality": "Resource logs are not collected until you create a diagnostic setting."
+    }
+  ],
+  "architectureDecisions": [
+    "One central workspace unless residency, tenant or billing requires more.",
+    "Route to storage for archive and Event Hubs for external tools.",
+    "Apply diagnostic settings with Azure Policy."
+  ],
+  "docs": [
+    {
+      "title": "Design a Log Analytics workspace architecture",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/logs/workspace-design"
+    },
+    {
+      "title": "Diagnostic settings in Azure Monitor",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/essentials/diagnostic-settings"
+    },
+    {
+      "title": "Application Insights overview",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview"
+    },
+    {
+      "title": "What is Microsoft Sentinel?",
+      "url": "https://learn.microsoft.com/azure/sentinel/overview"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Know what's happening in your Azure estate, keep the logs you need, and pay as little as possible.",
+    "learn": [
+      "Metrics vs logs",
+      "Where logs can go",
+      "How many workspaces",
+      "Which monitoring feature for which workload"
+    ],
+    "nodes": [
+      {
+        "id": "apps",
+        "label": "Apps and resources",
+        "x": 161,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "ds",
+        "label": "Diagnostic settings",
+        "x": 412,
+        "y": 75,
+        "kind": "service",
+        "sub": "what + where"
+      },
+      {
+        "id": "law",
+        "label": "Log Analytics",
+        "x": 651,
+        "y": 75,
+        "kind": "database",
+        "sub": "query + alert"
+      },
+      {
+        "id": "st",
+        "label": "Storage account",
+        "x": 154,
+        "y": 215,
+        "kind": "storage",
+        "sub": "cheap archive"
+      },
+      {
+        "id": "eh",
+        "label": "Event Hubs",
+        "x": 382,
+        "y": 215,
+        "kind": "service",
+        "sub": "to other tools"
+      },
+      {
+        "id": "ai",
+        "label": "Application Insights",
+        "x": 628,
+        "y": 215,
+        "kind": "service",
+        "sub": "app performance"
+      },
+      {
+        "id": "sent",
+        "label": "Microsoft Sentinel",
+        "x": 246,
+        "y": 360,
+        "kind": "security",
+        "sub": "SIEM"
+      },
+      {
+        "id": "alert",
+        "label": "Alerts",
+        "x": 566,
+        "y": 360,
+        "kind": "user",
+        "sub": "tell people"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Something broke last night. Can you tell what?",
+        "body": [
+          "Without a design, logs are scattered, missing or very expensive. You need to decide what to collect, where to send it and who can read it."
+        ],
+        "show": [
+          "apps"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Two signals",
+        "title": "Metrics and logs",
+        "body": [
+          "Metrics are numbers collected automatically (CPU %, requests). Logs are detailed records (who signed in, which request failed). Logs must be sent somewhere before you can use them."
+        ],
+        "show": [
+          "apps"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Routing",
+        "title": "Diagnostic settings choose what and where",
+        "body": [
+          "A diagnostic setting picks log categories and sends them to:",
+          "• Log Analytics — to query with KQL and alert\n• a storage account — cheap long-term archive\n• Event Hubs — to stream to another tool (an existing SIEM)"
+        ],
+        "show": [
+          "apps",
+          "ds",
+          "law",
+          "st",
+          "eh"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "apps",
+            "to": "ds",
+            "fresh": true
+          },
+          {
+            "from": "ds",
+            "to": "law",
+            "label": "query",
+            "fresh": true
+          },
+          {
+            "from": "ds",
+            "to": "st",
+            "label": "archive",
+            "fresh": true
+          },
+          {
+            "from": "ds",
+            "to": "eh",
+            "label": "stream",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "One resource can have several diagnostic settings, for example one to the workspace and one to storage."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Workspaces",
+        "title": "One workspace is usually enough",
+        "body": [
+          "Add another workspace only for a real reason: data must stay in another region, it belongs to another organisation, or it is billed separately. Teams can still see only their own resources in a shared workspace."
+        ],
+        "show": [
+          "apps",
+          "ds",
+          "law",
+          "st",
+          "eh"
+        ],
+        "focus": [
+          "law"
+        ],
+        "edges": [
+          {
+            "from": "apps",
+            "to": "ds"
+          },
+          {
+            "from": "ds",
+            "to": "law",
+            "label": "query"
+          },
+          {
+            "from": "ds",
+            "to": "st",
+            "label": "archive"
+          },
+          {
+            "from": "ds",
+            "to": "eh",
+            "label": "stream"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "A workspace per team makes cross-team investigations slow and costly."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Features",
+        "title": "Pick the insight for the workload",
+        "body": [
+          "Web apps → Application Insights (requests, dependencies, failures). VMs → VM insights. AKS → Container insights. Security → Microsoft Sentinel on the same workspace. Then alerts tell people."
+        ],
+        "show": [
+          "apps",
+          "ds",
+          "law",
+          "st",
+          "eh",
+          "ai",
+          "sent",
+          "alert"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "apps",
+            "to": "ds"
+          },
+          {
+            "from": "ds",
+            "to": "law",
+            "label": "query"
+          },
+          {
+            "from": "ds",
+            "to": "st",
+            "label": "archive"
+          },
+          {
+            "from": "ds",
+            "to": "eh",
+            "label": "stream"
+          },
+          {
+            "from": "apps",
+            "to": "ai",
+            "fresh": true
+          },
+          {
+            "from": "ai",
+            "to": "law",
+            "fresh": true
+          },
+          {
+            "from": "law",
+            "to": "sent",
+            "fresh": true
+          },
+          {
+            "from": "law",
+            "to": "alert",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Monitoring design",
+        "body": [
+          "Collect, route, keep, protect."
+        ],
+        "show": [
+          "apps",
+          "ds",
+          "law",
+          "st",
+          "eh",
+          "ai",
+          "sent",
+          "alert"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "apps",
+            "to": "ds"
+          },
+          {
+            "from": "ds",
+            "to": "law",
+            "label": "query"
+          },
+          {
+            "from": "ds",
+            "to": "st",
+            "label": "archive"
+          },
+          {
+            "from": "ds",
+            "to": "eh",
+            "label": "stream"
+          },
+          {
+            "from": "apps",
+            "to": "ai"
+          },
+          {
+            "from": "ai",
+            "to": "law"
+          },
+          {
+            "from": "law",
+            "to": "sent"
+          },
+          {
+            "from": "law",
+            "to": "alert"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Metrics automatic; logs need diagnostic settings or DCRs",
+          "Workspace = query; storage = archive; Event Hubs = stream out",
+          "Start with one workspace",
+          "App Insights, VM/Container insights, Sentinel, alerts"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Route the activity log to a workspace and query it",
+    "minutes": 20,
+    "costLevel": "low",
+    "cost": "Low. A new workspace with a little activity-log data costs cents; the activity log itself is free.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription. Work in a resource group called rg-az305-lab.",
+      "If rg-az305-lab does not exist yet: Resource groups > Create > name rg-az305-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Create a Log Analytics workspace: search 'Log Analytics workspaces' > Create > rg-az305-lab, name law-az305, your region.",
+        "see": "The workspace deploys in about a minute."
+      },
+      {
+        "do": "Search 'Monitor' > Activity log > Export Activity Logs > + Add diagnostic setting. Name to-law; tick Administrative and Policy; destination Send to Log Analytics workspace > law-az305. Save.",
+        "see": "A diagnostic setting for the subscription's activity log.",
+        "tip": "This is the 'routing' decision: here you chose the workspace (query). Storage would be archive; Event Hubs would stream out."
+      },
+      {
+        "do": "Make a change so there is something to log: create a tag on rg-az305-lab (Tags > Environment = Lab > Apply).",
+        "see": "The tag appears on the resource group."
+      },
+      {
+        "do": "Wait 5–10 minutes. Open law-az305 > Logs, switch to KQL mode and run the query.",
+        "see": "Rows showing your tag write and who did it.",
+        "tip": "If there are no rows yet, wait a few more minutes; ingestion is not instant.",
+        "code": "AzureActivity\n| where TimeGenerated > ago(1h)\n| project TimeGenerated, OperationNameValue, Caller, ActivityStatusValue\n| order by TimeGenerated desc"
+      },
+      {
+        "do": "Open law-az305 > Settings > Tables, select AzureActivity.",
+        "see": "The table plan and retention settings you would tune for cost."
+      }
+    ],
+    "check": [
+      "The KQL query returns your own recent operations."
+    ],
+    "cleanup": [
+      "Monitor > Activity log > Export Activity Logs: delete the to-law setting.",
+      "Resource groups > rg-az305-lab > Delete resource group > type the name > Delete."
+    ],
+    "screens": [
+      {
+        "title": "Create diagnostic settings",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/essentials/create-diagnostic-settings"
+      },
+      {
+        "title": "Log Analytics tutorial",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-tutorial"
+      }
+    ]
+  }
+}

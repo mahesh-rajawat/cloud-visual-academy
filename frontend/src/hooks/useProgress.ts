@@ -14,7 +14,7 @@ export interface ProgressData {
 
 const EMPTY: ProgressData = {
   lessons: [],
-  mastery: { 'az-900': {}, 'az-104': {}, 'ai-901': {}, 'aws-clf-c02': {} },
+  mastery: { 'az-900': {}, 'az-104': {}, 'az-305': {}, 'ai-901': {}, 'aws-clf-c02': {} },
   sessions: [],
   due: [],
   upcoming: [],

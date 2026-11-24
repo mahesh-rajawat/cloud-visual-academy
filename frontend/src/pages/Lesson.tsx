@@ -332,7 +332,7 @@ export default function LessonPage() {
           <p className="mb-3">{lesson.learningObjective}</p>
           <h2 className="font-semibold">Before you start</h2>
           <ul className="mb-3 ml-5 list-disc">
-            {lesson.prerequisites.map((p) => <li key={p.text}>{p.lessonId ? <Link className="underline" to={`/lesson/${p.lessonId}`}>{p.text}</Link> : p.text}{p.objectiveId && <span className="text-xs text-slate-500"> ({p.objectiveId})</span>}</li>)}
+            {lesson.prerequisites.map((p) => <li key={p.text}>{p.lessonId && findLesson(p.lessonId) ? <Link className="underline" to={`/lesson/${p.lessonId}`}>{p.text}</Link> : p.text}{p.objectiveId && <span className="text-xs text-slate-500"> ({p.objectiveId})</span>}</li>)}
           </ul>
           <h2 className="font-semibold">{depth === 'foundation' ? 'Simple explanation' : 'Deep technical explanation'}</h2>
           <div className="prose-cva">{(depth === 'foundation' ? lesson.foundation : lesson.engineer).map((p) => <p key={p}><Rich text={p} /></p>)}</div>

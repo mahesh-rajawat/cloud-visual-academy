@@ -1,0 +1,540 @@
+{
+  "id": "az305-relational-scale-protect",
+  "exam": "az-305",
+  "title": "Design relational scalability and data protection",
+  "objectiveIds": [
+    "AZ305-2.1.3",
+    "AZ305-2.1.4"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Recommend how a relational database scales (up, read scale-out, pools, sharding, Hyperscale) and how its data is protected (encryption, masking, row-level security, auditing, threat protection).",
+  "prerequisites": [
+    {
+      "text": "Relational data storage and tiers",
+      "objectiveId": "AZ305-2.1.1",
+      "lessonId": "az305-relational"
+    }
+  ],
+  "foundation": [
+    "When a database gets busier you can give it more power (scale up), send reads to copies (scale out reads), share resources across databases (pools), or split the data across databases (sharding).",
+    "Protecting data means encrypting it, hiding what people shouldn't see, limiting which rows they read, and recording who did what."
+  ],
+  "engineer": [
+    "Scalability: vertical scaling changes vCores or service objective online (brief reconnect); read scale-out routes ApplicationIntent=ReadOnly connections to a readable replica (Business Critical, Premium, Hyperscale); Hyperscale adds high-availability replicas and up to 30 named replicas for read workloads; elastic pools for many databases; horizontal sharding with elastic database tools (shard map manager) for data beyond one database; geo-replicas can also serve reads in other regions.",
+    "Encryption: TDE encrypts data at rest by default (service-managed or customer-managed key in Key Vault); TLS for data in transit; Always Encrypted encrypts sensitive columns in the client driver so the database engine and DBAs never see plaintext (secure enclaves allow richer queries).",
+    "Access to data: Microsoft Entra authentication for users and managed identities; dynamic data masking hides values in results for non-privileged users (not encryption); row-level security filters rows with security predicates; ledger tables give tamper evidence.",
+    "Monitoring and threat protection: auditing to storage, Log Analytics or Event Hubs; Microsoft Defender for SQL (vulnerability assessment, threat detection such as SQL injection alerts); data discovery and classification. Network protection: private endpoints and disabling public access."
+  ],
+  "animation": {
+    "id": "az305-sql-scale-sim",
+    "caption": "Pick a scaling technique and the right data protection feature."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Application",
+        "x": 168,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "pri",
+        "label": "Primary",
+        "x": 415,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "rep",
+        "label": "Readable replica",
+        "x": 667,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "sh1",
+        "label": "Shard A–M",
+        "x": 170,
+        "y": 161,
+        "kind": "storage"
+      },
+      {
+        "id": "sh2",
+        "label": "Shard N–Z",
+        "x": 420,
+        "y": 161,
+        "kind": "storage"
+      },
+      {
+        "id": "kv",
+        "label": "Key Vault",
+        "x": 670,
+        "y": 161,
+        "kind": "security"
+      },
+      {
+        "id": "mask",
+        "label": "Masking + RLS",
+        "x": 243,
+        "y": 270,
+        "kind": "security"
+      },
+      {
+        "id": "aud",
+        "label": "Auditing + Defender",
+        "x": 581,
+        "y": 270,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "app",
+        "to": "pri"
+      },
+      {
+        "from": "pri",
+        "to": "rep",
+        "label": "ReadOnly"
+      },
+      {
+        "from": "app",
+        "to": "sh1"
+      },
+      {
+        "from": "app",
+        "to": "sh2"
+      },
+      {
+        "from": "kv",
+        "to": "pri"
+      },
+      {
+        "from": "mask",
+        "to": "pri"
+      },
+      {
+        "from": "pri",
+        "to": "aud"
+      }
+    ]
+  },
+  "example": {
+    "title": "Scaling and securing a payments database",
+    "body": [
+      "The Business Critical database routes reporting to its readable replica with ApplicationIntent=ReadOnly and scales up for month-end. Card numbers use Always Encrypted; support staff see masked phone numbers.",
+      "Row-level security limits each merchant to its own rows. Auditing goes to Log Analytics, and Defender for SQL alerts on injection attempts."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "SQL database > Compute + storage: scale vCores; Read scale-out setting.",
+      "SQL database > Security: Auditing, Dynamic data masking, Microsoft Defender for Cloud, Transparent data encryption."
+    ],
+    "cli": "az sql db update -g rg-data -s sql-contoso -n db-pay --capacity 16\naz sql db audit-policy update -g rg-data -s sql-contoso -n db-pay --state Enabled --lat-destination-type LogAnalytics --log-analytics-workspace-resource-id <law-id>",
+    "powershell": "Set-AzSqlDatabase -ResourceGroupName rg-data -ServerName sql-contoso -DatabaseName db-pay -VCore 16"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-sql-scale-sim",
+    "objective": "Choose how to scale and protect each database.",
+    "duration": 15,
+    "steps": [
+      "Answer every case in both trainers."
+    ],
+    "expected": [
+      "Read scale-out for reports; sharding for data beyond one database",
+      "Always Encrypted hides data from DBAs"
+    ],
+    "validation": [
+      {
+        "id": "sql-scale-correct",
+        "text": "Chose the right scaling technique"
+      },
+      {
+        "id": "sql-protect-correct",
+        "text": "Chose the right protection feature"
+      }
+    ],
+    "failureScenarios": [
+      "Using masking as if it were encryption",
+      "Scaling up when reads could go to a replica"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Reports still hit the primary after enabling read scale-out.",
+      "cause": "Connection string lacks ApplicationIntent=ReadOnly.",
+      "fix": "Add ApplicationIntent=ReadOnly to the reporting connection string."
+    },
+    {
+      "symptom": "A DBA can still see credit card numbers.",
+      "cause": "Only TDE (at rest) is used.",
+      "fix": "Use Always Encrypted for those columns."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "TDE vs Always Encrypted",
+      "difference": "TDE protects files at rest; Always Encrypted protects columns from anyone without the client key, including DBAs."
+    },
+    {
+      "service": "Dynamic data masking vs row-level security",
+      "difference": "Masking hides parts of values; RLS hides whole rows."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Dynamic data masking encrypts data.",
+      "reality": "It only changes what non-privileged users see in results."
+    },
+    {
+      "myth": "Scaling up is the only way to handle more load.",
+      "reality": "Read scale-out, pools and sharding also help."
+    }
+  ],
+  "architectureDecisions": [
+    "Route reads to replicas before scaling up.",
+    "Always Encrypted for highly sensitive columns.",
+    "Auditing + Defender for SQL on production."
+  ],
+  "docs": [
+    {
+      "title": "Read scale-out",
+      "url": "https://learn.microsoft.com/azure/azure-sql/database/read-scale-out"
+    },
+    {
+      "title": "Scale out with elastic database tools",
+      "url": "https://learn.microsoft.com/azure/azure-sql/database/elastic-scale-introduction"
+    },
+    {
+      "title": "Azure SQL security overview",
+      "url": "https://learn.microsoft.com/azure/azure-sql/database/security-overview"
+    },
+    {
+      "title": "Always Encrypted",
+      "url": "https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-database-engine"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Keep a database fast as it grows, and keep its data safe from the wrong eyes.",
+    "learn": [
+      "Scale up, read scale-out, pools, sharding",
+      "Encryption at rest and in use",
+      "Masking, row-level security, auditing"
+    ],
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Application",
+        "x": 160,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "pri",
+        "label": "Primary",
+        "x": 395,
+        "y": 75,
+        "kind": "database"
+      },
+      {
+        "id": "rep",
+        "label": "Readable replica",
+        "x": 635,
+        "y": 75,
+        "kind": "database",
+        "sub": "reports"
+      },
+      {
+        "id": "sh1",
+        "label": "Shard A–M",
+        "x": 162,
+        "y": 215,
+        "kind": "database"
+      },
+      {
+        "id": "sh2",
+        "label": "Shard N–Z",
+        "x": 400,
+        "y": 215,
+        "kind": "database"
+      },
+      {
+        "id": "kv",
+        "label": "Key Vault",
+        "x": 638,
+        "y": 215,
+        "kind": "security",
+        "sub": "TDE / AE keys"
+      },
+      {
+        "id": "mask",
+        "label": "Masking + RLS",
+        "x": 231,
+        "y": 360,
+        "kind": "security"
+      },
+      {
+        "id": "aud",
+        "label": "Auditing + Defender",
+        "x": 553,
+        "y": 360,
+        "kind": "security"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Busier every month, and full of sensitive data",
+        "body": [
+          "The database slows at month-end, reports compete with orders, and auditors ask who can see card numbers."
+        ],
+        "show": [
+          "app",
+          "pri"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "pri",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Scale",
+        "title": "Four ways to scale",
+        "body": [
+          "Scale up: more vCores. Read scale-out: send reports to a readable replica. Elastic pool: share resources across databases. Sharding: split data across databases by a key."
+        ],
+        "show": [
+          "app",
+          "pri",
+          "rep",
+          "sh1",
+          "sh2"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "pri"
+          },
+          {
+            "from": "pri",
+            "to": "rep",
+            "label": "ReadOnly",
+            "fresh": true
+          },
+          {
+            "from": "app",
+            "to": "sh1",
+            "fresh": true
+          },
+          {
+            "from": "app",
+            "to": "sh2",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Encrypt",
+        "title": "At rest and in use",
+        "body": [
+          "TDE encrypts database files (on by default). Always Encrypted encrypts chosen columns in the app's driver, so even DBAs see only ciphertext."
+        ],
+        "show": [
+          "app",
+          "pri",
+          "rep",
+          "sh1",
+          "sh2",
+          "kv"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "pri"
+          },
+          {
+            "from": "pri",
+            "to": "rep",
+            "label": "ReadOnly"
+          },
+          {
+            "from": "app",
+            "to": "sh1"
+          },
+          {
+            "from": "app",
+            "to": "sh2"
+          },
+          {
+            "from": "kv",
+            "to": "pri",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Control",
+        "title": "Hide, filter, record",
+        "body": [
+          "Dynamic data masking shows XXXX-1234 to support staff. Row-level security returns only a user's own rows. Auditing and Defender for SQL record and alert on suspicious activity."
+        ],
+        "show": [
+          "app",
+          "pri",
+          "rep",
+          "sh1",
+          "sh2",
+          "kv",
+          "mask",
+          "aud"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "pri"
+          },
+          {
+            "from": "pri",
+            "to": "rep",
+            "label": "ReadOnly"
+          },
+          {
+            "from": "app",
+            "to": "sh1"
+          },
+          {
+            "from": "app",
+            "to": "sh2"
+          },
+          {
+            "from": "kv",
+            "to": "pri"
+          },
+          {
+            "from": "mask",
+            "to": "pri",
+            "fresh": true
+          },
+          {
+            "from": "pri",
+            "to": "aud",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Masking is not encryption — privileged users still see the real values."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Scale and protect",
+        "body": [
+          "Fast and safe."
+        ],
+        "show": [
+          "app",
+          "pri",
+          "rep",
+          "sh1",
+          "sh2",
+          "kv",
+          "mask",
+          "aud"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "pri"
+          },
+          {
+            "from": "pri",
+            "to": "rep",
+            "label": "ReadOnly"
+          },
+          {
+            "from": "app",
+            "to": "sh1"
+          },
+          {
+            "from": "app",
+            "to": "sh2"
+          },
+          {
+            "from": "kv",
+            "to": "pri"
+          },
+          {
+            "from": "mask",
+            "to": "pri"
+          },
+          {
+            "from": "pri",
+            "to": "aud"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "recap": [
+          "Scale up / read scale-out / pool / shard",
+          "TDE at rest; Always Encrypted from DBAs",
+          "Masking, RLS, auditing, Defender for SQL"
+        ]
+      }
+    ]
+  }
+}

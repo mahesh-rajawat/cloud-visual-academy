@@ -1,0 +1,556 @@
+{
+  "id": "az305-network-connectivity",
+  "exam": "az-305",
+  "title": "Design internet and hybrid connectivity",
+  "objectiveIds": [
+    "AZ305-4.4.1",
+    "AZ305-4.4.2"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Recommend connectivity between Azure resources and the internet (inbound and outbound) and between Azure and on-premises networks.",
+  "prerequisites": [
+    {
+      "text": "Virtual networks (AZ-104)",
+      "objectiveId": "AZ104-4.1.1",
+      "lessonId": "az104-vnet-subnets"
+    },
+    {
+      "text": "Peering (AZ-104)",
+      "objectiveId": "AZ104-4.1.2",
+      "lessonId": "az104-vnet-peering"
+    }
+  ],
+  "foundation": [
+    "Connectivity design answers three questions: how do users reach the app, how does the app reach the internet, and how does Azure reach the office?",
+    "Inbound web traffic goes through a protected front door. Outbound traffic should leave through a known exit. Offices connect over a VPN or a private ExpressRoute line."
+  ],
+  "engineer": [
+    "Internet inbound: Azure Front Door (global HTTP(S), WAF, caching), Application Gateway (regional HTTP(S), WAF), public Standard Load Balancer for non-HTTP, all with DDoS Protection on public IPs; Azure Firewall DNAT for controlled inbound to private services. Outbound: new VNets use private subnets (no default outbound access), so give explicit outbound with NAT gateway (static IPs, scalable SNAT), Azure Firewall (filtered egress in a hub) or load balancer outbound rules.",
+    "Hybrid: site-to-site VPN (IPsec over the internet, VPN gateway active-active and zone-redundant SKUs, BGP), point-to-site VPN for users, ExpressRoute (private connection through a provider; private peering to VNets and Microsoft peering to Microsoft 365/PaaS public endpoints; Global Reach to connect sites through Microsoft's backbone; FastPath to bypass the gateway for performance; ExpressRoute Direct for 10/100 Gbps ports), ExpressRoute with site-to-site VPN as failover, and Azure Virtual WAN for large global hub-and-spoke designs with branches, VPN, ExpressRoute and secured hubs.",
+    "Topology: hub-and-spoke with shared services (gateways, firewall, Bastion, DNS) in the hub and gateway transit to spokes, or Virtual WAN managed hubs; Azure Virtual Network Manager to manage connectivity and security admin rules at scale."
+  ],
+  "animation": {
+    "id": "az305-net-connect-sim",
+    "caption": "Choose internet and hybrid connectivity options."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "users",
+        "label": "Internet users",
+        "x": 168,
+        "y": 56,
+        "kind": "user"
+      },
+      {
+        "id": "fd",
+        "label": "Front Door + WAF",
+        "x": 420,
+        "y": 56,
+        "kind": "network"
+      },
+      {
+        "id": "app",
+        "label": "Web app",
+        "x": 672,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "hub",
+        "label": "Hub VNet",
+        "x": 169,
+        "y": 161,
+        "kind": "network"
+      },
+      {
+        "id": "spoke",
+        "label": "Spoke VNet",
+        "x": 417,
+        "y": 161,
+        "kind": "network"
+      },
+      {
+        "id": "nat",
+        "label": "NAT gateway",
+        "x": 668,
+        "y": 161,
+        "kind": "network"
+      },
+      {
+        "id": "office",
+        "label": "Head office",
+        "x": 168,
+        "y": 270,
+        "kind": "user"
+      },
+      {
+        "id": "er",
+        "label": "ExpressRoute",
+        "x": 415,
+        "y": 270,
+        "kind": "network"
+      },
+      {
+        "id": "vpn",
+        "label": "Site-to-site VPN",
+        "x": 667,
+        "y": 270,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "users",
+        "to": "fd"
+      },
+      {
+        "from": "fd",
+        "to": "app"
+      },
+      {
+        "from": "hub",
+        "to": "spoke",
+        "label": "peering"
+      },
+      {
+        "from": "spoke",
+        "to": "nat"
+      },
+      {
+        "from": "office",
+        "to": "er"
+      },
+      {
+        "from": "office",
+        "to": "vpn"
+      },
+      {
+        "from": "er",
+        "to": "hub"
+      },
+      {
+        "from": "vpn",
+        "to": "hub",
+        "label": "failover"
+      }
+    ]
+  },
+  "example": {
+    "title": "Connecting a manufacturer",
+    "body": [
+      "Head office and two factories connect to the Azure hub with ExpressRoute; a site-to-site VPN is the backup path. Forty small sales offices join through Virtual WAN with SD-WAN partners.",
+      "Public web apps sit behind Front Door with WAF. Spoke subnets reach the internet only through Azure Firewall in the hub, and batch VMs that call a partner API use a NAT gateway with two static IPs the partner allow-lists."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Virtual network gateway: VPN or ExpressRoute, SKU, active-active, zone-redundant.",
+      "ExpressRoute circuit: provider, bandwidth, peering; connection to the gateway.",
+      "NAT gateway: public IPs, associate with subnets.",
+      "Virtual WAN: hubs, VPN/ExpressRoute gateways, secured hub."
+    ],
+    "cli": "az network nat gateway create -g rg-net -n natgw-batch --public-ip-addresses pip-nat1 pip-nat2 --idle-timeout 10\naz network vnet subnet update -g rg-net --vnet-name vnet-spoke -n batch --nat-gateway natgw-batch\naz network vnet-gateway create -g rg-net -n vpngw-hub --vnet vnet-hub --gateway-type Vpn --sku VpnGw2AZ --public-ip-addresses pip-vpn1",
+    "powershell": "New-AzNatGateway -ResourceGroupName rg-net -Name natgw-batch -Location westeurope -Sku Standard -PublicIpAddress $pip1,$pip2"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-net-connect-sim",
+    "objective": "Choose internet and hybrid connectivity.",
+    "duration": 15,
+    "steps": [
+      "Answer every case."
+    ],
+    "expected": [
+      "NAT gateway for predictable outbound; ExpressRoute for private, predictable hybrid",
+      "Virtual WAN for many branches"
+    ],
+    "validation": [
+      {
+        "id": "net-connect-correct",
+        "text": "Chose the right connectivity option"
+      }
+    ],
+    "failureScenarios": [
+      "Relying on default outbound access",
+      "Using only VPN when the requirement says 'not over the internet'"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "VMs in a new VNet can't reach the internet.",
+      "cause": "Private subnets have no default outbound access.",
+      "fix": "Add a NAT gateway, firewall route or public IP."
+    },
+    {
+      "symptom": "Partner rejects calls because the source IP keeps changing.",
+      "cause": "No defined outbound IP.",
+      "fix": "Use a NAT gateway with static public IPs."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "VPN vs ExpressRoute",
+      "difference": "VPN: encrypted over the internet, quick and cheap; ExpressRoute: private, predictable, higher bandwidth and cost."
+    },
+    {
+      "service": "Hub-and-spoke vs Virtual WAN",
+      "difference": "Self-managed hub VNets vs Microsoft-managed hubs with built-in any-to-any routing at scale."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "ExpressRoute traffic is encrypted by default.",
+      "reality": "It is private but not encrypted; add MACsec (Direct) or IPsec over ExpressRoute if required."
+    },
+    {
+      "myth": "VMs always have internet access.",
+      "reality": "New VNets use private subnets by default."
+    }
+  ],
+  "architectureDecisions": [
+    "Front Door/App Gateway + WAF for inbound web.",
+    "Explicit outbound: NAT gateway or firewall.",
+    "ExpressRoute (with VPN backup) for critical hybrid; Virtual WAN for many sites."
+  ],
+  "docs": [
+    {
+      "title": "What is NAT gateway?",
+      "url": "https://learn.microsoft.com/azure/nat-gateway/nat-overview"
+    },
+    {
+      "title": "About VPN Gateway",
+      "url": "https://learn.microsoft.com/azure/vpn-gateway/vpn-gateway-about-vpngateways"
+    },
+    {
+      "title": "What is ExpressRoute?",
+      "url": "https://learn.microsoft.com/azure/expressroute/expressroute-introduction"
+    },
+    {
+      "title": "What is Azure Virtual WAN?",
+      "url": "https://learn.microsoft.com/azure/virtual-wan/virtual-wan-about"
+    },
+    {
+      "title": "Hub-spoke network topology",
+      "url": "https://learn.microsoft.com/azure/architecture/networking/architecture/hub-spoke"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Let users in safely, let apps out predictably, and connect offices privately.",
+    "learn": [
+      "Inbound from the internet",
+      "Outbound to the internet",
+      "Hybrid: VPN, ExpressRoute, Virtual WAN"
+    ],
+    "nodes": [
+      {
+        "id": "users",
+        "label": "Internet users",
+        "x": 160,
+        "y": 75,
+        "kind": "user"
+      },
+      {
+        "id": "fd",
+        "label": "Front Door + WAF",
+        "x": 400,
+        "y": 75,
+        "kind": "globe"
+      },
+      {
+        "id": "app",
+        "label": "Web app",
+        "x": 640,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "hub",
+        "label": "Hub VNet",
+        "x": 161,
+        "y": 215,
+        "kind": "network",
+        "sub": "firewall, gateways"
+      },
+      {
+        "id": "spoke",
+        "label": "Spoke VNet",
+        "x": 397,
+        "y": 215,
+        "kind": "network"
+      },
+      {
+        "id": "nat",
+        "label": "NAT gateway",
+        "x": 636,
+        "y": 215,
+        "kind": "network",
+        "sub": "static outbound IPs"
+      },
+      {
+        "id": "office",
+        "label": "Head office",
+        "x": 160,
+        "y": 360,
+        "kind": "user"
+      },
+      {
+        "id": "er",
+        "label": "ExpressRoute",
+        "x": 395,
+        "y": 360,
+        "kind": "network",
+        "sub": "private"
+      },
+      {
+        "id": "vpn",
+        "label": "Site-to-site VPN",
+        "x": 635,
+        "y": 360,
+        "kind": "network",
+        "sub": "backup"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Three directions of traffic",
+        "body": [
+          "Customers come in from the internet, apps call partner APIs, and offices need private access to Azure."
+        ],
+        "show": [
+          "users",
+          "app"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Inbound",
+        "title": "A protected front door",
+        "body": [
+          "Front Door (global) or Application Gateway (regional) receives web traffic with a web application firewall. Non-web traffic uses a public load balancer. DDoS Protection guards public IPs."
+        ],
+        "show": [
+          "users",
+          "app",
+          "fd"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "fd",
+            "fresh": true
+          },
+          {
+            "from": "fd",
+            "to": "app",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Outbound",
+        "title": "A known exit",
+        "body": [
+          "New subnets have no automatic internet access. A NAT gateway gives a subnet fixed public IPs for outbound calls; or route traffic through Azure Firewall in the hub to filter it."
+        ],
+        "show": [
+          "users",
+          "app",
+          "fd",
+          "hub",
+          "spoke",
+          "nat"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "fd"
+          },
+          {
+            "from": "fd",
+            "to": "app"
+          },
+          {
+            "from": "hub",
+            "to": "spoke",
+            "label": "peering",
+            "fresh": true
+          },
+          {
+            "from": "spoke",
+            "to": "nat",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Hybrid",
+        "title": "VPN, ExpressRoute, Virtual WAN",
+        "body": [
+          "VPN: encrypted tunnel over the internet, quick to set up. ExpressRoute: private line through a provider, predictable and fast; keep a VPN as backup. Virtual WAN: Microsoft-managed hubs for many branches and regions."
+        ],
+        "show": [
+          "users",
+          "app",
+          "fd",
+          "hub",
+          "spoke",
+          "nat",
+          "office",
+          "er",
+          "vpn"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "fd"
+          },
+          {
+            "from": "fd",
+            "to": "app"
+          },
+          {
+            "from": "hub",
+            "to": "spoke",
+            "label": "peering"
+          },
+          {
+            "from": "spoke",
+            "to": "nat"
+          },
+          {
+            "from": "office",
+            "to": "er",
+            "fresh": true
+          },
+          {
+            "from": "office",
+            "to": "vpn",
+            "fresh": true
+          },
+          {
+            "from": "er",
+            "to": "hub",
+            "fresh": true
+          },
+          {
+            "from": "vpn",
+            "to": "hub",
+            "label": "failover",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Connectivity design",
+        "body": [
+          "In, out, and home."
+        ],
+        "show": [
+          "users",
+          "app",
+          "fd",
+          "hub",
+          "spoke",
+          "nat",
+          "office",
+          "er",
+          "vpn"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "fd"
+          },
+          {
+            "from": "fd",
+            "to": "app"
+          },
+          {
+            "from": "hub",
+            "to": "spoke",
+            "label": "peering"
+          },
+          {
+            "from": "spoke",
+            "to": "nat"
+          },
+          {
+            "from": "office",
+            "to": "er"
+          },
+          {
+            "from": "office",
+            "to": "vpn"
+          },
+          {
+            "from": "er",
+            "to": "hub"
+          },
+          {
+            "from": "vpn",
+            "to": "hub",
+            "label": "failover"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "recap": [
+          "Front Door / App Gateway + WAF; DDoS Protection",
+          "NAT gateway or firewall for outbound",
+          "VPN, ExpressRoute (+ VPN backup), Virtual WAN"
+        ]
+      }
+    ]
+  }
+}

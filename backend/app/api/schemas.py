@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-ExamSlug = Literal["az-900", "az-104", "ai-901", "aws-clf-c02"]
+ExamSlug = Literal["az-900", "az-104", "az-305", "ai-901", "aws-clf-c02"]
 
 
 class LessonVisit(BaseModel):
@@ -81,6 +81,7 @@ class ReviewOut(BaseModel):
 class Settings(BaseModel):
     exam_dates: dict[str, str | None] = {"az-104": None}
     sprint_start: str | None = None
+    sprint_starts: dict[str, str | None] = {}
     weekday_hours: float = Field(ge=0.5, le=12, default=1.75)
     weekend_hours: float = Field(ge=0.5, le=14, default=2.0)
     mode: Literal["sprint", "complete"] = "sprint"

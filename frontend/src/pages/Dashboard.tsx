@@ -3,8 +3,8 @@ import { Badge } from '../animations/primitives'
 import { examMastery, overallStudied, studiedObjectives, useProgress, weakObjectives, type ProgressData } from '../hooks/useProgress'
 import { useApp } from '../services/AppContext'
 import { STATIC_SITE } from '../services/api'
-import { EXAMS, EXAM_LABEL, RECOMMENDED_SEQUENCE, allObjectives, coverageFor, estimatedHours, findLesson, findObjective, lessonForObjective, lessonsFor, registries } from '../services/curriculum'
-import { useSprintPlan } from './Sprint'
+import { EXAMS, EXAM_LABEL, PLAN_EXAMS, examEnabled, RECOMMENDED_SEQUENCE, allObjectives, coverageFor, estimatedHours, findLesson, findObjective, lessonForObjective, lessonsFor, registries } from '../services/curriculum'
+import { planStart, useSprintPlan } from './Sprint'
 import type { ExamSlug } from '../services/types'
 
 function daysUntil(date: string | null | undefined): number | null {
@@ -52,8 +52,11 @@ function CertCard({ exam, priority, data }: { exam: ExamSlug; priority?: boolean
 export default function Dashboard() {
   const { settings, online, bookmarks } = useApp()
   const { data } = useProgress()
-  const plan = useSprintPlan()
-  const examDays = daysUntil(settings.exam_dates['az-104'])
+  // The hero follows the first enabled exam that has a study plan (AZ-104 unless it is hidden).
+  const focus: ExamSlug = PLAN_EXAMS[0] ?? 'az-104'
+  const plan = useSprintPlan(focus)
+  const started = !!planStart(settings, focus)
+  const examDays = daysUntil(settings.exam_dates[focus] ?? null)
   const overall = overallStudied(data)
   const weak = weakObjectives(data).slice(0, 6)
   const today = plan.todayIndex !== null ? plan.plan.days[plan.todayIndex] : undefined
@@ -63,17 +66,17 @@ export default function Dashboard() {
     <div className="space-y-6">
       <section className="card flex flex-col gap-4 bg-gradient-to-br from-sky-50 to-white p-5 md:flex-row md:items-center dark:from-sky-950/40 dark:to-slate-900">
         <div className="flex-1">
-          <p className="text-xs font-semibold tracking-wide text-sky-700 dark:text-sky-300">AZ-104 EXAM SPRINT</p>
-          <h1 className="text-2xl font-semibold">Microsoft Azure Administrator</h1>
+          <p className="text-xs font-semibold tracking-wide text-sky-700 dark:text-sky-300">{registries[focus].examCode} STUDY PLAN</p>
+          <h1 className="text-2xl font-semibold">Microsoft {EXAM_LABEL[focus]}</h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             {examDays === null ? <>No exam date set. <Link to="/settings" className="underline">Set it in Settings</Link> to enable the countdown.</> : examDays >= 0 ? <><strong>{examDays}</strong> day(s) until your exam.</> : 'Exam date has passed.'}
-            {' '}{plan.todayIndex !== null && plan.todayIndex >= 0 && plan.todayIndex < 14 ? `Sprint day ${plan.todayIndex + 1} of 14.` : !settings.sprint_start ? 'Sprint not started.' : ''}
+            {' '}{plan.todayIndex !== null && plan.todayIndex >= 0 && plan.todayIndex < plan.plan.days.length ? `Day ${plan.todayIndex + 1} of ${plan.plan.days.length}.` : !started ? 'Plan not started.' : ''}
           </p>
           {!plan.plan.realistic && <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">⚠ {plan.plan.warnings[0]}</p>}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link className="btn-primary" to="/sprint">Open sprint plan</Link>
-          <Link className="btn-ghost" to="/diagnostic">AZ-900 diagnostic</Link>
+          <Link className="btn-primary" to={`/sprint?exam=${focus}`}>Open study plan</Link>
+          {examEnabled('az-900') && <Link className="btn-ghost" to="/diagnostic">AZ-900 diagnostic</Link>}
           <Link className="btn-ghost" to="/reviews">Daily recall ({data.due.length} due)</Link>
         </div>
       </section>
@@ -84,7 +87,7 @@ export default function Dashboard() {
 
       <section aria-labelledby="certs" className="space-y-2">
         <h2 id="certs" className="text-lg font-semibold">Certification tracks</h2>
-        <p className="text-xs text-slate-500">Recommended sequence: {RECOMMENDED_SEQUENCE.map((e) => registries[e].examCode).join(' → ')}. Each track stays independently accessible.</p>
+        {RECOMMENDED_SEQUENCE.length > 1 && <p className="text-xs text-slate-500">Recommended sequence: {RECOMMENDED_SEQUENCE.map((e) => registries[e].examCode).join(' → ')}. Each track stays independently accessible.</p>}
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {EXAMS.map((e) => <CertCard key={e} exam={e} priority={e === 'az-104'} data={data} />)}
         </div>
@@ -93,7 +96,7 @@ export default function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-3">
         <section className="card p-4" aria-labelledby="today">
           <h2 id="today" className="mb-2 font-semibold">Today's targets</h2>
-          {!today ? <p className="text-sm text-slate-500">{settings.sprint_start ? 'Outside the study plan dates.' : 'Start the AZ-104 study plan to get daily targets.'}</p> : (
+          {!today ? <p className="text-sm text-slate-500">{started ? 'Outside the study plan dates.' : `Start the ${registries[focus].examCode} study plan to get daily targets.`}</p> : (
             <>
               <p className="text-sm font-medium">Day {today.day}: {today.title} · {Math.round(today.plannedMinutes / 60 * 10) / 10} h planned</p>
               <ul className="mt-2 space-y-1 text-sm">

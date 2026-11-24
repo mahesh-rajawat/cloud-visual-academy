@@ -1,63 +1,80 @@
 import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Badge } from '../animations/primitives'
 import { studiedObjectives, useProgress } from '../hooks/useProgress'
 import { useApp } from '../services/AppContext'
-import { allObjectives, findObjective, lessonForObjective, sprintPlan } from '../services/curriculum'
+import { PLAN_EXAMS, allObjectives, findObjective, lessonForObjective, registries, sprintPlans } from '../services/curriculum'
+import type { ExamSlug } from '../services/types'
+import type { Settings } from '../services/api'
 import { buildSprint, sprintDayIndex } from '../services/sprint'
 
-export function useSprintPlan() {
+/** AZ-104 keeps its start date in sprint_start; other exams use sprint_starts[exam]. */
+export const planStart = (settings: Settings, exam: ExamSlug) => (exam === 'az-104' ? settings.sprint_start : settings.sprint_starts?.[exam]) ?? null
+const withStart = (settings: Settings, exam: ExamSlug, date: string | null): Settings =>
+  exam === 'az-104' ? { ...settings, sprint_start: date } : { ...settings, sprint_starts: { ...settings.sprint_starts, [exam]: date } }
+
+export function useSprintPlan(exam: ExamSlug = 'az-104') {
   const { settings } = useApp()
   const { data } = useProgress()
   return useMemo(() => {
-    const studied = studiedObjectives(data, 'az-104')
-    const mastery = data.mastery['az-104']
-    const start = settings.sprint_start ? new Date(`${settings.sprint_start}T00:00:00`) : new Date(new Date().setHours(0, 0, 0, 0))
+    const sp = sprintPlans[exam]!
+    const studied = studiedObjectives(data, exam)
+    const mastery = data.mastery[exam]
+    const startStr = planStart(settings, exam)
+    const start = startStr ? new Date(`${startStr}T00:00:00`) : new Date(new Date().setHours(0, 0, 0, 0))
     const plan = buildSprint({
-      days: sprintPlan.days,
-      objectives: allObjectives('az-104').map((o) => ({ id: o.id, skillId: o.id.split('.').slice(0, 2).join('.'), handsOn: o.handsOn, completed: studied.has(o.id), weak: mastery[o.id]?.status === 'weak' })),
+      days: sp.days,
+      objectives: allObjectives(exam).map((o) => ({ id: o.id, skillId: o.id.split('.').slice(0, 2).join('.'), handsOn: o.handsOn, completed: studied.has(o.id), weak: mastery[o.id]?.status === 'weak' })),
       start,
       weekdayHours: settings.weekday_hours,
       weekendHours: settings.weekend_hours,
-      activityMinutes: sprintPlan.activityMinutes,
-      objectiveMinutes: sprintPlan.objectiveMinutes,
-      struggleMultiplier: sprintPlan.struggleMultiplier,
-      dailyRecallMinutes: sprintPlan.dailyRecallMinutes,
+      activityMinutes: sp.activityMinutes,
+      objectiveMinutes: sp.objectiveMinutes,
+      struggleMultiplier: sp.struggleMultiplier,
+      dailyRecallMinutes: sp.dailyRecallMinutes,
     })
-    const idx = settings.sprint_start ? sprintDayIndex(start, new Date()) : null
-    return { plan, todayIndex: idx, started: !!settings.sprint_start }
-  }, [settings, data])
+    const idx = startStr ? sprintDayIndex(start, new Date()) : null
+    return { plan, todayIndex: idx, started: !!startStr, sp }
+  }, [settings, data, exam])
 }
 
-const ACTIVITY_LINK: Record<string, string> = {
+const activityLink = (exam: ExamSlug, id: string): string => ({
   diagnostic: '/diagnostic',
-  'weekly-assessment': '/practice?exam=az-104&mode=mock',
-  'mock-exam': '/practice?exam=az-104&mode=mock',
-  'weak-revision': '/practice?exam=az-104&mode=weak',
+  'weekly-assessment': `/practice?exam=${exam}&mode=mock`,
+  'mock-exam': `/practice?exam=${exam}&mode=mock`,
+  'weak-revision': `/practice?exam=${exam}&mode=weak`,
   'readiness-report': '/analytics',
-  'exam-day-prep': '/exam-guide',
+  'exam-day-prep': exam === 'az-104' ? '/exam-guide' : `/practice?exam=${exam}&mode=weak`,
   'drill-deploy': '/clear-up?tab=deploy',
   'drill-network': '/clear-up?tab=network',
   'drill-lookalikes': '/clear-up?tab=drill',
-}
+} as Record<string, string>)[id] ?? `/practice?exam=${exam}`
 
 export default function Sprint() {
   const { settings, saveSettings } = useApp()
-  const { plan, todayIndex, started } = useSprintPlan()
+  const [params, setParams] = useSearchParams()
+  const exam = (PLAN_EXAMS.find((e) => e === params.get('exam')) ?? PLAN_EXAMS[0]!) as ExamSlug
+  const { plan, todayIndex, started, sp } = useSprintPlan(exam)
   const today = new Date().toISOString().slice(0, 10)
+  const code = registries[exam].examCode
 
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">AZ-104 study plan: {plan.days.length} days</h1>
-          <p className="text-sm text-slate-500">About 1¾ hours on weekdays and 2 hours at weekends. Every one of the {allObjectives('az-104').length} official AZ-104 objectives is scheduled in weeks 1–7; week 8 is mock exams and revision, with its easy walkthrough, hands-on Azure lab and questions. Weak objectives get {sprintPlan.struggleMultiplier}× time automatically. <Link className="underline" to="/exam-guide">Exam-day guide</Link></p>
+          {PLAN_EXAMS.length > 1 && (
+            <div className="mb-2 flex gap-2" role="tablist" aria-label="Exam">
+              {PLAN_EXAMS.map((e) => <button key={e} type="button" role="tab" aria-selected={e === exam} className={e === exam ? 'btn-primary' : 'btn-ghost'} onClick={() => setParams({ exam: e })}>{registries[e].examCode}</button>)}
+            </div>
+          )}
+          <h1 className="text-2xl font-semibold">{code} study plan: {plan.days.length} days</h1>
+          <p className="text-sm text-slate-500">About 1¾ hours on weekdays and 2 hours at weekends. Every one of the {allObjectives(exam).length} official {code} objectives is scheduled in weeks 1–{sp.weeks - 1}; week {sp.weeks} is mock exams and revision. Weak objectives get {sp.struggleMultiplier}× time automatically.{exam === 'az-104' && <> <Link className="underline" to="/exam-guide">Exam-day guide</Link></>}</p>
         </div>
         <div className="flex flex-wrap items-end gap-2 text-sm">
-          <label className="flex flex-col"><span className="label">Start date</span><input type="date" className="input" value={settings.sprint_start ?? ''} onChange={(e) => void saveSettings({ ...settings, sprint_start: e.target.value || null })} /></label>
+          <label className="flex flex-col"><span className="label">Start date</span><input type="date" className="input" value={planStart(settings, exam) ?? ''} onChange={(e) => void saveSettings(withStart(settings, exam, e.target.value || null))} /></label>
           <label className="flex flex-col"><span className="label">Weekday hours</span><input type="number" step={0.25} min={0.5} max={12} className="input w-24" value={settings.weekday_hours} onChange={(e) => void saveSettings({ ...settings, weekday_hours: Number(e.target.value) || 0.5 })} /></label>
           <label className="flex flex-col"><span className="label">Weekend hours</span><input type="number" step={0.25} min={0.5} max={14} className="input w-24" value={settings.weekend_hours} onChange={(e) => void saveSettings({ ...settings, weekend_hours: Number(e.target.value) || 0.5 })} /></label>
-          {!started && <button type="button" className="btn-primary" onClick={() => void saveSettings({ ...settings, sprint_start: today })}>Start the plan today</button>}
+          {!started && <button type="button" className="btn-primary" onClick={() => void saveSettings(withStart(settings, exam, today))}>Start the plan today</button>}
         </div>
       </header>
 
@@ -81,8 +98,8 @@ export default function Sprint() {
               <span className={`ml-auto text-xs ${d.overBudget ? 'text-red-600' : 'text-slate-500'}`}>{Math.round(d.plannedMinutes)} / {d.budgetMinutes} min</span>
             </div>
             <ul className="mt-2 grid gap-1 text-sm md:grid-cols-2">
-              {!d.activities.some((a) => a.id === 'mock-exam') && <li className="text-slate-500">• Daily recall check ({sprintPlan.dailyRecallMinutes} min) · <Link className="underline" to="/reviews">open</Link></li>}
-              {d.activities.map((a) => <li key={a.id}>• <Link className="underline" to={ACTIVITY_LINK[a.id] ?? '/practice'}>{a.id.replace(/-/g, ' ')}</Link> ({a.minutes} min)</li>)}
+              {!d.activities.some((a) => a.id === 'mock-exam') && <li className="text-slate-500">• Daily recall check ({sp.dailyRecallMinutes} min) · <Link className="underline" to="/reviews">open</Link></li>}
+              {d.activities.map((a) => <li key={a.id}>• <Link className="underline" to={activityLink(exam, a.id)}>{a.id.replace(/-/g, ' ')}</Link> ({a.minutes} min)</li>)}
               {d.items.map((it) => {
                 const l = lessonForObjective(it.objectiveId)
                 return (

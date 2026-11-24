@@ -1,0 +1,568 @@
+{
+  "id": "az305-storage-design",
+  "exam": "az-305",
+  "title": "Balance storage cost and performance, and design durability",
+  "objectiveIds": [
+    "AZ305-2.2.3",
+    "AZ305-2.2.4"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Recommend storage that balances features, performance and cost (account types, access tiers, lifecycle management, reservations) and that protects data and keeps it durable (redundancy, immutability, soft delete, versioning, backup).",
+  "prerequisites": [
+    {
+      "text": "Storage redundancy (AZ-104)",
+      "objectiveId": "AZ104-2.2.2",
+      "lessonId": "az104-storage-redundancy"
+    },
+    {
+      "text": "Blob tiers and lifecycle (AZ-104)",
+      "objectiveId": "AZ104-2.3.3",
+      "lessonId": "az104-tiers-lifecycle"
+    }
+  ],
+  "foundation": [
+    "Fast storage costs more. Cheap storage is slower or takes time to retrieve. Good design puts each kind of data where it belongs, and moves it automatically as it ages.",
+    "Durability means not losing data when hardware, a datacenter or a region fails. Protection means not losing it to mistakes or attackers."
+  ],
+  "engineer": [
+    "Performance and cost: Standard general-purpose v2 for most data; Premium block blob (SSD, LRS/ZRS) for low-latency, high-transaction workloads; Premium file shares for IO-intensive shares. Access tiers: Hot, Cool (30-day minimum), Cold (90-day) and Archive (180-day, offline, hours to rehydrate). Lifecycle management rules move or delete data by age or last access; reserved capacity lowers cost for predictable volumes.",
+    "Durability: LRS (one datacenter), ZRS (three zones), GRS/RA-GRS (secondary region), GZRS/RA-GZRS (zones plus secondary region). RA- adds read access to the secondary. Customer-managed failover lets you fail over to the secondary. Archive tier supports LRS, GRS and RA-GRS only.",
+    "Protection: soft delete for blobs and containers, versioning, point-in-time restore for block blobs, immutable storage (time-based retention and legal hold, at container or version level) for WORM compliance, resource locks against account deletion, Azure Backup for blobs (operational backup within the account, vaulted backup copied to a Backup vault), and object replication for asynchronous copies to another account."
+  ],
+  "animation": {
+    "id": "az305-storage-design-sim",
+    "caption": "Balance cost and performance, and choose durability and protection features."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "prem",
+        "label": "Premium block blob",
+        "x": 128,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "hot",
+        "label": "Hot",
+        "x": 335,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "cool",
+        "label": "Cool / Cold",
+        "x": 529,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "arc",
+        "label": "Archive",
+        "x": 724,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "lc",
+        "label": "Lifecycle rules",
+        "x": 254,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "red",
+        "label": "ZRS / GZRS",
+        "x": 587,
+        "y": 161,
+        "kind": "network"
+      },
+      {
+        "id": "sd",
+        "label": "Soft delete + versions",
+        "x": 185,
+        "y": 270,
+        "kind": "security"
+      },
+      {
+        "id": "worm",
+        "label": "Immutability",
+        "x": 447,
+        "y": 270,
+        "kind": "security"
+      },
+      {
+        "id": "vault",
+        "label": "Backup vault",
+        "x": 684,
+        "y": 270,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "hot",
+        "to": "cool",
+        "label": "30 days"
+      },
+      {
+        "from": "cool",
+        "to": "arc",
+        "label": "180 days"
+      },
+      {
+        "from": "lc",
+        "to": "hot"
+      },
+      {
+        "from": "sd",
+        "to": "hot"
+      },
+      {
+        "from": "worm",
+        "to": "hot"
+      },
+      {
+        "from": "hot",
+        "to": "vault"
+      }
+    ]
+  },
+  "example": {
+    "title": "A media company's storage design",
+    "body": [
+      "New uploads are processed from a Premium block blob account; finished assets live in Standard GPv2 Hot and move to Cool after 30 days and Archive after 180 days by lifecycle rules.",
+      "Contracts are stored with a 7-year time-based immutability policy on GZRS; vaulted backup protects the asset library against ransomware that could delete the account."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Storage account > Data management > Lifecycle management: add rules.",
+      "Storage account > Data protection: soft delete, versioning, point-in-time restore, immutability.",
+      "Backup vault > Backup > Azure Blobs: operational or vaulted backup policy."
+    ],
+    "cli": "az storage account management-policy create -g rg-data --account-name stmedia --policy @policy.json\naz storage container immutability-policy create -g rg-data --account-name stmedia -c contracts --period 2555",
+    "powershell": "Set-AzStorageAccountManagementPolicy -ResourceGroupName rg-data -StorageAccountName stmedia -Policy $policy"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-storage-design-sim",
+    "objective": "Balance cost, performance and durability.",
+    "duration": 15,
+    "steps": [
+      "Answer every case in both trainers."
+    ],
+    "expected": [
+      "Lifecycle rules automate tiering",
+      "Immutability for WORM; vaulted backup against account deletion"
+    ],
+    "validation": [
+      {
+        "id": "storage-balance-correct",
+        "text": "Chose the right storage option"
+      },
+      {
+        "id": "storage-durability-correct",
+        "text": "Chose the right protection or durability feature"
+      }
+    ],
+    "failureScenarios": [
+      "Archiving data that's read monthly",
+      "Treating redundancy as backup"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Unexpected early-deletion charges.",
+      "cause": "Data moved out of Cool/Cold/Archive before the minimum days.",
+      "fix": "Align lifecycle rules with the minimum retention periods."
+    },
+    {
+      "symptom": "Ransomware encrypted blobs and GRS replicated the damage.",
+      "cause": "Redundancy copies changes; it is not backup.",
+      "fix": "Enable versioning/soft delete, immutability or vaulted backup."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Redundancy vs backup",
+      "difference": "Redundancy survives hardware and site failures; backup and versioning survive mistakes and attacks."
+    },
+    {
+      "service": "Cool vs Cold vs Archive",
+      "difference": "Cool and Cold are online (instant reads); Archive is offline and needs rehydration."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "GRS protects against accidental deletion.",
+      "reality": "Deletes replicate to the secondary."
+    },
+    {
+      "myth": "Premium is always faster for every workload.",
+      "reality": "Premium suits high transaction, low-latency patterns; large sequential reads may do well on Standard."
+    }
+  ],
+  "architectureDecisions": [
+    "Tier by access pattern; automate with lifecycle rules.",
+    "Redundancy by failure you must survive (zone, region).",
+    "Soft delete + versioning everywhere; immutability or vaulted backup for critical data."
+  ],
+  "docs": [
+    {
+      "title": "Access tiers for blob data",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/access-tiers-overview"
+    },
+    {
+      "title": "Lifecycle management",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/lifecycle-management-overview"
+    },
+    {
+      "title": "Azure Storage redundancy",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-redundancy"
+    },
+    {
+      "title": "Immutable storage for blobs",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/immutable-storage-overview"
+    },
+    {
+      "title": "Azure Blob backup overview",
+      "url": "https://learn.microsoft.com/azure/backup/blob-backup-overview"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Pay only for the performance you need, and never lose data — to failures, mistakes or attackers.",
+    "learn": [
+      "Account types and access tiers",
+      "Lifecycle management",
+      "Redundancy for durability",
+      "Protection: soft delete, versioning, immutability, backup"
+    ],
+    "nodes": [
+      {
+        "id": "prem",
+        "label": "Premium block blob",
+        "x": 122,
+        "y": 75,
+        "kind": "storage",
+        "sub": "fast, pricier"
+      },
+      {
+        "id": "hot",
+        "label": "Hot",
+        "x": 319,
+        "y": 75,
+        "kind": "storage"
+      },
+      {
+        "id": "cool",
+        "label": "Cool / Cold",
+        "x": 504,
+        "y": 75,
+        "kind": "storage"
+      },
+      {
+        "id": "arc",
+        "label": "Archive",
+        "x": 690,
+        "y": 75,
+        "kind": "storage",
+        "sub": "offline"
+      },
+      {
+        "id": "lc",
+        "label": "Lifecycle rules",
+        "x": 242,
+        "y": 215,
+        "kind": "service",
+        "sub": "move by age"
+      },
+      {
+        "id": "red",
+        "label": "ZRS / GZRS",
+        "x": 559,
+        "y": 215,
+        "kind": "globe",
+        "sub": "zones + region"
+      },
+      {
+        "id": "sd",
+        "label": "Soft delete + versions",
+        "x": 176,
+        "y": 360,
+        "kind": "security"
+      },
+      {
+        "id": "worm",
+        "label": "Immutability",
+        "x": 426,
+        "y": 360,
+        "kind": "security",
+        "sub": "WORM"
+      },
+      {
+        "id": "vault",
+        "label": "Backup vault",
+        "x": 651,
+        "y": 360,
+        "kind": "security",
+        "sub": "vaulted copy"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Petabytes, mostly old",
+        "body": [
+          "Storing everything in the fastest tier is expensive, and a single mistake or attack could still wipe it out."
+        ],
+        "show": [
+          "hot"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Fit",
+        "title": "Match storage to access",
+        "body": [
+          "Premium block blob for many small fast transactions. Hot for daily use. Cool and Cold for rarely read data (minimum 30/90 days). Archive for data you can wait hours for (minimum 180 days)."
+        ],
+        "show": [
+          "hot",
+          "prem",
+          "cool",
+          "arc"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Automate",
+        "title": "Lifecycle rules move data for you",
+        "body": [
+          "Rules move blobs to cooler tiers and delete them by age or last access, so cost falls automatically."
+        ],
+        "show": [
+          "hot",
+          "prem",
+          "cool",
+          "arc",
+          "lc"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "hot",
+            "to": "cool",
+            "label": "30 days",
+            "fresh": true
+          },
+          {
+            "from": "cool",
+            "to": "arc",
+            "label": "180 days",
+            "fresh": true
+          },
+          {
+            "from": "lc",
+            "to": "hot",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Durability",
+        "title": "Survive failures with redundancy",
+        "body": [
+          "ZRS survives a datacenter failure; GZRS also survives a regional disaster. RA- lets you read the secondary."
+        ],
+        "show": [
+          "hot",
+          "prem",
+          "cool",
+          "arc",
+          "lc",
+          "red"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "hot",
+            "to": "cool",
+            "label": "30 days"
+          },
+          {
+            "from": "cool",
+            "to": "arc",
+            "label": "180 days"
+          },
+          {
+            "from": "lc",
+            "to": "hot"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Redundancy also copies deletions and encryption by ransomware — it is not a backup."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Protection",
+        "title": "Survive mistakes and attackers",
+        "body": [
+          "Soft delete and versioning undo deletes and overwrites. Immutability makes data unchangeable for a set time. Vaulted backup keeps a copy outside the account."
+        ],
+        "show": [
+          "hot",
+          "prem",
+          "cool",
+          "arc",
+          "lc",
+          "red",
+          "sd",
+          "worm",
+          "vault"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "hot",
+            "to": "cool",
+            "label": "30 days"
+          },
+          {
+            "from": "cool",
+            "to": "arc",
+            "label": "180 days"
+          },
+          {
+            "from": "lc",
+            "to": "hot"
+          },
+          {
+            "from": "sd",
+            "to": "hot",
+            "fresh": true
+          },
+          {
+            "from": "worm",
+            "to": "hot",
+            "fresh": true
+          },
+          {
+            "from": "hot",
+            "to": "vault",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Cost, performance, durability",
+        "body": [
+          "Right tier, right copies, right protection."
+        ],
+        "show": [
+          "hot",
+          "prem",
+          "cool",
+          "arc",
+          "lc",
+          "red",
+          "sd",
+          "worm",
+          "vault"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "hot",
+            "to": "cool",
+            "label": "30 days"
+          },
+          {
+            "from": "cool",
+            "to": "arc",
+            "label": "180 days"
+          },
+          {
+            "from": "lc",
+            "to": "hot"
+          },
+          {
+            "from": "sd",
+            "to": "hot"
+          },
+          {
+            "from": "worm",
+            "to": "hot"
+          },
+          {
+            "from": "hot",
+            "to": "vault"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Premium / Hot / Cool / Cold / Archive",
+          "Lifecycle rules automate tiering",
+          "LRS → ZRS → GRS → GZRS (+RA-)",
+          "Soft delete, versioning, WORM, vaulted backup"
+        ]
+      }
+    ]
+  }
+}

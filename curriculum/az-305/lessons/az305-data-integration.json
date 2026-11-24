@@ -1,0 +1,527 @@
+{
+  "id": "az305-data-integration",
+  "exam": "az-305",
+  "title": "Design data integration and analysis",
+  "objectiveIds": [
+    "AZ305-2.3.1",
+    "AZ305-2.3.2"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Recommend a solution for data integration (Data Factory, Synapse pipelines, Fabric Data Factory, Event Hubs, Stream Analytics) and for data analysis (Synapse, Fabric, Databricks, Data Explorer, Power BI).",
+  "prerequisites": [
+    {
+      "text": "Non-relational storage",
+      "objectiveId": "AZ305-2.2.2",
+      "lessonId": "az305-nonrelational"
+    }
+  ],
+  "foundation": [
+    "Data integration moves and transforms data from where it is created to where it is analysed.",
+    "Analysis turns that data into answers: reports, dashboards, predictions.",
+    "Pick tools by the job: scheduled batch copies, real-time streams, big-data processing or interactive dashboards."
+  ],
+  "engineer": [
+    "Integration: Azure Data Factory (and Synapse pipelines) orchestrate ETL/ELT with 90+ connectors; integration runtimes: Azure IR (cloud), self-hosted IR (on-premises or private networks), Azure-SSIS IR (lift-and-shift SSIS packages); mapping data flows for code-free transformation. Microsoft Fabric includes Data Factory pipelines and dataflows in a SaaS platform. Streaming ingestion: Event Hubs (Kafka-compatible) and IoT Hub; Azure Stream Analytics for windowed SQL-like queries on streams.",
+    "Analysis: Azure Synapse Analytics (dedicated SQL pools for an MPP data warehouse, serverless SQL to query files in the lake, Apache Spark pools); Azure Databricks (Spark lakehouse for data engineering, data science and ML, Delta Lake); Microsoft Fabric (unified SaaS analytics on OneLake: lakehouse, warehouse, real-time intelligence, Power BI); Azure Data Explorer (fast KQL analytics on logs, telemetry and time series); Power BI for reports and dashboards.",
+    "Architecture patterns: medallion lakehouse (bronze, silver, gold layers in Data Lake Storage or OneLake), Lambda/Kappa for streaming plus batch, and Microsoft Purview for data catalogue, lineage and governance."
+  ],
+  "animation": {
+    "id": "az305-data-int-sim",
+    "caption": "Pick the integration or analysis service for each data job."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "src",
+        "label": "On-premises + SaaS",
+        "x": 176,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "adf",
+        "label": "Data Factory",
+        "x": 433,
+        "y": 56,
+        "kind": "scope"
+      },
+      {
+        "id": "lake",
+        "label": "Data lake",
+        "x": 675,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "dev",
+        "label": "Sensors",
+        "x": 168,
+        "y": 161,
+        "kind": "compute"
+      },
+      {
+        "id": "eh",
+        "label": "Event Hubs",
+        "x": 415,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "asa",
+        "label": "Stream Analytics",
+        "x": 667,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "dbx",
+        "label": "Databricks / Fabric",
+        "x": 259,
+        "y": 270,
+        "kind": "scope"
+      },
+      {
+        "id": "pbi",
+        "label": "Power BI",
+        "x": 597,
+        "y": 270,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "src",
+        "to": "adf"
+      },
+      {
+        "from": "adf",
+        "to": "lake",
+        "label": "nightly"
+      },
+      {
+        "from": "dev",
+        "to": "eh"
+      },
+      {
+        "from": "eh",
+        "to": "asa"
+      },
+      {
+        "from": "asa",
+        "to": "lake"
+      },
+      {
+        "from": "lake",
+        "to": "dbx"
+      },
+      {
+        "from": "dbx",
+        "to": "pbi"
+      }
+    ]
+  },
+  "example": {
+    "title": "A retailer's analytics platform",
+    "body": [
+      "Data Factory copies nightly sales from on-premises SQL Server (self-hosted integration runtime) and SAP into the lake's bronze layer; Databricks cleans and joins it into silver and gold tables.",
+      "Store sensors stream through Event Hubs into Stream Analytics for real-time alerts; Power BI dashboards read the gold layer; Purview catalogues every dataset."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Data Factory studio > Author: pipelines, linked services, integration runtimes.",
+      "Synapse Studio / Fabric workspace / Azure Databricks workspace.",
+      "Stream Analytics job: inputs, query, outputs."
+    ],
+    "cli": "az datafactory create -g rg-data -n adf-retail -l westeurope\naz stream-analytics job create -g rg-data -n asa-sensors -l westeurope",
+    "powershell": "Set-AzDataFactoryV2 -ResourceGroupName rg-data -Name adf-retail -Location westeurope"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-data-int-sim",
+    "objective": "Pick the right integration or analysis service.",
+    "duration": 15,
+    "steps": [
+      "Answer every case."
+    ],
+    "expected": [
+      "Data Factory moves data; Databricks/Synapse/Fabric analyse; Stream Analytics for real time"
+    ],
+    "validation": [
+      {
+        "id": "data-integration-correct",
+        "text": "Chose the right data service"
+      }
+    ],
+    "failureScenarios": [
+      "Using Data Factory for sub-second streaming",
+      "Building a warehouse on Table Storage"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Data Factory cannot reach an on-premises database.",
+      "cause": "Azure IR has no network path.",
+      "fix": "Install a self-hosted integration runtime on-premises."
+    },
+    {
+      "symptom": "Real-time alerts arrive minutes late.",
+      "cause": "Batch pipelines used for streaming data.",
+      "fix": "Use Event Hubs + Stream Analytics."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Data Factory vs Databricks",
+      "difference": "Data Factory orchestrates and copies; Databricks runs heavy Spark transformations and ML."
+    },
+    {
+      "service": "Synapse vs Fabric",
+      "difference": "Synapse is PaaS you configure; Fabric is SaaS with OneLake and capacity-based billing."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Data Factory is a database.",
+      "reality": "It moves and transforms data; it doesn't store it."
+    },
+    {
+      "myth": "Stream Analytics stores data long-term.",
+      "reality": "It processes streams and writes to outputs."
+    }
+  ],
+  "architectureDecisions": [
+    "Data Factory for orchestration and copy (self-hosted IR for on-premises).",
+    "Databricks or Fabric for lakehouse processing; Synapse dedicated pools for MPP warehouses.",
+    "Event Hubs + Stream Analytics for real-time."
+  ],
+  "docs": [
+    {
+      "title": "What is Azure Data Factory?",
+      "url": "https://learn.microsoft.com/azure/data-factory/introduction"
+    },
+    {
+      "title": "What is Azure Databricks?",
+      "url": "https://learn.microsoft.com/azure/databricks/introduction/"
+    },
+    {
+      "title": "What is Azure Synapse Analytics?",
+      "url": "https://learn.microsoft.com/azure/synapse-analytics/overview-what-is"
+    },
+    {
+      "title": "What is Microsoft Fabric?",
+      "url": "https://learn.microsoft.com/fabric/fundamentals/microsoft-fabric-overview"
+    },
+    {
+      "title": "Azure Stream Analytics",
+      "url": "https://learn.microsoft.com/azure/stream-analytics/stream-analytics-introduction"
+    },
+    {
+      "title": "Azure Data Architecture Guide",
+      "url": "https://learn.microsoft.com/azure/architecture/data-guide/"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Move data from where it's created to where it answers questions — in batches or in real time.",
+    "learn": [
+      "Batch integration with Data Factory",
+      "Streaming with Event Hubs and Stream Analytics",
+      "Analysis platforms: Databricks, Synapse, Fabric, Data Explorer"
+    ],
+    "nodes": [
+      {
+        "id": "src",
+        "label": "On-premises + SaaS",
+        "x": 168,
+        "y": 75,
+        "kind": "database"
+      },
+      {
+        "id": "adf",
+        "label": "Data Factory",
+        "x": 412,
+        "y": 75,
+        "kind": "service",
+        "sub": "copy + orchestrate"
+      },
+      {
+        "id": "lake",
+        "label": "Data lake",
+        "x": 643,
+        "y": 75,
+        "kind": "storage",
+        "sub": "bronze/silver/gold"
+      },
+      {
+        "id": "dev",
+        "label": "Sensors",
+        "x": 160,
+        "y": 215,
+        "kind": "compute"
+      },
+      {
+        "id": "eh",
+        "label": "Event Hubs",
+        "x": 395,
+        "y": 215,
+        "kind": "service"
+      },
+      {
+        "id": "asa",
+        "label": "Stream Analytics",
+        "x": 635,
+        "y": 215,
+        "kind": "service",
+        "sub": "real time"
+      },
+      {
+        "id": "dbx",
+        "label": "Databricks / Fabric",
+        "x": 247,
+        "y": 360,
+        "kind": "ai",
+        "sub": "process + analyse"
+      },
+      {
+        "id": "pbi",
+        "label": "Power BI",
+        "x": 569,
+        "y": 360,
+        "kind": "user",
+        "sub": "dashboards"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Data everywhere, answers nowhere",
+        "body": [
+          "Sales are in on-premises SQL Server, stock in SAP, sensors stream every second, and managers want one dashboard."
+        ],
+        "show": [
+          "src"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Batch",
+        "title": "Data Factory copies and orchestrates",
+        "body": [
+          "Pipelines with connectors copy data on a schedule into the lake. A self-hosted integration runtime reaches on-premises sources."
+        ],
+        "show": [
+          "src",
+          "adf",
+          "lake"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "src",
+            "to": "adf",
+            "fresh": true
+          },
+          {
+            "from": "adf",
+            "to": "lake",
+            "label": "nightly",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Stream",
+        "title": "Real time with Event Hubs and Stream Analytics",
+        "body": [
+          "Event Hubs ingests millions of events per second; Stream Analytics runs SQL-like queries over time windows and raises alerts in seconds."
+        ],
+        "show": [
+          "src",
+          "adf",
+          "lake",
+          "dev",
+          "eh",
+          "asa"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "src",
+            "to": "adf"
+          },
+          {
+            "from": "adf",
+            "to": "lake",
+            "label": "nightly"
+          },
+          {
+            "from": "dev",
+            "to": "eh",
+            "fresh": true
+          },
+          {
+            "from": "eh",
+            "to": "asa",
+            "fresh": true
+          },
+          {
+            "from": "asa",
+            "to": "lake",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Analyse",
+        "title": "Pick the analytics platform",
+        "body": [
+          "Databricks: Spark for engineering and ML. Synapse: data warehouse and serverless SQL. Fabric: all-in-one SaaS with Power BI. Data Explorer: fast KQL over telemetry. Power BI shows the results."
+        ],
+        "show": [
+          "src",
+          "adf",
+          "lake",
+          "dev",
+          "eh",
+          "asa",
+          "dbx",
+          "pbi"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "src",
+            "to": "adf"
+          },
+          {
+            "from": "adf",
+            "to": "lake",
+            "label": "nightly"
+          },
+          {
+            "from": "dev",
+            "to": "eh"
+          },
+          {
+            "from": "eh",
+            "to": "asa"
+          },
+          {
+            "from": "asa",
+            "to": "lake"
+          },
+          {
+            "from": "lake",
+            "to": "dbx",
+            "fresh": true
+          },
+          {
+            "from": "dbx",
+            "to": "pbi",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Data integration and analysis",
+        "body": [
+          "Move, transform, analyse."
+        ],
+        "show": [
+          "src",
+          "adf",
+          "lake",
+          "dev",
+          "eh",
+          "asa",
+          "dbx",
+          "pbi"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "src",
+            "to": "adf"
+          },
+          {
+            "from": "adf",
+            "to": "lake",
+            "label": "nightly"
+          },
+          {
+            "from": "dev",
+            "to": "eh"
+          },
+          {
+            "from": "eh",
+            "to": "asa"
+          },
+          {
+            "from": "asa",
+            "to": "lake"
+          },
+          {
+            "from": "lake",
+            "to": "dbx"
+          },
+          {
+            "from": "dbx",
+            "to": "pbi"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "recap": [
+          "Data Factory (+ self-hosted IR)",
+          "Event Hubs + Stream Analytics for real time",
+          "Databricks / Synapse / Fabric / Data Explorer + Power BI"
+        ]
+      }
+    ]
+  }
+}

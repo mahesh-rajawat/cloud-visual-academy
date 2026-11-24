@@ -1,0 +1,656 @@
+{
+  "id": "az305-relational",
+  "exam": "az-305",
+  "title": "Design relational data storage and service tiers",
+  "objectiveIds": [
+    "AZ305-2.1.1",
+    "AZ305-2.1.2"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Recommend a relational data platform (SQL Database, SQL Managed Instance, SQL Server on VMs, open-source databases) and the right purchasing model, service tier and compute tier.",
+  "prerequisites": [
+    {
+      "text": "Basic SQL Server or relational database concepts"
+    }
+  ],
+  "foundation": [
+    "Relational data (tables, rows, transactions) has three Azure SQL homes: SQL Database (most managed), SQL Managed Instance (most compatible PaaS) and SQL Server on a VM (most control).",
+    "Pick the most managed option that still runs the app. Then pick a tier: how fast, how big, how highly available.",
+    "PostgreSQL and MySQL apps use Azure Database for PostgreSQL or MySQL flexible server."
+  ],
+  "engineer": [
+    "Platform choice: Azure SQL Database (single database or elastic pool; database-scoped features; ideal for new cloud apps); Azure SQL Managed Instance (instance-scoped features: SQL Agent, cross-database queries, Database Mail, CLR, Service Broker, linked servers; VNet-injected; best for lifting many SQL Server databases with few changes; the Managed Instance link supports hybrid DR with SQL Server 2016+); SQL Server on Azure VMs (OS access, SSRS/SSIS/SSAS on the same machine, unsupported versions or third-party agents).",
+    "Purchasing models: DTU (bundled compute, storage and I/O in Basic, Standard, Premium; simple) or vCore (choose vCores, memory and storage separately; use Azure Hybrid Benefit and reserved capacity to cut cost; recommended for flexibility).",
+    "vCore service tiers: General Purpose (balanced, remote premium storage, budget-friendly), Business Critical (local SSD, lowest latency, three secondary replicas with one readable, In-Memory OLTP), Hyperscale (up to 128 TB, near-instant backups, fast scale, up to 4 high-availability replicas and named replicas). Managed Instance offers General Purpose (including Next-gen) and Business Critical.",
+    "Compute tiers: provisioned (fixed vCores, predictable workloads) or serverless (auto-scales between min and max vCores, billed per second; can auto-pause when idle in General Purpose; good for intermittent or unpredictable use). Elastic pools share eDTUs or vCores across many databases with different peak times (multi-tenant SaaS). New databases can use the Azure SQL Database free offer for experiments."
+  ],
+  "animation": {
+    "id": "az305-sql-sim",
+    "caption": "Pick the relational service, then the tier and compute model."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Application",
+        "x": 161,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "sqldb",
+        "label": "SQL Database",
+        "x": 400,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "mi",
+        "label": "SQL Managed Instance",
+        "x": 659,
+        "y": 56,
+        "kind": "storage"
+      },
+      {
+        "id": "vm",
+        "label": "SQL Server on a VM",
+        "x": 124,
+        "y": 161,
+        "kind": "compute"
+      },
+      {
+        "id": "gp",
+        "label": "General Purpose",
+        "x": 329,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "bc",
+        "label": "Business Critical",
+        "x": 529,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "hs",
+        "label": "Hyperscale",
+        "x": 728,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "sl",
+        "label": "Serverless",
+        "x": 254,
+        "y": 270,
+        "kind": "scope"
+      },
+      {
+        "id": "pool",
+        "label": "Elastic pool",
+        "x": 586,
+        "y": 270,
+        "kind": "scope"
+      }
+    ],
+    "edges": [
+      {
+        "from": "app",
+        "to": "sqldb"
+      },
+      {
+        "from": "app",
+        "to": "mi"
+      },
+      {
+        "from": "app",
+        "to": "vm"
+      },
+      {
+        "from": "sqldb",
+        "to": "gp"
+      },
+      {
+        "from": "sqldb",
+        "to": "bc"
+      },
+      {
+        "from": "sqldb",
+        "to": "hs"
+      },
+      {
+        "from": "gp",
+        "to": "sl"
+      },
+      {
+        "from": "sqldb",
+        "to": "pool"
+      }
+    ]
+  },
+  "example": {
+    "title": "Modernising a line-of-business estate",
+    "body": [
+      "80 SQL Server databases with SQL Agent jobs and cross-database queries move to SQL Managed Instance (Business Critical for the order system, General Purpose for the rest) with Azure Hybrid Benefit.",
+      "A new customer portal uses SQL Database serverless; 300 small tenant databases share an elastic pool; one 30 TB analytics-heavy database moves to Hyperscale."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Create Azure SQL > SQL databases (single or elastic pool) / SQL managed instances / SQL virtual machines.",
+      "Compute + storage: service tier, compute tier (provisioned/serverless), vCores, max size, backup storage redundancy."
+    ],
+    "cli": "az sql db create -g rg-data -s sql-contoso -n db-portal --edition GeneralPurpose --compute-model Serverless \\\n  --family Gen5 --capacity 2 --auto-pause-delay 60\naz sql elastic-pool create -g rg-data -s sql-contoso -n pool-tenants --edition GeneralPurpose --family Gen5 --capacity 8",
+    "powershell": "New-AzSqlDatabase -ResourceGroupName rg-data -ServerName sql-contoso -DatabaseName db-portal -Edition GeneralPurpose -ComputeModel Serverless -ComputeGeneration Gen5 -VCore 2 -AutoPauseDelayInMinutes 60"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-sql-sim",
+    "objective": "Choose the relational service and tier for each workload.",
+    "duration": 15,
+    "steps": [
+      "Answer every case in both trainers."
+    ],
+    "expected": [
+      "Managed Instance for instance-level features",
+      "Hyperscale for very large databases; serverless for intermittent use"
+    ],
+    "validation": [
+      {
+        "id": "sql-store-correct",
+        "text": "Chose the right relational service"
+      },
+      {
+        "id": "sql-tier-correct",
+        "text": "Chose the right tier or compute model"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing a VM when PaaS would run the app",
+      "Business Critical for a dev database"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Migration to SQL Database fails because the app uses SQL Agent and cross-database queries.",
+      "cause": "Instance-level features are not in SQL Database.",
+      "fix": "Use SQL Managed Instance."
+    },
+    {
+      "symptom": "A serverless database has a delay on the first query each morning.",
+      "cause": "Auto-pause resumes on first connection.",
+      "fix": "Increase the auto-pause delay, disable auto-pause, or use provisioned compute."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "SQL Database vs Managed Instance",
+      "difference": "Database-scoped PaaS vs instance-scoped PaaS with near-full SQL Server compatibility in your VNet."
+    },
+    {
+      "service": "DTU vs vCore",
+      "difference": "Bundled simplicity vs independent choice of compute and storage with Hybrid Benefit."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Business Critical is always the best choice.",
+      "reality": "It costs much more; use it for latency-sensitive OLTP or when you need the readable replica."
+    },
+    {
+      "myth": "Serverless means unlimited scale.",
+      "reality": "It scales between the min and max vCores you set."
+    }
+  ],
+  "architectureDecisions": [
+    "Most managed service that runs the app.",
+    "vCore model for flexibility and Hybrid Benefit.",
+    "Tier by latency, size and availability; serverless for intermittent use; elastic pools for many small databases."
+  ],
+  "docs": [
+    {
+      "title": "Azure SQL: IaaS vs PaaS",
+      "url": "https://learn.microsoft.com/azure/azure-sql/azure-sql-iaas-vs-paas-what-is-overview"
+    },
+    {
+      "title": "vCore service tiers",
+      "url": "https://learn.microsoft.com/azure/azure-sql/database/service-tiers-sql-database-vcore"
+    },
+    {
+      "title": "Serverless compute tier",
+      "url": "https://learn.microsoft.com/azure/azure-sql/database/serverless-tier-overview"
+    },
+    {
+      "title": "Elastic pools",
+      "url": "https://learn.microsoft.com/azure/azure-sql/database/elastic-pool-overview"
+    },
+    {
+      "title": "Hyperscale service tier",
+      "url": "https://learn.microsoft.com/azure/azure-sql/database/service-tier-hyperscale"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Put relational data on the most managed Azure SQL option that fits, at the right size and price.",
+    "learn": [
+      "SQL Database, Managed Instance or SQL on a VM",
+      "DTU vs vCore",
+      "General Purpose, Business Critical, Hyperscale",
+      "Provisioned, serverless or elastic pool"
+    ],
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Application",
+        "x": 153,
+        "y": 75,
+        "kind": "compute"
+      },
+      {
+        "id": "sqldb",
+        "label": "SQL Database",
+        "x": 381,
+        "y": 75,
+        "kind": "database",
+        "sub": "most managed"
+      },
+      {
+        "id": "mi",
+        "label": "SQL Managed Instance",
+        "x": 628,
+        "y": 75,
+        "kind": "database",
+        "sub": "most compatible"
+      },
+      {
+        "id": "vm",
+        "label": "SQL Server on a VM",
+        "x": 118,
+        "y": 215,
+        "kind": "compute",
+        "sub": "most control"
+      },
+      {
+        "id": "gp",
+        "label": "General Purpose",
+        "x": 313,
+        "y": 215,
+        "kind": "service"
+      },
+      {
+        "id": "bc",
+        "label": "Business Critical",
+        "x": 504,
+        "y": 215,
+        "kind": "service"
+      },
+      {
+        "id": "hs",
+        "label": "Hyperscale",
+        "x": 693,
+        "y": 215,
+        "kind": "service"
+      },
+      {
+        "id": "sl",
+        "label": "Serverless",
+        "x": 242,
+        "y": 360,
+        "kind": "cost",
+        "sub": "pay per second"
+      },
+      {
+        "id": "pool",
+        "label": "Elastic pool",
+        "x": 558,
+        "y": 360,
+        "kind": "cost",
+        "sub": "many databases"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "Where should this database live?",
+        "body": [
+          "SQL Server databases are moving to Azure. Some use instance features, some are huge, some are idle most of the day."
+        ],
+        "show": [
+          "app"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Platforms",
+        "title": "Three Azure SQL homes",
+        "body": [
+          "SQL Database: fully managed, per database. Managed Instance: almost everything SQL Server does (SQL Agent, cross-database queries) as PaaS in your VNet. SQL Server on a VM: full control when nothing else fits."
+        ],
+        "show": [
+          "app",
+          "sqldb",
+          "mi",
+          "vm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "sqldb",
+            "fresh": true
+          },
+          {
+            "from": "app",
+            "to": "mi",
+            "fresh": true
+          },
+          {
+            "from": "app",
+            "to": "vm",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Start from the most managed option and move right only for a reason."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Buying",
+        "title": "DTU or vCore",
+        "body": [
+          "DTU bundles compute, storage and I/O into simple sizes. vCore lets you choose compute and storage separately and use Azure Hybrid Benefit and reservations — usually the better choice."
+        ],
+        "show": [
+          "app",
+          "sqldb",
+          "mi",
+          "vm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "sqldb"
+          },
+          {
+            "from": "app",
+            "to": "mi"
+          },
+          {
+            "from": "app",
+            "to": "vm"
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Tiers",
+        "title": "Pick the tier by need",
+        "body": [
+          "General Purpose: balanced and cheaper. Business Critical: fastest storage, a free readable replica. Hyperscale: up to 128 TB with fast scaling."
+        ],
+        "show": [
+          "app",
+          "sqldb",
+          "mi",
+          "vm",
+          "gp",
+          "bc",
+          "hs"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "sqldb"
+          },
+          {
+            "from": "app",
+            "to": "mi"
+          },
+          {
+            "from": "app",
+            "to": "vm"
+          },
+          {
+            "from": "sqldb",
+            "to": "gp",
+            "fresh": true
+          },
+          {
+            "from": "sqldb",
+            "to": "bc",
+            "fresh": true
+          },
+          {
+            "from": "sqldb",
+            "to": "hs",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Compute",
+        "title": "Pay for what you use",
+        "body": [
+          "Serverless scales vCores automatically and can pause when idle. Elastic pools let hundreds of small databases share one set of resources."
+        ],
+        "show": [
+          "app",
+          "sqldb",
+          "mi",
+          "vm",
+          "gp",
+          "bc",
+          "hs",
+          "sl",
+          "pool"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "sqldb"
+          },
+          {
+            "from": "app",
+            "to": "mi"
+          },
+          {
+            "from": "app",
+            "to": "vm"
+          },
+          {
+            "from": "sqldb",
+            "to": "gp"
+          },
+          {
+            "from": "sqldb",
+            "to": "bc"
+          },
+          {
+            "from": "sqldb",
+            "to": "hs"
+          },
+          {
+            "from": "gp",
+            "to": "sl",
+            "fresh": true
+          },
+          {
+            "from": "sqldb",
+            "to": "pool",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Relational design",
+        "body": [
+          "Platform, model, tier, compute."
+        ],
+        "show": [
+          "app",
+          "sqldb",
+          "mi",
+          "vm",
+          "gp",
+          "bc",
+          "hs",
+          "sl",
+          "pool"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "sqldb"
+          },
+          {
+            "from": "app",
+            "to": "mi"
+          },
+          {
+            "from": "app",
+            "to": "vm"
+          },
+          {
+            "from": "sqldb",
+            "to": "gp"
+          },
+          {
+            "from": "sqldb",
+            "to": "bc"
+          },
+          {
+            "from": "sqldb",
+            "to": "hs"
+          },
+          {
+            "from": "gp",
+            "to": "sl"
+          },
+          {
+            "from": "sqldb",
+            "to": "pool"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "SQL DB → MI (instance features) → VM (OS control)",
+          "vCore + Hybrid Benefit",
+          "GP / BC (latency, readable replica) / Hyperscale (128 TB)",
+          "Serverless for intermittent; elastic pool for many DBs"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a free serverless Azure SQL database",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Free with the Azure SQL Database free offer (limited vCore-seconds and storage each month). If the free offer is not shown, choose serverless with auto-pause and delete it today.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription. Work in a resource group called rg-az305-lab.",
+      "If rg-az305-lab does not exist yet: Resource groups > Create > name rg-az305-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Azure SQL' > Create > SQL databases > Single database. Look for the banner to apply the free offer and apply it.",
+        "see": "Compute + storage shows General Purpose, Serverless."
+      },
+      {
+        "do": "Resource group rg-az305-lab; database name sqldb-lab; Server: Create new (unique name, your region, Microsoft Entra-only authentication with yourself as admin).",
+        "see": "A new logical server configured."
+      },
+      {
+        "do": "Open Configure database.",
+        "see": "General Purpose / Hyperscale / Business Critical options, provisioned vs serverless, and the auto-pause delay.",
+        "tip": "Notice what you'd change for a 40 TB database (Hyperscale) or the lowest-latency OLTP (Business Critical)."
+      },
+      {
+        "do": "Networking: allow your client IP. Review + create > Create.",
+        "see": "Deployment completes in a few minutes."
+      },
+      {
+        "do": "Open the database > Query editor, sign in with Entra, and run a query.",
+        "see": "Your SQL version and the service objective.",
+        "code": "SELECT @@VERSION AS version, DATABASEPROPERTYEX(DB_NAME(), 'ServiceObjective') AS objective;"
+      },
+      {
+        "do": "Open Compute + storage again.",
+        "see": "Auto-pause settings: the database pauses when idle and resumes on the next connection."
+      }
+    ],
+    "check": [
+      "The query returned the service objective (a GP serverless objective)."
+    ],
+    "cleanup": [
+      "Resource groups > rg-az305-lab > Delete resource group > type the name > Delete."
+    ],
+    "screens": [
+      {
+        "title": "Azure SQL Database free offer",
+        "url": "https://learn.microsoft.com/azure/azure-sql/database/free-offer"
+      },
+      {
+        "title": "Serverless compute tier",
+        "url": "https://learn.microsoft.com/azure/azure-sql/database/serverless-tier-overview"
+      }
+    ]
+  }
+}

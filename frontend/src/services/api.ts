@@ -51,6 +51,8 @@ export interface Bookmark {
 export interface Settings {
   exam_dates: Partial<Record<ExamSlug, string | null>>
   sprint_start: string | null
+  /** Plan start dates for exams other than AZ-104 (AZ-104 uses sprint_start). */
+  sprint_starts?: Record<string, string | null>
   weekday_hours: number
   weekend_hours: number
   mode: 'sprint' | 'complete'

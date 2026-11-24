@@ -1,0 +1,590 @@
+{
+  "id": "az305-migration-planning",
+  "exam": "az-305",
+  "title": "Plan migrations with the Cloud Adoption Framework",
+  "objectiveIds": [
+    "AZ305-4.3.1",
+    "AZ305-4.3.2"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Evaluate a migration approach that uses the Cloud Adoption Framework, and evaluate on-premises servers, data and applications for migration.",
+  "prerequisites": [
+    {
+      "text": "Governance design",
+      "objectiveId": "AZ305-1.3.1",
+      "lessonId": "az305-governance"
+    }
+  ],
+  "foundation": [
+    "Big migrations fail when they start with servers instead of goals. The Cloud Adoption Framework (CAF) is Microsoft's step-by-step method.",
+    "First agree why you are moving, then plan which apps go where, prepare a landing zone, and only then move workloads in waves.",
+    "Azure Migrate discovers what you have, measures how it performs, maps dependencies and estimates Azure cost."
+  ],
+  "engineer": [
+    "CAF methodologies: Strategy (motivations, business outcomes, business case), Plan (digital estate inventory and rationalisation, skills, adoption plan), Ready (Azure landing zones: identity, network topology, governance, management, security), Adopt (Migrate and Modernize/Innovate), plus Govern, Secure and Manage across the lifecycle. Migration waves group workloads by dependency and risk; start with low-risk workloads.",
+    "Rationalisation (the Rs): retire, retain, rehost (lift and shift), replatform (minimal changes to use PaaS), refactor (code changes for cloud-native), rearchitect, rebuild, replace with SaaS.",
+    "Assessment with Azure Migrate: agentless discovery of VMware, Hyper-V and physical servers through the Azure Migrate appliance (or CSV import), performance-based right-sizing, Azure readiness, cost estimates, business case (TCO comparison), dependency analysis (agentless or agent-based) to group servers that must move together, and assessments for SQL Server, web apps and AVS. Database assessments flag compatibility issues for SQL Database, Managed Instance or SQL on VMs."
+  ],
+  "animation": {
+    "id": "az305-migrate-plan-sim",
+    "caption": "Place activities in CAF phases and choose Azure Migrate for discovery and assessment."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "strat",
+        "label": "Strategy",
+        "x": 121,
+        "y": 56,
+        "kind": "user"
+      },
+      {
+        "id": "plan",
+        "label": "Plan",
+        "x": 320,
+        "y": 56,
+        "kind": "scope"
+      },
+      {
+        "id": "ready",
+        "label": "Ready",
+        "x": 520,
+        "y": 56,
+        "kind": "network"
+      },
+      {
+        "id": "adopt",
+        "label": "Adopt",
+        "x": 719,
+        "y": 56,
+        "kind": "compute"
+      },
+      {
+        "id": "dc",
+        "label": "Datacenter",
+        "x": 166,
+        "y": 161,
+        "kind": "compute"
+      },
+      {
+        "id": "appl",
+        "label": "Migrate appliance",
+        "x": 420,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "am",
+        "label": "Azure Migrate",
+        "x": 674,
+        "y": 161,
+        "kind": "scope"
+      },
+      {
+        "id": "deps",
+        "label": "Dependency map",
+        "x": 253,
+        "y": 270,
+        "kind": "scope"
+      },
+      {
+        "id": "waves",
+        "label": "Migration waves",
+        "x": 586,
+        "y": 270,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "strat",
+        "to": "plan"
+      },
+      {
+        "from": "plan",
+        "to": "ready"
+      },
+      {
+        "from": "ready",
+        "to": "adopt"
+      },
+      {
+        "from": "dc",
+        "to": "appl"
+      },
+      {
+        "from": "appl",
+        "to": "am"
+      },
+      {
+        "from": "am",
+        "to": "deps"
+      },
+      {
+        "from": "deps",
+        "to": "waves"
+      }
+    ]
+  },
+  "example": {
+    "title": "Exiting a datacenter in 18 months",
+    "body": [
+      "Strategy: leadership agrees to exit the datacenter lease and cut run costs by 20%. Plan: Azure Migrate discovers 600 servers; dependency analysis groups them into 12 waves; each app gets a decision (rehost, replatform, replace, retire).",
+      "Ready: the landing zone (management groups, hub network, policies) is deployed with Bicep before the first wave. Adopt: wave 1 rehosts low-risk internal apps."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription; most design reviews need only Reader access"
+    ],
+    "permissions": [
+      "Reader to review existing resources; Contributor or Owner to build the design"
+    ],
+    "limits": [
+      "Check service limits and regional availability for each component"
+    ],
+    "portal": [
+      "Azure Migrate > Servers, databases and web apps > Discover: download the appliance or import a CSV.",
+      "Azure Migrate > Assess: Azure VM, Azure SQL, web apps, AVS; Business case.",
+      "Dependency analysis > Agentless."
+    ],
+    "cli": "# Azure Migrate projects are usually created in the portal\naz resource create -g rg-migrate -n migrate-proj --resource-type Microsoft.Migrate/migrateProjects --properties '{}' -l westeurope",
+    "powershell": "# Az.Migrate module: New-AzMigrateProject is not required; create the project in the portal, then use Get-AzMigrateDiscoveredServer"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az305-migrate-plan-sim",
+    "objective": "Place activities in CAF phases and choose the assessment approach.",
+    "duration": 15,
+    "steps": [
+      "Answer every case."
+    ],
+    "expected": [
+      "Strategy → Plan → Ready → Adopt",
+      "Azure Migrate discovers, assesses and maps dependencies"
+    ],
+    "validation": [
+      {
+        "id": "migrate-plan-correct",
+        "text": "Chose the right CAF phase or tool"
+      }
+    ],
+    "failureScenarios": [
+      "Moving servers before the landing zone exists",
+      "Migrating without dependency analysis"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Migrated app breaks because a dependent server was left on-premises.",
+      "cause": "No dependency analysis.",
+      "fix": "Run dependency analysis and move dependent servers in the same wave."
+    },
+    {
+      "symptom": "Azure cost is much higher than expected after rehosting.",
+      "cause": "As-is sizing of over-provisioned servers.",
+      "fix": "Use performance-based assessments and right-size."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Rehost vs replatform",
+      "difference": "Rehost moves as-is to VMs; replatform makes small changes to use PaaS such as App Service or SQL MI."
+    },
+    {
+      "service": "Ready vs Adopt",
+      "difference": "Ready prepares the landing zone; Adopt moves the workloads."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Migration starts with moving servers.",
+      "reality": "It starts with strategy, planning and a landing zone."
+    },
+    {
+      "myth": "Assessments use the on-premises size.",
+      "reality": "Performance-based sizing usually recommends smaller Azure sizes."
+    }
+  ],
+  "architectureDecisions": [
+    "Follow CAF: strategy, plan, ready, adopt.",
+    "Discover and assess with Azure Migrate, using performance data and dependency analysis.",
+    "Move in waves, low risk first."
+  ],
+  "docs": [
+    {
+      "title": "Cloud Adoption Framework",
+      "url": "https://learn.microsoft.com/azure/cloud-adoption-framework/"
+    },
+    {
+      "title": "Plan for cloud adoption",
+      "url": "https://learn.microsoft.com/azure/cloud-adoption-framework/plan/"
+    },
+    {
+      "title": "Azure landing zones",
+      "url": "https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/"
+    },
+    {
+      "title": "About Azure Migrate",
+      "url": "https://learn.microsoft.com/azure/migrate/migrate-services-overview"
+    },
+    {
+      "title": "Dependency analysis",
+      "url": "https://learn.microsoft.com/azure/migrate/concepts-dependency-visualization"
+    },
+    {
+      "title": "AZ-305 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-305"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Move to Azure in a planned, low-risk way: goals first, then plan, prepare, and move in waves.",
+    "learn": [
+      "CAF phases",
+      "Rationalise each app: the Rs",
+      "Discover and assess with Azure Migrate"
+    ],
+    "nodes": [
+      {
+        "id": "strat",
+        "label": "Strategy",
+        "x": 115,
+        "y": 75,
+        "kind": "user",
+        "sub": "why move?"
+      },
+      {
+        "id": "plan",
+        "label": "Plan",
+        "x": 305,
+        "y": 75,
+        "kind": "service",
+        "sub": "what, when"
+      },
+      {
+        "id": "ready",
+        "label": "Ready",
+        "x": 495,
+        "y": 75,
+        "kind": "network",
+        "sub": "landing zone"
+      },
+      {
+        "id": "adopt",
+        "label": "Adopt",
+        "x": 685,
+        "y": 75,
+        "kind": "compute",
+        "sub": "migrate"
+      },
+      {
+        "id": "dc",
+        "label": "Datacenter",
+        "x": 158,
+        "y": 215,
+        "kind": "compute",
+        "sub": "600 servers"
+      },
+      {
+        "id": "appl",
+        "label": "Migrate appliance",
+        "x": 400,
+        "y": 215,
+        "kind": "service",
+        "sub": "agentless"
+      },
+      {
+        "id": "am",
+        "label": "Azure Migrate",
+        "x": 642,
+        "y": 215,
+        "kind": "service",
+        "sub": "assess + cost"
+      },
+      {
+        "id": "deps",
+        "label": "Dependency map",
+        "x": 241,
+        "y": 360,
+        "kind": "service"
+      },
+      {
+        "id": "waves",
+        "label": "Migration waves",
+        "x": 558,
+        "y": 360,
+        "kind": "user"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Problem",
+        "title": "600 servers and a lease ending",
+        "body": [
+          "Moving everything at once is risky and moving nothing is expensive. You need a method."
+        ],
+        "show": [
+          "dc"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "CAF",
+        "title": "Four steps before and during the move",
+        "body": [
+          "Strategy: why move? Plan: inventory and decide per app. Ready: build the landing zone. Adopt: migrate and modernise. Govern, Secure and Manage run throughout."
+        ],
+        "show": [
+          "dc",
+          "strat",
+          "plan",
+          "ready",
+          "adopt"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "strat",
+            "to": "plan",
+            "fresh": true
+          },
+          {
+            "from": "plan",
+            "to": "ready",
+            "fresh": true
+          },
+          {
+            "from": "ready",
+            "to": "adopt",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Rationalise",
+        "title": "A decision for every app",
+        "body": [
+          "Retire what nobody uses, retain what must stay, rehost to move fast, replatform to use PaaS with small changes, refactor or rebuild for cloud-native, or replace with SaaS."
+        ],
+        "show": [
+          "dc",
+          "strat",
+          "plan",
+          "ready",
+          "adopt"
+        ],
+        "focus": [
+          "plan"
+        ],
+        "edges": [
+          {
+            "from": "strat",
+            "to": "plan"
+          },
+          {
+            "from": "plan",
+            "to": "ready"
+          },
+          {
+            "from": "ready",
+            "to": "adopt"
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Assess",
+        "title": "Azure Migrate does the counting",
+        "body": [
+          "An agentless appliance discovers servers and collects performance data. Assessments recommend Azure sizes and costs; dependency analysis shows which servers talk to each other, so they move in the same wave."
+        ],
+        "show": [
+          "dc",
+          "strat",
+          "plan",
+          "ready",
+          "adopt",
+          "appl",
+          "am",
+          "deps",
+          "waves"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "strat",
+            "to": "plan"
+          },
+          {
+            "from": "plan",
+            "to": "ready"
+          },
+          {
+            "from": "ready",
+            "to": "adopt"
+          },
+          {
+            "from": "dc",
+            "to": "appl",
+            "fresh": true
+          },
+          {
+            "from": "appl",
+            "to": "am",
+            "fresh": true
+          },
+          {
+            "from": "am",
+            "to": "deps",
+            "fresh": true
+          },
+          {
+            "from": "deps",
+            "to": "waves",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Migration planning",
+        "body": [
+          "Goals, plan, landing zone, waves."
+        ],
+        "show": [
+          "dc",
+          "strat",
+          "plan",
+          "ready",
+          "adopt",
+          "appl",
+          "am",
+          "deps",
+          "waves"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "strat",
+            "to": "plan"
+          },
+          {
+            "from": "plan",
+            "to": "ready"
+          },
+          {
+            "from": "ready",
+            "to": "adopt"
+          },
+          {
+            "from": "dc",
+            "to": "appl"
+          },
+          {
+            "from": "appl",
+            "to": "am"
+          },
+          {
+            "from": "am",
+            "to": "deps"
+          },
+          {
+            "from": "deps",
+            "to": "waves"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "recap": [
+          "Strategy → Plan → Ready → Adopt (+ Govern, Secure, Manage)",
+          "Retire, retain, rehost, replatform, refactor, replace",
+          "Azure Migrate: discovery, performance sizing, dependencies, business case"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Assess servers with Azure Migrate (CSV import)",
+    "minutes": 30,
+    "costLevel": "free",
+    "cost": "Free. Azure Migrate discovery and assessment are free; this lab imports a CSV instead of deploying an appliance.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription. Work in a resource group called rg-az305-lab.",
+      "If rg-az305-lab does not exist yet: Resource groups > Create > name rg-az305-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Azure Migrate' > Servers, databases and web apps > Create project: rg-az305-lab, project name migrate-lab, a geography near you.",
+        "see": "The project opens."
+      },
+      {
+        "do": "Discover > Import using CSV > Download the template.",
+        "see": "A CSV template with columns such as server name, cores, memory, OS and disks."
+      },
+      {
+        "do": "Fill in three rows, for example: web01 (2 cores, 8 GB, Windows Server 2019), app01 (4 cores, 16 GB), db01 (8 cores, 64 GB). Save and upload.",
+        "see": "Import succeeds; three servers appear in the inventory after a few minutes."
+      },
+      {
+        "do": "Assess > Azure VM: sizing criteria As on-premises (CSV has no performance data); target region near you. Group: create a group with the three servers. Create assessment.",
+        "see": "An assessment computes."
+      },
+      {
+        "do": "Open the assessment.",
+        "see": "Azure readiness, recommended VM sizes and monthly cost estimates.",
+        "tip": "With the real appliance, performance-based sizing usually recommends smaller, cheaper sizes."
+      },
+      {
+        "do": "Look at the Business case option (don't build it).",
+        "see": "On-premises vs Azure cost comparison over time."
+      }
+    ],
+    "check": [
+      "The assessment shows readiness and a cost estimate for three servers."
+    ],
+    "cleanup": [
+      "Delete the Azure Migrate project (or the resource group).",
+      "Resource groups > rg-az305-lab > Delete resource group > type the name > Delete."
+    ],
+    "screens": [
+      {
+        "title": "Import servers using a CSV",
+        "url": "https://learn.microsoft.com/azure/migrate/tutorial-discover-import"
+      },
+      {
+        "title": "Assessment overview",
+        "url": "https://learn.microsoft.com/azure/migrate/concepts-assessment-calculation"
+      }
+    ]
+  }
+}
