@@ -1,0 +1,679 @@
+{
+  "id": "az104-entra-users-groups",
+  "exam": "az-104",
+  "title": "Microsoft Entra users and groups: creation, properties and dynamic membership",
+  "objectiveIds": [
+    "AZ104-1.1.1",
+    "AZ104-1.1.2"
+  ],
+  "estimatedMinutes": 55,
+  "learningObjective": "Create cloud users and groups (individually and in bulk), choose the right group type and membership type, write dynamic membership rules, and manage user and group properties.",
+  "prerequisites": [
+    {
+      "text": "Directory services: Microsoft Entra ID (AZ-900)",
+      "objectiveId": "AZ900-2.4.1"
+    },
+    {
+      "text": "Authentication methods (AZ-900)",
+      "objectiveId": "AZ900-2.4.2"
+    }
+  ],
+  "foundation": [
+    "Microsoft Entra ID is the directory that stores your organisation's users and groups and signs them in to Azure, Microsoft 365 and other apps.",
+    "A user account has a sign-in name (the user principal name, such as ana@contoso.com) and properties such as department, job title and usage location.",
+    "Groups collect users so you can grant access or licences once instead of per person. Security groups are for access; Microsoft 365 groups add a shared mailbox, calendar and files.",
+    "Membership can be Assigned (you add people) or Dynamic (a rule such as 'department equals Sales' decides automatically)."
+  ],
+  "engineer": [
+    "User sources: cloud-only users are created in Entra ID. Synced users come from on-premises AD through Microsoft Entra Connect or Cloud Sync, and their synced attributes must be changed on-premises. Guests are external identities (userType Guest).",
+    "Creating users: portal (New user > Create new user), bulk create from the portal's CSV template, Microsoft Graph PowerShell (New-MgUser) or az ad user create. Deleted users are soft-deleted and can be restored for 30 days.",
+    "Group types: Security (can be used for RBAC, licences, Conditional Access, app access) and Microsoft 365 (collaboration; can also be used for access). Membership types: Assigned, Dynamic user and Dynamic device (device rules are for security groups). The membership type can be changed later. A group that can be assigned Microsoft Entra roles must be created with isAssignableToRole and uses assigned membership only.",
+    "Dynamic membership rules use user.<property> -eq / -ne / -startsWith / -contains / -match etc., combined with -and / -or / -not. Members cannot be added manually to a dynamic group. Rule processing is asynchronous and can take time in large tenants. Dynamic groups need a Microsoft Entra ID P1 licence for each unique user who is a member of dynamic groups.",
+    "Roles: User Administrator creates and manages users and groups; Groups Administrator manages groups; group owners can manage the membership of assigned groups. Azure RBAC roles (Owner, Contributor) give no permission in the directory.",
+    "Important properties: usageLocation (required before assigning most licences directly), accountEnabled (block sign-in), department/jobTitle/companyName (often used in dynamic rules), and manager. The AzureAD and MSOnline PowerShell modules are retired; use Microsoft Graph PowerShell."
+  ],
+  "animation": {
+    "id": "identity-sim",
+    "caption": "Edit a dynamic rule or a user's department and watch membership flows update."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "onprem",
+        "label": "On-premises AD (synced users)",
+        "x": 0,
+        "y": 0,
+        "kind": "identity"
+      },
+      {
+        "id": "connect",
+        "label": "Entra Connect / Cloud Sync",
+        "x": 0,
+        "y": 110,
+        "kind": "network"
+      },
+      {
+        "id": "entra",
+        "label": "Microsoft Entra ID tenant",
+        "x": 260,
+        "y": 60,
+        "kind": "identity"
+      },
+      {
+        "id": "dyn",
+        "label": "Dynamic group: department = Sales",
+        "x": 540,
+        "y": 0,
+        "kind": "scope"
+      },
+      {
+        "id": "asg",
+        "label": "Assigned group: owners manage",
+        "x": 540,
+        "y": 120,
+        "kind": "scope"
+      }
+    ],
+    "edges": [
+      {
+        "from": "onprem",
+        "to": "connect"
+      },
+      {
+        "from": "connect",
+        "to": "entra",
+        "label": "sync"
+      },
+      {
+        "from": "entra",
+        "to": "dyn",
+        "label": "rule evaluates properties"
+      },
+      {
+        "from": "entra",
+        "to": "asg",
+        "label": "manual"
+      }
+    ]
+  },
+  "example": {
+    "title": "Joiner/mover automation with dynamic groups",
+    "body": [
+      "HR updates the department attribute when people join or change teams. A dynamic security group 'Sales' (user.department -eq \"Sales\") is used for an RBAC assignment on the CRM resource group and for group-based licensing.",
+      "When Chen moves from Sales to Engineering, no admin touches the group: the rule drops Chen from Sales, and access and licences follow automatically. Because Chen is a synced user, the department is changed in on-premises AD and flows up through sync."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "A Microsoft Entra tenant",
+      "Microsoft Entra ID P1 for dynamic groups"
+    ],
+    "permissions": [
+      "User Administrator (users and groups)",
+      "Groups Administrator (groups)",
+      "Group owner (membership of assigned groups)"
+    ],
+    "limits": [
+      "Deleted users can be restored for 30 days",
+      "No manual members in dynamic groups",
+      "Role-assignable setting must be chosen at group creation"
+    ],
+    "portal": [
+      "Microsoft Entra admin center > Users > New user > Create new user: UPN, display name, password, then Properties (department, usage location) and Assignments (groups, roles).",
+      "Users > Bulk operations > Bulk create: download the CSV template, fill it in, upload, and monitor the result in Bulk operation results.",
+      "Groups > New group: Group type, name, Membership type (Assigned / Dynamic user / Dynamic device). For dynamic, select 'Add dynamic query' and validate the rule against sample users.",
+      "Users > Deleted users: restore within 30 days."
+    ],
+    "cli": "az ad user create --display-name \"Ana Silva\" --user-principal-name ana@contoso.com \\\n  --password '<initial-password>' --force-change-password-next-sign-in true\naz ad group create --display-name \"Ops team\" --mail-nickname opsteam\naz ad group member add --group \"Ops team\" --member-id $(az ad user show --id ana@contoso.com --query id -o tsv)\naz ad group member list --group \"Ops team\" --query \"[].userPrincipalName\" -o tsv",
+    "powershell": "Connect-MgGraph -Scopes 'User.ReadWrite.All','Group.ReadWrite.All'\nNew-MgUser -DisplayName 'Ana Silva' -UserPrincipalName 'ana@contoso.com' -MailNickname 'ana' -AccountEnabled `\n  -PasswordProfile @{ Password = '<initial-password>'; ForceChangePasswordNextSignIn = $true } -Department 'Sales' -UsageLocation 'PT'\nUpdate-MgUser -UserId 'ana@contoso.com' -JobTitle 'Account Manager'\nNew-MgGroup -DisplayName 'Sales' -MailEnabled:$false -MailNickname 'sales' -SecurityEnabled `\n  -GroupTypes 'DynamicMembership' -MembershipRule '(user.department -eq \"Sales\")' -MembershipRuleProcessingState 'On'"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "identity-sim",
+    "objective": "Use properties and dynamic rules to automate group membership, and see the limits of dynamic groups.",
+    "duration": 15,
+    "steps": [
+      "On Users & groups, change Ben's department to Sales and watch him join the dynamic group.",
+      "Change the rule to include guests (-or user.userType -eq \"Guest\") and save it.",
+      "Try to add Ben manually to the dynamic group, then add him to the assigned SSPR pilot group."
+    ],
+    "expected": [
+      "Membership follows properties",
+      "Invalid rules are rejected with a syntax error",
+      "Manual adds to dynamic groups are blocked"
+    ],
+    "validation": [
+      {
+        "id": "user-property-changed",
+        "text": "Changed a user property that affects membership"
+      },
+      {
+        "id": "dynamic-rule",
+        "text": "Saved a dynamic membership rule"
+      },
+      {
+        "id": "manual-add-blocked",
+        "text": "Saw a manual add to a dynamic group blocked"
+      }
+    ],
+    "failureScenarios": [
+      "Rule written as department = Sales",
+      "Editing a synced user's department in the cloud",
+      "Expecting instant processing in large tenants"
+    ],
+    "cleanup": [
+      "Use Reset scenario."
+    ],
+    "cost": "None. In a real tenant, dynamic groups need Entra ID P1 licences."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Cannot edit a user's department in the portal.",
+      "cause": "The user is synced from on-premises AD (source of authority on-premises).",
+      "fix": "Change it in AD; it flows up at the next sync cycle."
+    },
+    {
+      "symptom": "A user is not in a dynamic group that their department should match.",
+      "cause": "Rule syntax or case/whitespace mismatch, or processing has not finished.",
+      "fix": "Use 'Validate rules' against the user and check the group's processing status."
+    },
+    {
+      "symptom": "The 'Add members' button is missing.",
+      "cause": "The group uses dynamic membership.",
+      "fix": "Change the rule or the user properties, or convert the group to Assigned."
+    },
+    {
+      "symptom": "Cannot assign an Entra role to a group.",
+      "cause": "The group was not created as role-assignable.",
+      "fix": "Create a new group with 'Microsoft Entra roles can be assigned to the group' set to Yes."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "On-premises AD security groups",
+      "difference": "AD groups support nesting for access; Entra group-based licensing and some features do not honour nested membership."
+    },
+    {
+      "service": "AWS IAM users and groups",
+      "difference": "AWS IAM groups cannot be nested and have no dynamic rules; workforce identities are usually federated through IAM Identity Center."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "An Azure subscription Owner can create Entra users.",
+      "reality": "Directory permissions come from Entra roles such as User Administrator, not Azure RBAC."
+    },
+    {
+      "myth": "Dynamic groups update instantly.",
+      "reality": "Processing is asynchronous and can take time."
+    },
+    {
+      "myth": "Deleted users are gone immediately.",
+      "reality": "They are soft-deleted and can be restored for 30 days."
+    }
+  ],
+  "architectureDecisions": [
+    "Drive access and licensing from dynamic groups based on authoritative HR attributes.",
+    "Keep assigned groups for exceptions and owner-managed teams.",
+    "Use Microsoft Graph PowerShell or the CLI for repeatable bulk operations; avoid the retired AzureAD/MSOnline modules."
+  ],
+  "docs": [
+    {
+      "title": "Add or delete users",
+      "url": "https://learn.microsoft.com/entra/fundamentals/add-users"
+    },
+    {
+      "title": "Bulk create users",
+      "url": "https://learn.microsoft.com/entra/identity/users/users-bulk-add"
+    },
+    {
+      "title": "Learn about groups and membership types",
+      "url": "https://learn.microsoft.com/entra/fundamentals/concept-learn-about-groups"
+    },
+    {
+      "title": "Dynamic membership rules for groups",
+      "url": "https://learn.microsoft.com/entra/identity/users/groups-dynamic-membership"
+    },
+    {
+      "title": "Restore a deleted user",
+      "url": "https://learn.microsoft.com/entra/fundamentals/users-restore"
+    },
+    {
+      "title": "Use Microsoft Entra groups to manage role assignments",
+      "url": "https://learn.microsoft.com/entra/identity/role-based-access-control/groups-concept"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert. The simulator implements a subset of the rule syntax."
+  },
+  "walkthrough": {
+    "subtitle": "Give a new team accounts, then let groups do the work of keeping access up to date.",
+    "learn": [
+      "Users: members and guests",
+      "Important user properties",
+      "Security vs Microsoft 365 groups",
+      "Assigned vs dynamic membership",
+      "Bulk changes"
+    ],
+    "nodes": [
+      {
+        "id": "admin",
+        "label": "You (admin)",
+        "x": 110,
+        "y": 220,
+        "kind": "user"
+      },
+      {
+        "id": "entra",
+        "label": "Microsoft Entra ID",
+        "x": 330,
+        "y": 220,
+        "kind": "identity",
+        "sub": "your directory"
+      },
+      {
+        "id": "ana",
+        "label": "User: Ana",
+        "x": 560,
+        "y": 80,
+        "kind": "user",
+        "sub": "member"
+      },
+      {
+        "id": "guest",
+        "label": "Guest: Raj",
+        "x": 560,
+        "y": 170,
+        "kind": "user",
+        "sub": "partner company"
+      },
+      {
+        "id": "sec",
+        "label": "Security group",
+        "x": 560,
+        "y": 280,
+        "kind": "security",
+        "sub": "access to Azure"
+      },
+      {
+        "id": "m365",
+        "label": "Microsoft 365 group",
+        "x": 560,
+        "y": 380,
+        "kind": "service",
+        "sub": "mail + Teams"
+      },
+      {
+        "id": "rule",
+        "label": "Dynamic rule",
+        "x": 330,
+        "y": 380,
+        "kind": "service",
+        "sub": "department = IT"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "New team",
+        "title": "Five people join the IT team on Monday",
+        "body": [
+          "Each one needs an account. Each one needs access to the right Azure resources.",
+          "Giving access person by person is slow, and it is easy to forget to remove it when someone leaves."
+        ],
+        "show": [
+          "admin",
+          "entra"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "admin",
+            "to": "entra",
+            "label": "manage",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Users",
+        "title": "A user is an identity in Microsoft Entra ID",
+        "body": [
+          "Microsoft Entra ID (the new name for Azure AD) is the directory that holds your users. A member user belongs to your organisation. A guest user is someone from outside, such as a partner, invited by email.",
+          "Useful properties: name, job title, department and usage location. Usage location is needed before you can give someone a licence directly."
+        ],
+        "show": [
+          "admin",
+          "entra",
+          "ana",
+          "guest"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "admin",
+            "to": "entra",
+            "label": "manage"
+          },
+          {
+            "from": "entra",
+            "to": "ana",
+            "fresh": true
+          },
+          {
+            "from": "entra",
+            "to": "guest",
+            "label": "invited",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Fill in department and job title. Dynamic groups use these properties to decide who is in the group."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Groups",
+        "title": "Two kinds of group",
+        "body": [
+          "A security group is used to give access: assign an Azure role or an app to the group, not to each person.",
+          "A Microsoft 365 group adds a shared mailbox, calendar and Teams space. It can also be used for access, but its main job is collaboration."
+        ],
+        "show": [
+          "admin",
+          "entra",
+          "ana",
+          "guest",
+          "sec",
+          "m365"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "admin",
+            "to": "entra",
+            "label": "manage"
+          },
+          {
+            "from": "entra",
+            "to": "ana"
+          },
+          {
+            "from": "entra",
+            "to": "guest",
+            "label": "invited"
+          },
+          {
+            "from": "ana",
+            "to": "sec",
+            "label": "member",
+            "fresh": true
+          },
+          {
+            "from": "ana",
+            "to": "m365",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Dynamic",
+        "title": "Let a rule fill the group for you",
+        "body": [
+          "With assigned membership, you add and remove people by hand. With dynamic membership, Entra adds everyone whose properties match a rule, for example department equals IT, and removes them when the property changes.",
+          "Dynamic groups need a Microsoft Entra ID P1 licence."
+        ],
+        "show": [
+          "admin",
+          "entra",
+          "ana",
+          "guest",
+          "sec",
+          "m365",
+          "rule"
+        ],
+        "focus": [
+          "rule"
+        ],
+        "edges": [
+          {
+            "from": "admin",
+            "to": "entra",
+            "label": "manage"
+          },
+          {
+            "from": "entra",
+            "to": "ana"
+          },
+          {
+            "from": "entra",
+            "to": "guest",
+            "label": "invited"
+          },
+          {
+            "from": "ana",
+            "to": "sec",
+            "label": "member"
+          },
+          {
+            "from": "ana",
+            "to": "m365"
+          },
+          {
+            "from": "rule",
+            "to": "sec",
+            "label": "adds matches",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "You cannot add members by hand to a dynamic group. Change the user's properties or the rule instead."
+        }
+      },
+      {
+        "kind": "case",
+        "label": "Bulk",
+        "title": "Case: the whole team on Monday",
+        "body": [
+          "Upload a CSV file (Users > Bulk operations > Bulk create) to create all five accounts at once with department = IT.",
+          "The dynamic rule puts them in the IT security group within minutes, and that group already has the right Azure role."
+        ],
+        "show": [
+          "admin",
+          "entra",
+          "ana",
+          "guest",
+          "sec",
+          "m365",
+          "rule"
+        ],
+        "focus": [
+          "entra",
+          "sec"
+        ],
+        "edges": [
+          {
+            "from": "admin",
+            "to": "entra",
+            "label": "manage"
+          },
+          {
+            "from": "entra",
+            "to": "ana"
+          },
+          {
+            "from": "entra",
+            "to": "guest",
+            "label": "invited"
+          },
+          {
+            "from": "ana",
+            "to": "sec",
+            "label": "member"
+          },
+          {
+            "from": "ana",
+            "to": "m365"
+          },
+          {
+            "from": "rule",
+            "to": "sec",
+            "label": "adds matches"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Users and groups in one minute",
+        "body": [
+          "Give access to groups, and let rules keep the groups correct."
+        ],
+        "show": [
+          "admin",
+          "entra",
+          "ana",
+          "guest",
+          "sec",
+          "m365",
+          "rule"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "admin",
+            "to": "entra",
+            "label": "manage"
+          },
+          {
+            "from": "entra",
+            "to": "ana"
+          },
+          {
+            "from": "entra",
+            "to": "guest",
+            "label": "invited"
+          },
+          {
+            "from": "ana",
+            "to": "sec",
+            "label": "member"
+          },
+          {
+            "from": "ana",
+            "to": "m365"
+          },
+          {
+            "from": "rule",
+            "to": "sec",
+            "label": "adds matches"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Member = your organisation; guest = invited outsider",
+          "Usage location is needed for direct licence assignment",
+          "Security groups for access; Microsoft 365 groups for collaboration",
+          "Dynamic membership uses a rule on user properties (needs P1)",
+          "Bulk create, invite and delete with a CSV file"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a user and a group, then add the user",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Free. Users and groups cost nothing.",
+    "before": [
+      "Signed in at portal.azure.com with the account that created your Azure subscription. That account is a Global Administrator of its own Microsoft Entra tenant."
+    ],
+    "steps": [
+      {
+        "do": "In the portal search bar type 'Microsoft Entra ID' and open it. Note the 'Primary domain' on the Overview page (it ends in onmicrosoft.com).",
+        "see": "The Overview page with your tenant name, tenant ID and primary domain."
+      },
+      {
+        "do": "Go to Users > New user > Create new user. User principal name: ana.lab, display name: Ana Lab. Tick 'Auto-generate password' and copy it somewhere safe.",
+        "see": "The Properties tab, where you can fill in job details."
+      },
+      {
+        "do": "On the Properties tab set Job title: Cloud Engineer, Department: IT, Usage location: United Arab Emirates (or your country). Select Review + create > Create.",
+        "see": "Ana Lab in the users list after a refresh."
+      },
+      {
+        "do": "Go to Groups > New group. Group type: Security, name: grp-it-lab, membership type: Assigned. Under Members, add Ana Lab. Select Create.",
+        "see": "grp-it-lab in the groups list.",
+        "tip": "Dynamic membership needs a Microsoft Entra ID P1 licence or trial. If Dynamic User is not offered, or the group cannot be saved, start the free trial in the licences lab first."
+      },
+      {
+        "do": "Open grp-it-lab > Members.",
+        "see": "Ana Lab listed as a direct member."
+      },
+      {
+        "do": "Open Ana Lab > Groups.",
+        "see": "grp-it-lab listed. Membership works in both directions."
+      },
+      {
+        "do": "Optional, needs a P1 trial (see the licences lab): create a second group, membership type Dynamic User, and add the rule user.department -eq \"IT\".",
+        "see": "Ana appears in the dynamic group after a few minutes, without being added by hand."
+      }
+    ],
+    "check": [
+      "Ana Lab exists with department IT and a usage location.",
+      "grp-it-lab contains Ana Lab."
+    ],
+    "cleanup": [
+      "Keep Ana and the group for the next labs (licences, SSPR, RBAC). Delete them when you finish the identity labs: Users > select > Delete; Groups > select > Delete."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: create and assign a user",
+        "url": "https://learn.microsoft.com/entra/fundamentals/how-to-create-delete-users"
+      },
+      {
+        "title": "Create a basic group and add members",
+        "url": "https://learn.microsoft.com/entra/fundamentals/how-to-manage-groups"
+      },
+      {
+        "title": "Create or update a dynamic membership group",
+        "url": "https://learn.microsoft.com/entra/identity/users/groups-create-rule"
+      }
+    ]
+  }
+}

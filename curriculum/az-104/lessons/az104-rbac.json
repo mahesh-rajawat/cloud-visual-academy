@@ -1,0 +1,676 @@
+{
+  "id": "az104-rbac",
+  "exam": "az-104",
+  "title": "Azure RBAC: built-in roles, scopes and interpreting access",
+  "objectiveIds": [
+    "AZ104-1.2.1",
+    "AZ104-1.2.2",
+    "AZ104-1.2.3"
+  ],
+  "estimatedMinutes": 70,
+  "learningObjective": "Choose the least-privileged built-in role, assign it at the right scope, and explain exactly why a given principal can or cannot perform an operation.",
+  "prerequisites": [
+    {
+      "text": "Hierarchy of management groups, subscriptions and resource groups (AZ-900)",
+      "objectiveId": "AZ900-2.1.7"
+    },
+    {
+      "text": "Azure RBAC concept (AZ-900)",
+      "objectiveId": "AZ900-2.4.5"
+    },
+    {
+      "text": "Microsoft Entra users and groups",
+      "objectiveId": "AZ104-1.1.1"
+    }
+  ],
+  "foundation": [
+    "Azure role-based access control (RBAC) answers one question: who can do what, where.",
+    "Who is a security principal: a user, a group, a service principal or a managed identity. What is a role definition: a list of allowed operations such as 'restart a virtual machine'. Where is a scope: a management group, a subscription, a resource group or a single resource.",
+    "A role assignment ties those three together. Assign a role at a resource group and it applies to every resource inside it. Scopes inherit downward, never upward.",
+    "Four built-in roles show up everywhere: Owner (everything, including granting access), Contributor (everything except granting access), Reader (look but do not touch) and User Access Administrator (manage who has access)."
+  ],
+  "engineer": [
+    "A role definition contains Actions, NotActions, DataActions and NotDataActions plus AssignableScopes. Effective permissions of one role = Actions minus NotActions.",
+    "NotActions are not deny rules. If another role assignment grants an operation that one role excludes, the operation is allowed. Azure RBAC is additive: effective access is the union of all assignments for the user and every group they are a member of, at the target scope and all parent scopes.",
+    "Contributor has Actions '*' with NotActions including Microsoft.Authorization/*/Write, Microsoft.Authorization/*/Delete and Microsoft.Authorization/elevateAccess/Action, which is why a Contributor cannot create role assignments or policy assignments.",
+    "Deny assignments are the only thing that overrides a grant. You cannot create them directly; they are created by Azure features such as Azure Managed Applications and deployment stacks.",
+    "Azure roles (control plane for Azure resources) are separate from Microsoft Entra roles (directory: users, groups, licences). A Global Administrator has no Azure resource access by default, but can elevate to User Access Administrator at root scope (/).",
+    "Data-plane access is separate: Owner on a storage account does not let you read blob data with Entra authentication; you need a data role such as Storage Blob Data Reader (DataActions). The portal may still show data if it falls back to account keys.",
+    "Role assignment changes can take several minutes to take effect because tokens and caches refresh; signing out and in again forces a new token.",
+    "To create assignments you need Microsoft.Authorization/roleAssignments/write: Owner, User Access Administrator or Role Based Access Control Administrator (which can be constrained with conditions)."
+  ],
+  "animation": {
+    "id": "rbac-scope-sim",
+    "caption": "Assign roles at different scopes and watch the access check walk up the hierarchy."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "mg",
+        "label": "Management group: Contoso",
+        "x": 0,
+        "y": 0,
+        "kind": "scope"
+      },
+      {
+        "id": "sub",
+        "label": "Subscription: Prod",
+        "x": 0,
+        "y": 110,
+        "kind": "scope"
+      },
+      {
+        "id": "rg",
+        "label": "Resource group: rg-web",
+        "x": 0,
+        "y": 220,
+        "kind": "scope"
+      },
+      {
+        "id": "vm",
+        "label": "VM: vm-web-01",
+        "x": 0,
+        "y": 330,
+        "kind": "compute"
+      },
+      {
+        "id": "grp",
+        "label": "Group: Ops team",
+        "x": 360,
+        "y": 110,
+        "kind": "identity"
+      },
+      {
+        "id": "ana",
+        "label": "User: Ana (member of Ops)",
+        "x": 360,
+        "y": 260,
+        "kind": "identity"
+      }
+    ],
+    "edges": [
+      {
+        "from": "mg",
+        "to": "sub",
+        "label": "inherits"
+      },
+      {
+        "from": "sub",
+        "to": "rg",
+        "label": "inherits"
+      },
+      {
+        "from": "rg",
+        "to": "vm",
+        "label": "inherits"
+      },
+      {
+        "from": "grp",
+        "to": "sub",
+        "label": "VM Contributor"
+      },
+      {
+        "from": "ana",
+        "to": "grp",
+        "label": "member"
+      }
+    ]
+  },
+  "example": {
+    "title": "Least privilege for an operations team",
+    "body": [
+      "The operations team must restart and resize VMs in the Prod subscription but must not change networking or grant access.",
+      "Assign Virtual Machine Contributor to the Ops team group at the subscription scope. Every current and future VM in every resource group inherits it.",
+      "A contractor needs to view resources in rg-web only: assign Reader to the contractor's guest account at rg-web, not at the subscription.",
+      "Assign to groups rather than individuals. Assignments then survive staff changes, and you stay under the per-subscription assignment limit."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "The principal exists in the Microsoft Entra tenant that trusts the subscription",
+      "You know the scope ID (/subscriptions/<id>/resourceGroups/<name>/...)"
+    ],
+    "permissions": [
+      "Microsoft.Authorization/roleAssignments/write at the target scope (Owner, User Access Administrator, or Role Based Access Control Administrator)"
+    ],
+    "limits": [
+      "Up to 4,000 role assignments per subscription",
+      "Up to 500 role assignments per management group",
+      "Management group tree depth: up to six levels below the root (not counting the root or subscriptions)",
+      "Role changes can take several minutes to apply"
+    ],
+    "portal": [
+      "Open the scope (management group, subscription, resource group or resource) > Access control (IAM).",
+      "Roles tab: inspect a built-in role's permissions (View > Permissions/JSON).",
+      "Add > Add role assignment: choose the role, then Members (user, group, service principal or managed identity), then Review + assign.",
+      "Check access tab: select a user to list their effective assignments at this scope, including inherited ones and those received via groups.",
+      "Role assignments tab: filter by scope to see 'This resource' vs 'Inherited'."
+    ],
+    "cli": "az role definition list --name \"Virtual Machine Contributor\" --query \"[0].permissions\"\naz role assignment create --assignee-object-id <ops-group-object-id> --assignee-principal-type Group \\\n  --role \"Virtual Machine Contributor\" --scope /subscriptions/<sub-id>\naz role assignment create --assignee contractor@fabrikam.com --role Reader \\\n  --scope /subscriptions/<sub-id>/resourceGroups/rg-web\naz role assignment list --assignee ana@contoso.com --all --include-inherited --include-groups -o table",
+    "powershell": "Get-AzRoleDefinition -Name \"Virtual Machine Contributor\" | Select-Object -ExpandProperty Actions\n$ops = Get-AzADGroup -DisplayName \"Ops team\"\nNew-AzRoleAssignment -ObjectId $ops.Id -RoleDefinitionName \"Virtual Machine Contributor\" -Scope \"/subscriptions/<sub-id>\"\nNew-AzRoleAssignment -SignInName contractor@fabrikam.com -RoleDefinitionName Reader -ResourceGroupName rg-web\nGet-AzRoleAssignment -SignInName ana@contoso.com -ExpandPrincipalGroups",
+    "bicep": "targetScope = 'resourceGroup'\nparam principalId string\n\nvar readerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')\n\nresource readerAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {\n  name: guid(resourceGroup().id, principalId, readerRoleId)\n  properties: {\n    roleDefinitionId: readerRoleId\n    principalId: principalId\n    principalType: 'User'\n  }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "rbac-scope-sim",
+    "objective": "Grant Ana exactly the access she needs, and explain every allowed or denied request.",
+    "duration": 20,
+    "steps": [
+      "Check whether Ana can restart vm-web-01 with no assignments. Read the reason.",
+      "Assign Virtual Machine Contributor to the Ops team group at the subscription. Re-check: the grant is inherited and arrives via the group.",
+      "Have Ana try to create a role assignment on rg-web. It fails: VM Contributor does not include Microsoft.Authorization actions.",
+      "Assign Contributor to Ana at rg-web and try again. It still fails: Contributor's NotActions exclude role assignment writes.",
+      "Remove the over-broad Contributor assignment to restore least privilege."
+    ],
+    "expected": [
+      "Inherited allow via group for restart.",
+      "Contributor blocked by NotActions for roleAssignments/write.",
+      "Final state: only the group VM Contributor assignment remains."
+    ],
+    "validation": [
+      {
+        "id": "inherited-allow",
+        "text": "Produced an allow that was inherited from a parent scope"
+      },
+      {
+        "id": "notactions-block",
+        "text": "Observed Contributor blocked by NotActions"
+      },
+      {
+        "id": "least-privilege",
+        "text": "Ended with no Owner or Contributor assignments for Ana"
+      }
+    ],
+    "failureScenarios": [
+      "Assigning at a child scope and expecting access at the parent.",
+      "Assigning an Entra role (e.g. User Administrator) and expecting Azure resource access."
+    ],
+    "cleanup": [
+      "Simulation only: use Restart to clear assignments."
+    ],
+    "cost": "None. Runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "User was just assigned a role but still gets AuthorizationFailed.",
+      "cause": "Token/caches not refreshed yet.",
+      "fix": "Wait a few minutes, sign out and in, or for CLI run az account clear and az login again."
+    },
+    {
+      "symptom": "Contributor cannot assign roles to a managed identity during a deployment.",
+      "cause": "Role assignment writes are in Contributor NotActions.",
+      "fix": "Grant Role Based Access Control Administrator (optionally with conditions) or User Access Administrator at that scope to the deploying identity."
+    },
+    {
+      "symptom": "Global Administrator cannot see any subscriptions.",
+      "cause": "Entra directory roles do not grant Azure resource access.",
+      "fix": "Elevate access (Entra ID > Properties > Access management for Azure resources) temporarily, assign a proper role, then remove the elevation."
+    },
+    {
+      "symptom": "Owner gets 403 reading blobs with --auth-mode login.",
+      "cause": "Owner grants control-plane actions, not blob DataActions.",
+      "fix": "Assign Storage Blob Data Reader/Contributor at the account or container scope."
+    },
+    {
+      "symptom": "Delete fails even for Owner.",
+      "cause": "A resource lock (CanNotDelete) or a deny assignment applies.",
+      "fix": "Check Locks and the Deny assignments tab in Access control (IAM)."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Microsoft Entra roles",
+      "difference": "Control directory objects (users, groups, apps) in the tenant; scoped to the tenant or administrative units, not to Azure resources."
+    },
+    {
+      "service": "Azure Policy",
+      "difference": "Evaluates resource properties (what a resource may look like); RBAC evaluates who may perform an operation. A request can pass RBAC and still be denied by policy."
+    },
+    {
+      "service": "AWS IAM policies",
+      "difference": "AWS supports explicit Deny statements that always win; Azure RBAC role definitions have no deny (NotActions only subtract), and deny assignments are system-created."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "NotActions deny an operation.",
+      "reality": "NotActions only remove operations from that role. Another role can still grant them."
+    },
+    {
+      "myth": "Assigning Owner on a VM gives access to its resource group.",
+      "reality": "Inheritance flows downward only."
+    },
+    {
+      "myth": "Global Administrator is automatically an Owner of all subscriptions.",
+      "reality": "Only after explicitly elevating access, which grants User Access Administrator at root scope."
+    },
+    {
+      "myth": "Contributor can grant access to others.",
+      "reality": "Contributor cannot write role assignments; that needs Owner, User Access Administrator or Role Based Access Control Administrator."
+    }
+  ],
+  "architectureDecisions": [
+    "Assign at the highest scope that is still correct for the whole group; avoid many resource-level assignments that are hard to audit.",
+    "Assign roles to groups, not individual users.",
+    "Prefer job-function built-in roles (Virtual Machine Contributor, Network Contributor) over Contributor; create a custom role only when no built-in role fits.",
+    "Use Privileged Identity Management for just-in-time Owner/User Access Administrator where licensed."
+  ],
+  "docs": [
+    {
+      "title": "What is Azure RBAC?",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/overview"
+    },
+    {
+      "title": "Understand scope for Azure RBAC",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/scope-overview"
+    },
+    {
+      "title": "Azure role definitions (Actions and NotActions)",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/role-definitions"
+    },
+    {
+      "title": "Azure built-in roles",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/built-in-roles"
+    },
+    {
+      "title": "Understand Azure deny assignments",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/deny-assignments"
+    },
+    {
+      "title": "Check access for a user to a single Azure resource",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/check-access"
+    },
+    {
+      "title": "Azure RBAC limits",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/troubleshoot-limits"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert. Role definitions in the simulator list the main Actions/NotActions only."
+  },
+  "walkthrough": {
+    "subtitle": "Answer three questions for every permission: who, what, and where.",
+    "learn": [
+      "Who: security principals",
+      "What: role definitions",
+      "Where: scopes and inheritance",
+      "The four key built-in roles",
+      "Reading effective access"
+    ],
+    "nodes": [
+      {
+        "id": "ana",
+        "label": "Ana",
+        "x": 110,
+        "y": 90,
+        "kind": "user",
+        "sub": "security principal"
+      },
+      {
+        "id": "role",
+        "label": "Role: Reader",
+        "x": 400,
+        "y": 90,
+        "kind": "security",
+        "sub": "what she can do"
+      },
+      {
+        "id": "mg",
+        "label": "Management group",
+        "x": 110,
+        "y": 250,
+        "kind": "identity"
+      },
+      {
+        "id": "sub",
+        "label": "Subscription",
+        "x": 300,
+        "y": 250,
+        "kind": "identity"
+      },
+      {
+        "id": "rg",
+        "label": "Resource group",
+        "x": 490,
+        "y": 250,
+        "kind": "identity"
+      },
+      {
+        "id": "vm",
+        "label": "VM",
+        "x": 680,
+        "y": 250,
+        "kind": "compute"
+      },
+      {
+        "id": "assign",
+        "label": "Role assignment",
+        "x": 400,
+        "y": 390,
+        "kind": "security",
+        "sub": "who + what + where"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Too much access",
+        "title": "Everyone is Owner",
+        "body": [
+          "In a small team, it is tempting to make everyone Owner of the subscription. Then an intern deletes the production database.",
+          "You need to give each person only what they need, only where they need it."
+        ],
+        "show": [
+          "ana"
+        ],
+        "focus": [
+          "ana"
+        ],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Who + what",
+        "title": "Who and what",
+        "body": [
+          "Who is a security principal: a user, a group, a service principal (an app) or a managed identity.",
+          "What is a role definition: a list of allowed actions, such as read anything, or restart VMs."
+        ],
+        "show": [
+          "ana",
+          "role"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ana",
+            "to": "role",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Where",
+        "title": "Where: the scope",
+        "body": [
+          "A scope is a management group, a subscription, a resource group or one resource. Access given at a scope flows down to everything below it, never up."
+        ],
+        "show": [
+          "ana",
+          "role",
+          "mg",
+          "sub",
+          "rg",
+          "vm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ana",
+            "to": "role"
+          },
+          {
+            "from": "mg",
+            "to": "sub",
+            "label": "inherits",
+            "fresh": true
+          },
+          {
+            "from": "sub",
+            "to": "rg",
+            "label": "inherits",
+            "fresh": true
+          },
+          {
+            "from": "rg",
+            "to": "vm",
+            "label": "inherits",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Assign at the smallest scope that does the job, usually a resource group."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Key roles",
+        "title": "Four roles you must know",
+        "body": [
+          "Owner: full access, including giving access to others. Contributor: create and manage everything, but cannot give access. Reader: view only. User Access Administrator: manage access only.",
+          "Many specific roles exist too, such as Virtual Machine Contributor."
+        ],
+        "show": [
+          "ana",
+          "role",
+          "mg",
+          "sub",
+          "rg",
+          "vm"
+        ],
+        "focus": [
+          "role"
+        ],
+        "edges": [
+          {
+            "from": "ana",
+            "to": "role"
+          },
+          {
+            "from": "mg",
+            "to": "sub",
+            "label": "inherits"
+          },
+          {
+            "from": "sub",
+            "to": "rg",
+            "label": "inherits"
+          },
+          {
+            "from": "rg",
+            "to": "vm",
+            "label": "inherits"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Contributor cannot assign roles. That needs Owner, User Access Administrator or Role Based Access Control Administrator."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Assignment",
+        "title": "A role assignment ties it together",
+        "body": [
+          "A role assignment = principal + role + scope. Access adds up: Ana's effective access is all her assignments plus those of every group she is in, at this scope and above.",
+          "Use Access control (IAM) > Check access to see exactly what someone has, and why."
+        ],
+        "show": [
+          "ana",
+          "role",
+          "mg",
+          "sub",
+          "rg",
+          "vm",
+          "assign"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ana",
+            "to": "role"
+          },
+          {
+            "from": "mg",
+            "to": "sub",
+            "label": "inherits"
+          },
+          {
+            "from": "sub",
+            "to": "rg",
+            "label": "inherits"
+          },
+          {
+            "from": "rg",
+            "to": "vm",
+            "label": "inherits"
+          },
+          {
+            "from": "assign",
+            "to": "rg",
+            "label": "at scope",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "RBAC in one minute",
+        "body": [
+          "Who + what + where, with the smallest scope."
+        ],
+        "show": [
+          "ana",
+          "role",
+          "mg",
+          "sub",
+          "rg",
+          "vm",
+          "assign"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "ana",
+            "to": "role"
+          },
+          {
+            "from": "mg",
+            "to": "sub",
+            "label": "inherits"
+          },
+          {
+            "from": "sub",
+            "to": "rg",
+            "label": "inherits"
+          },
+          {
+            "from": "rg",
+            "to": "vm",
+            "label": "inherits"
+          },
+          {
+            "from": "assign",
+            "to": "rg",
+            "label": "at scope"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Principal: user, group, service principal, managed identity",
+          "Role definition: list of allowed actions",
+          "Scope inherits downward: MG > subscription > RG > resource",
+          "Owner / Contributor / Reader / User Access Administrator",
+          "Access is additive; use Check access"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Give Ana Reader on one resource group and prove it",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Free. Role assignments and empty resource groups cost nothing.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "Ana Lab from the users lab, and her password."
+    ],
+    "steps": [
+      {
+        "do": "Open Resource groups > rg-az104-lab > Access control (IAM) > + Add > Add role assignment.",
+        "see": "A list of roles with a search box."
+      },
+      {
+        "do": "Search for Reader, select it, then Next. Select + Select members, choose Ana Lab, then Review + assign twice.",
+        "see": "A notification 'Added role assignment'."
+      },
+      {
+        "do": "Select the Role assignments tab.",
+        "see": "Ana Lab listed with role Reader and scope 'This resource'."
+      },
+      {
+        "do": "Select Check access, search for Ana Lab and open her.",
+        "see": "Her Reader assignment on this resource group, and any inherited from above (none yet)."
+      },
+      {
+        "do": "In a private browser window sign in to portal.azure.com as Ana. Open Resource groups.",
+        "see": "Only rg-az104-lab is visible.",
+        "tip": "Azure requires multifactor authentication for portal sign-in, so the first time Ana is asked to set up the Microsoft Authenticator app (or another method). New role assignments can take a few minutes; if nothing shows, sign out and in again."
+      },
+      {
+        "do": "As Ana, open rg-az104-lab and try + Create > Storage account, and try to create it.",
+        "see": "The deployment fails with an authorization error: Reader cannot create resources."
+      },
+      {
+        "do": "As yourself, change Ana's role to Contributor (remove Reader, add Contributor) and repeat step 6 with a storage account name, then cancel before creating.",
+        "see": "Ana can now reach the Review page. Contributor can create, Reader cannot."
+      }
+    ],
+    "check": [
+      "Check access shows Ana's role on rg-az104-lab.",
+      "You saw a Reader blocked from creating a resource."
+    ],
+    "cleanup": [
+      "Remove Ana's role assignment: rg-az104-lab > Access control (IAM) > Role assignments > select > Delete."
+    ],
+    "screens": [
+      {
+        "title": "Assign Azure roles using the portal",
+        "url": "https://learn.microsoft.com/azure/role-based-access-control/role-assignments-portal"
+      },
+      {
+        "title": "Check access for a user to Azure resources",
+        "url": "https://learn.microsoft.com/azure/role-based-access-control/check-access"
+      },
+      {
+        "title": "Azure built-in roles",
+        "url": "https://learn.microsoft.com/azure/role-based-access-control/built-in-roles"
+      }
+    ]
+  }
+}

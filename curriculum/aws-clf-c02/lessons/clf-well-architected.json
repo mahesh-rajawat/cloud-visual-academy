@@ -1,0 +1,571 @@
+{
+  "id": "clf-well-architected",
+  "exam": "aws-clf-c02",
+  "title": "AWS Well-Architected Framework",
+  "objectiveIds": [
+    "CLFC02-1.2.1",
+    "CLFC02-1.2.2",
+    "CLFC02-1.2.3"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Describe the Well-Architected Framework and its six pillars, and tell the pillars apart.",
+  "prerequisites": [
+    {
+      "text": "Cloud benefits",
+      "objectiveId": "CLFC02-1.1.1",
+      "lessonId": "clf-benefits"
+    }
+  ],
+  "foundation": [
+    "The Well-Architected Framework is AWS's set of best practices for designing and running workloads in the cloud.",
+    "It has six pillars: operational excellence, security, reliability, performance efficiency, cost optimization and sustainability.",
+    "The free AWS Well-Architected Tool lets you review a workload against these best practices."
+  ],
+  "engineer": [
+    "Operational excellence: perform operations as code, make frequent small reversible changes, refine procedures, anticipate failure, learn from operational events.",
+    "Security: strong identity foundation, traceability, security at all layers, automate security best practices, protect data in transit and at rest, keep people away from data, prepare for security events.",
+    "Reliability: automatically recover from failure, test recovery procedures, scale horizontally, stop guessing capacity, manage change through automation.",
+    "Performance efficiency: democratise advanced technologies, go global in minutes, use serverless architectures, experiment more often, consider mechanical sympathy.",
+    "Cost optimization: implement cloud financial management, adopt a consumption model, measure overall efficiency, stop spending on undifferentiated heavy lifting, analyse and attribute expenditure.",
+    "Sustainability: understand your impact, establish goals, maximise utilisation, adopt more efficient hardware and software, use managed services, reduce downstream impact."
+  ],
+  "animation": {
+    "id": "aws-concepts-sim",
+    "caption": "Open 'Well-Architected pillars' and match concerns to pillars."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "wa",
+        "label": "Well-Architected Framework",
+        "x": 300,
+        "y": 0,
+        "kind": "service"
+      },
+      {
+        "id": "p1",
+        "label": "Operational excellence",
+        "x": 75,
+        "y": 130,
+        "kind": "security"
+      },
+      {
+        "id": "p2",
+        "label": "Security",
+        "x": 225,
+        "y": 130,
+        "kind": "security"
+      },
+      {
+        "id": "p3",
+        "label": "Reliability",
+        "x": 375,
+        "y": 130,
+        "kind": "security"
+      },
+      {
+        "id": "p4",
+        "label": "Performance efficiency",
+        "x": 525,
+        "y": 130,
+        "kind": "security"
+      },
+      {
+        "id": "p5",
+        "label": "Cost optimization",
+        "x": 675,
+        "y": 130,
+        "kind": "security"
+      },
+      {
+        "id": "p6",
+        "label": "Sustainability",
+        "x": 825,
+        "y": 130,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "wa",
+        "to": "p1"
+      },
+      {
+        "from": "wa",
+        "to": "p2"
+      },
+      {
+        "from": "wa",
+        "to": "p3"
+      },
+      {
+        "from": "wa",
+        "to": "p4"
+      },
+      {
+        "from": "wa",
+        "to": "p5"
+      },
+      {
+        "from": "wa",
+        "to": "p6"
+      }
+    ]
+  },
+  "example": {
+    "title": "A review before launch",
+    "body": [
+      "Before launching, a team runs a Well-Architected review in the Well-Architected Tool. It finds single-AZ databases (reliability), no MFA on admin users (security) and oversized instances (cost), and fixes them."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "AWS Well-Architected Tool > Define workload > Start review."
+    ],
+    "cli": "aws wellarchitected list-workloads",
+    "powershell": "Get-WATWorkloadList"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-concepts-sim",
+    "objective": "Practise choosing the right pillar.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Well-Architected pillars' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-pillar-correct",
+        "text": "Chose a correct pillar"
+      },
+      {
+        "id": "aws-pillar-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Outages when one AZ fails.",
+      "cause": "Reliability gaps.",
+      "fix": "Apply reliability-pillar practices (multi-AZ, automatic recovery)."
+    },
+    {
+      "symptom": "Costs keep rising.",
+      "cause": "No cost-optimization practices.",
+      "fix": "Rightsize, adopt the consumption model, attribute spend."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Well-Architected Framework",
+      "difference": "Five pillars (reliability, security, cost optimization, operational excellence, performance efficiency); AWS adds sustainability as a sixth pillar."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Performance efficiency is about cost.",
+      "reality": "It is about using resources efficiently to meet requirements; cost has its own pillar."
+    },
+    {
+      "myth": "The framework is a paid service.",
+      "reality": "The framework and the Well-Architected Tool are free."
+    }
+  ],
+  "architectureDecisions": [
+    "Review workloads regularly, not only before launch."
+  ],
+  "docs": [
+    {
+      "title": "AWS Well-Architected Framework",
+      "url": "https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html"
+    },
+    {
+      "title": "The pillars of the framework",
+      "url": "https://docs.aws.amazon.com/wellarchitected/latest/framework/the-pillars-of-the-framework.html"
+    },
+    {
+      "title": "AWS Well-Architected Tool",
+      "url": "https://docs.aws.amazon.com/wellarchitected/latest/userguide/intro.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Review one workload against the six pillars and see what each pillar is really asking.",
+    "learn": [
+      "What the Well-Architected Framework is",
+      "The six pillars by name",
+      "The question each pillar asks",
+      "Telling similar pillars apart"
+    ],
+    "nodes": [
+      {
+        "id": "wl",
+        "label": "Your workload",
+        "x": 400,
+        "y": 220,
+        "kind": "service",
+        "sub": "web shop"
+      },
+      {
+        "id": "ops",
+        "label": "Operational excellence",
+        "x": 140,
+        "y": 80,
+        "kind": "service"
+      },
+      {
+        "id": "sec",
+        "label": "Security",
+        "x": 400,
+        "y": 50,
+        "kind": "security"
+      },
+      {
+        "id": "rel",
+        "label": "Reliability",
+        "x": 660,
+        "y": 80,
+        "kind": "service"
+      },
+      {
+        "id": "perf",
+        "label": "Performance efficiency",
+        "x": 140,
+        "y": 360,
+        "kind": "service"
+      },
+      {
+        "id": "cost",
+        "label": "Cost optimization",
+        "x": 400,
+        "y": 390,
+        "kind": "cost"
+      },
+      {
+        "id": "sus",
+        "label": "Sustainability",
+        "x": 660,
+        "y": 360,
+        "kind": "service"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Is it good?",
+        "title": "Is this design any good?",
+        "body": [
+          "Your web shop works. But will it survive a failure? Is it secure? Are you paying too much?",
+          "\"It works\" is not the same as \"it is well designed\". You need a checklist."
+        ],
+        "show": [
+          "wl"
+        ],
+        "focus": [
+          "wl"
+        ],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "The framework",
+        "title": "AWS's checklist: the Well-Architected Framework",
+        "body": [
+          "The Well-Architected Framework is AWS's set of best practices and questions for designing and running workloads in the cloud.",
+          "The free AWS Well-Architected Tool in the console walks you through the questions and records the risks it finds."
+        ],
+        "show": [
+          "wl"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "key",
+          "text": "It is guidance and a review process, not a service that changes your resources."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Ops + Security",
+        "title": "Pillars 1-2: run it well and keep it safe",
+        "body": [
+          "Operational excellence asks: can you run, monitor and improve this? Think operations as code, small reversible changes, and learning from incidents.",
+          "Security asks: are data and systems protected? Think strong identities, traceability, encryption, and security at every layer."
+        ],
+        "show": [
+          "wl",
+          "ops",
+          "sec"
+        ],
+        "focus": [
+          "ops",
+          "sec"
+        ],
+        "edges": [
+          {
+            "from": "wl",
+            "to": "ops",
+            "fresh": true
+          },
+          {
+            "from": "wl",
+            "to": "sec",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Reliability + Perf",
+        "title": "Pillars 3-4: keep working and stay fast",
+        "body": [
+          "Reliability asks: does it recover from failure and meet demand? Think multiple AZs, automatic recovery, and tested backups.",
+          "Performance efficiency asks: are you using the right resources, efficiently? Think the right instance type, serverless, caching, and going global."
+        ],
+        "show": [
+          "wl",
+          "ops",
+          "sec",
+          "rel",
+          "perf"
+        ],
+        "focus": [
+          "rel",
+          "perf"
+        ],
+        "edges": [
+          {
+            "from": "wl",
+            "to": "ops"
+          },
+          {
+            "from": "wl",
+            "to": "sec"
+          },
+          {
+            "from": "wl",
+            "to": "rel",
+            "fresh": true
+          },
+          {
+            "from": "wl",
+            "to": "perf",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Cost + Sustainability",
+        "title": "Pillars 5-6: spend wisely and waste less",
+        "body": [
+          "Cost optimization asks: are you paying only for what delivers value? Think rightsizing, the right pricing model, and turning off idle resources.",
+          "Sustainability asks: are you reducing environmental impact? Think high utilisation, efficient hardware, and managed services."
+        ],
+        "show": [
+          "wl",
+          "ops",
+          "sec",
+          "rel",
+          "perf",
+          "cost",
+          "sus"
+        ],
+        "focus": [
+          "cost",
+          "sus"
+        ],
+        "edges": [
+          {
+            "from": "wl",
+            "to": "ops"
+          },
+          {
+            "from": "wl",
+            "to": "sec"
+          },
+          {
+            "from": "wl",
+            "to": "rel"
+          },
+          {
+            "from": "wl",
+            "to": "perf"
+          },
+          {
+            "from": "wl",
+            "to": "cost",
+            "fresh": true
+          },
+          {
+            "from": "wl",
+            "to": "sus",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "case",
+        "label": "Review",
+        "title": "Case: a review before launch",
+        "body": [
+          "The review finds a database in one AZ, so reliability is at risk. Admins without MFA is a security risk. Oversized servers running at 5% CPU is a cost risk, and a sustainability one too.",
+          "Each finding belongs to the pillar whose question it fails."
+        ],
+        "show": [
+          "wl",
+          "ops",
+          "sec",
+          "rel",
+          "perf",
+          "cost",
+          "sus"
+        ],
+        "focus": [
+          "rel",
+          "sec",
+          "cost"
+        ],
+        "edges": [
+          {
+            "from": "wl",
+            "to": "ops"
+          },
+          {
+            "from": "wl",
+            "to": "sec"
+          },
+          {
+            "from": "wl",
+            "to": "rel"
+          },
+          {
+            "from": "wl",
+            "to": "perf"
+          },
+          {
+            "from": "wl",
+            "to": "cost"
+          },
+          {
+            "from": "wl",
+            "to": "sus"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Reliability = recovers from failure. Performance efficiency = right resources for speed. Cost optimization = paying less for the same value. Sustainability = less energy and waste."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Six pillars, six questions",
+        "body": [
+          "Use the question each pillar asks to place any scenario."
+        ],
+        "show": [
+          "wl",
+          "ops",
+          "sec",
+          "rel",
+          "perf",
+          "cost",
+          "sus"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "wl",
+            "to": "ops"
+          },
+          {
+            "from": "wl",
+            "to": "sec"
+          },
+          {
+            "from": "wl",
+            "to": "rel"
+          },
+          {
+            "from": "wl",
+            "to": "perf"
+          },
+          {
+            "from": "wl",
+            "to": "cost"
+          },
+          {
+            "from": "wl",
+            "to": "sus"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Operational excellence: can we run and improve it?",
+          "Security: is it protected?",
+          "Reliability: does it recover and meet demand?",
+          "Performance efficiency: right resources, used efficiently?",
+          "Cost optimization: paying only for value?",
+          "Sustainability: less impact?"
+        ]
+      }
+    ]
+  }
+}

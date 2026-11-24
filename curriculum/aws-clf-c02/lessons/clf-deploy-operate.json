@@ -1,0 +1,594 @@
+{
+  "id": "clf-deploy-operate",
+  "exam": "aws-clf-c02",
+  "title": "Ways to provision, access and operate AWS",
+  "objectiveIds": [
+    "CLFC02-3.1.1",
+    "CLFC02-3.1.2",
+    "CLFC02-3.1.3",
+    "CLFC02-3.1.4",
+    "CLFC02-3.1.5",
+    "CLFC02-3.1.6"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Choose between the Management Console, CLI, SDKs/APIs and infrastructure as code, decide between one-time and repeatable processes, and identify cloud, hybrid and on-premises deployment models.",
+  "prerequisites": [
+    {
+      "text": "AWS global infrastructure",
+      "objectiveId": "CLFC02-3.2.1",
+      "lessonId": "clf-global-infrastructure"
+    }
+  ],
+  "foundation": [
+    "You can work with AWS through the web console, the command line (AWS CLI), software development kits (SDKs) in your code, or templates that describe infrastructure (AWS CloudFormation).",
+    "Use the console for one-off tasks and learning; use scripts and templates for anything you repeat.",
+    "Deployment models: all-in cloud, hybrid (cloud plus on-premises, for example with AWS Outposts or Direct Connect) and on-premises."
+  ],
+  "engineer": [
+    "Every access method calls the same AWS APIs, authenticated with IAM. The CLI and SDKs use access keys or, better, temporary credentials from IAM Identity Center or roles. AWS CloudShell provides a browser-based shell with the CLI preinstalled.",
+    "Infrastructure as code: AWS CloudFormation (JSON/YAML templates, stacks, change sets, drift detection), AWS CDK (define infrastructure in programming languages, synthesised to CloudFormation), AWS Service Catalog (approved templates for users).",
+    "Repeatable operations: automation with AWS Systems Manager (runbooks, patching), CI/CD with CodePipeline, and Elastic Beanstalk for app deployments.",
+    "Hybrid: AWS Outposts (AWS racks on premises), Storage Gateway, Direct Connect/VPN, and Local Zones."
+  ],
+  "animation": {
+    "id": "aws-tech-sim",
+    "caption": "Open 'Ways to access and deploy'."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "con",
+        "label": "Management Console",
+        "x": 0,
+        "y": 0,
+        "kind": "user"
+      },
+      {
+        "id": "cli",
+        "label": "AWS CLI / CloudShell",
+        "x": 0,
+        "y": 100,
+        "kind": "user"
+      },
+      {
+        "id": "sdk",
+        "label": "SDKs / APIs",
+        "x": 0,
+        "y": 200,
+        "kind": "service"
+      },
+      {
+        "id": "cfn",
+        "label": "CloudFormation / CDK",
+        "x": 0,
+        "y": 300,
+        "kind": "service"
+      },
+      {
+        "id": "api",
+        "label": "AWS APIs (IAM-authenticated)",
+        "x": 300,
+        "y": 150,
+        "kind": "security"
+      },
+      {
+        "id": "res",
+        "label": "Resources",
+        "x": 560,
+        "y": 150,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "con",
+        "to": "api"
+      },
+      {
+        "from": "cli",
+        "to": "api"
+      },
+      {
+        "from": "sdk",
+        "to": "api"
+      },
+      {
+        "from": "cfn",
+        "to": "api"
+      },
+      {
+        "from": "api",
+        "to": "res"
+      }
+    ]
+  },
+  "example": {
+    "title": "From click-ops to IaC",
+    "body": [
+      "A team explores a new service in the console, then captures the working setup in a CloudFormation template so every environment is created identically through a pipeline."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "Console > CloudShell icon.",
+      "CloudFormation > Create stack."
+    ],
+    "cli": "aws configure sso\naws cloudformation deploy --template-file vpc.yaml --stack-name vpc-dev\naws cloudformation detect-stack-drift --stack-name vpc-dev",
+    "powershell": "Set-AWSCredential -ProfileName dev\nNew-CFNStack -StackName vpc-dev -TemplateBody (Get-Content vpc.yaml -Raw)"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-tech-sim",
+    "objective": "Practise choosing the right access method.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Ways to access and deploy' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-access-correct",
+        "text": "Chose a correct access method"
+      },
+      {
+        "id": "aws-access-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Environments drift apart.",
+      "cause": "Manual console changes.",
+      "fix": "Use CloudFormation and drift detection."
+    },
+    {
+      "symptom": "Scripts fail with expired credentials.",
+      "cause": "Temporary credentials expired.",
+      "fix": "Re-authenticate (aws sso login) or use roles."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure portal / CLI / ARM-Bicep",
+      "difference": "Equivalent access methods on Azure."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "The console and CLI use different permission systems.",
+      "reality": "Both use IAM."
+    },
+    {
+      "myth": "IaC is only for large companies.",
+      "reality": "It helps any repeatable environment."
+    }
+  ],
+  "architectureDecisions": [
+    "Console for exploration, IaC for everything you deploy twice."
+  ],
+  "docs": [
+    {
+      "title": "AWS Management Console",
+      "url": "https://aws.amazon.com/console/"
+    },
+    {
+      "title": "AWS CLI",
+      "url": "https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html"
+    },
+    {
+      "title": "AWS CloudFormation",
+      "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html"
+    },
+    {
+      "title": "AWS SDKs and tools",
+      "url": "https://aws.amazon.com/developer/tools/"
+    },
+    {
+      "title": "AWS Outposts",
+      "url": "https://docs.aws.amazon.com/outposts/latest/userguide/what-is-outposts.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Create the same environment three ways (click, script, template) and see when each one fits.",
+    "learn": [
+      "Every AWS action is an API call",
+      "Console vs CLI/SDK vs infrastructure as code",
+      "One-time operations vs repeatable processes",
+      "Deployment models: cloud, hybrid, on-premises"
+    ],
+    "nodes": [
+      {
+        "id": "you",
+        "label": "You",
+        "x": 90,
+        "y": 200,
+        "kind": "user"
+      },
+      {
+        "id": "api",
+        "label": "AWS APIs",
+        "x": 640,
+        "y": 200,
+        "kind": "globe",
+        "sub": "every service"
+      },
+      {
+        "id": "con",
+        "label": "Management Console",
+        "x": 330,
+        "y": 60,
+        "kind": "service",
+        "sub": "web, point and click"
+      },
+      {
+        "id": "cli",
+        "label": "CLI + SDKs",
+        "x": 330,
+        "y": 200,
+        "kind": "service",
+        "sub": "scripts, app code"
+      },
+      {
+        "id": "iac",
+        "label": "CloudFormation / CDK",
+        "x": 330,
+        "y": 340,
+        "kind": "service",
+        "sub": "infrastructure as code"
+      },
+      {
+        "id": "onp",
+        "label": "On-premises",
+        "x": 90,
+        "y": 390,
+        "kind": "cost",
+        "sub": "your data center"
+      },
+      {
+        "id": "hyb",
+        "label": "Hybrid",
+        "x": 640,
+        "y": 390,
+        "kind": "network",
+        "sub": "both, connected"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Three ways?",
+        "title": "A new test environment, by Friday",
+        "body": [
+          "Your team needs a network, two servers and a database for testing. Next month they'll need the same again for staging.",
+          "You could click it together, script it, or describe it in a template. Which one?"
+        ],
+        "show": [
+          "you"
+        ],
+        "focus": [
+          "you"
+        ],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "APIs",
+        "title": "Under the hood it's all API calls",
+        "body": [
+          "Every action on AWS, from launching a server to creating a bucket, is an API request. The console, the CLI, the SDKs and CloudFormation are just different ways of sending those requests."
+        ],
+        "show": [
+          "you",
+          "api"
+        ],
+        "focus": [
+          "api"
+        ],
+        "edges": [],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Console",
+        "title": "The Management Console: learn and do one-offs",
+        "body": [
+          "The AWS Management Console is the web interface (there is also a mobile app). It's ideal for exploring a service, a one-time task, or checking what exists.",
+          "But clicks are hard to repeat exactly and easy to get wrong."
+        ],
+        "show": [
+          "you",
+          "api",
+          "con"
+        ],
+        "focus": [
+          "con"
+        ],
+        "edges": [
+          {
+            "from": "you",
+            "to": "con",
+            "fresh": true
+          },
+          {
+            "from": "con",
+            "to": "api",
+            "label": "clicks",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "CLI + SDK",
+        "title": "CLI and SDKs: programmatic access",
+        "body": [
+          "The AWS CLI runs commands from a terminal or script, for example aws s3 ls. The SDKs (Python, JavaScript, Java and more) call AWS from your application code.",
+          "Both use access keys or temporary credentials and are good for automation."
+        ],
+        "show": [
+          "you",
+          "api",
+          "con",
+          "cli"
+        ],
+        "focus": [
+          "cli"
+        ],
+        "edges": [
+          {
+            "from": "you",
+            "to": "con"
+          },
+          {
+            "from": "con",
+            "to": "api",
+            "label": "clicks"
+          },
+          {
+            "from": "you",
+            "to": "cli",
+            "fresh": true
+          },
+          {
+            "from": "cli",
+            "to": "api",
+            "label": "commands",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "IaC",
+        "title": "Infrastructure as code: repeatable environments",
+        "body": [
+          "AWS CloudFormation reads a template (YAML or JSON) that describes every resource and creates them all as one stack. The AWS CDK lets you write the same thing in a programming language.",
+          "The same template builds test, staging and production identically, and it lives in version control."
+        ],
+        "show": [
+          "you",
+          "api",
+          "con",
+          "cli",
+          "iac"
+        ],
+        "focus": [
+          "iac"
+        ],
+        "edges": [
+          {
+            "from": "you",
+            "to": "con"
+          },
+          {
+            "from": "con",
+            "to": "api",
+            "label": "clicks"
+          },
+          {
+            "from": "you",
+            "to": "cli"
+          },
+          {
+            "from": "cli",
+            "to": "api",
+            "label": "commands"
+          },
+          {
+            "from": "you",
+            "to": "iac",
+            "fresh": true
+          },
+          {
+            "from": "iac",
+            "to": "api",
+            "label": "template",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "key",
+          "text": "One-time task: the console is fine. Anything you will repeat: use IaC or scripts."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Where it runs",
+        "title": "Cloud, hybrid or on-premises",
+        "body": [
+          "Cloud: everything runs on AWS. On-premises (private cloud): everything stays in your own data center. Hybrid: some on-premises and some on AWS, connected by VPN or Direct Connect.",
+          "AWS Outposts brings AWS infrastructure into your own building for hybrid needs."
+        ],
+        "show": [
+          "you",
+          "api",
+          "con",
+          "cli",
+          "iac",
+          "onp",
+          "hyb"
+        ],
+        "focus": [
+          "hyb"
+        ],
+        "edges": [
+          {
+            "from": "you",
+            "to": "con"
+          },
+          {
+            "from": "con",
+            "to": "api",
+            "label": "clicks"
+          },
+          {
+            "from": "you",
+            "to": "cli"
+          },
+          {
+            "from": "cli",
+            "to": "api",
+            "label": "commands"
+          },
+          {
+            "from": "you",
+            "to": "iac"
+          },
+          {
+            "from": "iac",
+            "to": "api",
+            "label": "template"
+          },
+          {
+            "from": "onp",
+            "to": "hyb",
+            "fresh": true
+          },
+          {
+            "from": "hyb",
+            "to": "api",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Pick the tool for the job",
+        "body": [
+          "Same APIs, different ways in."
+        ],
+        "show": [
+          "you",
+          "api",
+          "con",
+          "cli",
+          "iac",
+          "onp",
+          "hyb"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "you",
+            "to": "con"
+          },
+          {
+            "from": "con",
+            "to": "api",
+            "label": "clicks"
+          },
+          {
+            "from": "you",
+            "to": "cli"
+          },
+          {
+            "from": "cli",
+            "to": "api",
+            "label": "commands"
+          },
+          {
+            "from": "you",
+            "to": "iac"
+          },
+          {
+            "from": "iac",
+            "to": "api",
+            "label": "template"
+          },
+          {
+            "from": "onp",
+            "to": "hyb"
+          },
+          {
+            "from": "hyb",
+            "to": "api"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "All access is via AWS APIs",
+          "Console: explore and one-off tasks",
+          "CLI and SDKs: scripts and app code",
+          "CloudFormation / CDK: repeatable infrastructure",
+          "Deployment models: cloud, hybrid, on-premises"
+        ]
+      }
+    ]
+  }
+}

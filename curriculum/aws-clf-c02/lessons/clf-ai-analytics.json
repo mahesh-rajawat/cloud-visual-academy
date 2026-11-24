@@ -1,0 +1,647 @@
+{
+  "id": "clf-ai-analytics",
+  "exam": "aws-clf-c02",
+  "title": "AWS AI/ML and analytics services",
+  "objectiveIds": [
+    "CLFC02-3.7.1",
+    "CLFC02-3.7.2",
+    "CLFC02-3.7.3",
+    "CLFC02-3.7.4"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Identify AWS AI/ML services and the tasks they accomplish, and the services used for data analytics.",
+  "prerequisites": [
+    {
+      "text": "Storage services",
+      "objectiveId": "CLFC02-3.6.2",
+      "lessonId": "clf-storage"
+    }
+  ],
+  "foundation": [
+    "AWS offers ready-made AI services for common tasks (speech, text, images, chatbots) and Amazon SageMaker AI to build your own machine learning models.",
+    "Analytics services collect, process and query data: Amazon Kinesis for streams, AWS Glue for data preparation, Amazon Athena for SQL on S3, Amazon Redshift for data warehousing and Amazon Quick for dashboards."
+  ],
+  "engineer": [
+    "AI services: Amazon Comprehend (NLP: sentiment, entities, key phrases), Amazon Lex (chatbots), Amazon Polly (text to speech), Amazon Transcribe (speech to text), Amazon Translate, Amazon Rekognition (image/video analysis), Amazon Textract (document text, forms, tables), Amazon Q (generative AI assistant), Amazon Bedrock (foundation models; not listed in scope, mentioned for context).",
+    "ML platform: Amazon SageMaker AI (build, train, tune, deploy and monitor models).",
+    "Analytics: Amazon Athena (serverless SQL on S3), Amazon Kinesis (real-time streaming), AWS Glue (serverless ETL and Data Catalog), Amazon Redshift (data warehouse), Amazon EMR (Spark/Hadoop), Amazon OpenSearch Service (search and log analytics), Amazon Quick (business intelligence, including the capabilities previously offered as Amazon QuickSight)."
+  ],
+  "animation": {
+    "id": "aws-tech-sim",
+    "caption": "Open 'AI/ML and analytics choice'."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "kin",
+        "label": "Kinesis (stream)",
+        "x": 0,
+        "y": 60,
+        "kind": "network"
+      },
+      {
+        "id": "s3",
+        "label": "S3 data lake",
+        "x": 200,
+        "y": 60,
+        "kind": "storage"
+      },
+      {
+        "id": "glue",
+        "label": "Glue (ETL + catalog)",
+        "x": 400,
+        "y": 0,
+        "kind": "service"
+      },
+      {
+        "id": "ath",
+        "label": "Athena (SQL)",
+        "x": 400,
+        "y": 130,
+        "kind": "service"
+      },
+      {
+        "id": "q",
+        "label": "Amazon Quick (dashboards)",
+        "x": 620,
+        "y": 60,
+        "kind": "user"
+      },
+      {
+        "id": "ai",
+        "label": "Comprehend / Rekognition / Textract",
+        "x": 200,
+        "y": 200,
+        "kind": "ai"
+      }
+    ],
+    "edges": [
+      {
+        "from": "kin",
+        "to": "s3"
+      },
+      {
+        "from": "s3",
+        "to": "glue"
+      },
+      {
+        "from": "glue",
+        "to": "ath"
+      },
+      {
+        "from": "ath",
+        "to": "q"
+      },
+      {
+        "from": "s3",
+        "to": "ai"
+      }
+    ]
+  },
+  "example": {
+    "title": "Customer insight pipeline",
+    "body": [
+      "Clickstream data flows through Kinesis into S3; Glue catalogs it, Athena queries it and Amazon Quick dashboards show trends. Support emails are analysed with Comprehend for sentiment, and a Lex chatbot handles common questions."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "Athena > Query editor.",
+      "Comprehend > Real-time analysis.",
+      "SageMaker AI > Studio."
+    ],
+    "cli": "aws comprehend detect-sentiment --language-code en --text \"The delivery was fast\"\naws athena start-query-execution --query-string \"SELECT count(*) FROM logs\" --work-group primary",
+    "powershell": "Find-COMPSentiment -LanguageCode en -Text 'The delivery was fast'"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-tech-sim",
+    "objective": "Practise choosing the right AI or analytics service.",
+    "duration": 10,
+    "steps": [
+      "Open the 'AI/ML and analytics choice' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-ai-correct",
+        "text": "Chose a correct AI or analytics service"
+      },
+      {
+        "id": "aws-ai-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Need custom predictions no AI service offers.",
+      "cause": "Pre-trained services are task-specific.",
+      "fix": "Build a model in SageMaker AI."
+    },
+    {
+      "symptom": "Analysts need SQL over S3 without loading data.",
+      "cause": "No query engine.",
+      "fix": "Use Athena with the Glue Data Catalog."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure",
+      "difference": "Comprehend/Rekognition/Textract ≈ Azure AI Language/Vision/Document Intelligence; SageMaker ≈ Azure Machine Learning; Athena ≈ Synapse serverless SQL."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Textract and Rekognition are the same.",
+      "reality": "Textract extracts document text/structure; Rekognition analyses images and video."
+    },
+    {
+      "myth": "Athena needs a cluster.",
+      "reality": "Athena is serverless."
+    }
+  ],
+  "architectureDecisions": [
+    "Use AI services first; build custom models only when needed."
+  ],
+  "docs": [
+    {
+      "title": "AWS AI services",
+      "url": "https://aws.amazon.com/ai/services/"
+    },
+    {
+      "title": "Amazon SageMaker AI",
+      "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/whatis.html"
+    },
+    {
+      "title": "Amazon Lex",
+      "url": "https://docs.aws.amazon.com/lexv2/latest/dg/what-is.html"
+    },
+    {
+      "title": "Amazon Athena",
+      "url": "https://docs.aws.amazon.com/athena/latest/ug/what-is.html"
+    },
+    {
+      "title": "AWS Glue",
+      "url": "https://docs.aws.amazon.com/glue/latest/dg/what-is-glue.html"
+    },
+    {
+      "title": "Analytics on AWS",
+      "url": "https://aws.amazon.com/big-data/datalakes-and-analytics/"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Turn a stream of shop events into dashboards, then add AI without building models yourself.",
+    "learn": [
+      "Streaming data with Amazon Kinesis",
+      "AWS Glue and Amazon Athena",
+      "Dashboards with Amazon Quick",
+      "Ready-made AI services",
+      "Custom ML with SageMaker AI"
+    ],
+    "nodes": [
+      {
+        "id": "events",
+        "label": "Shop events",
+        "x": 90,
+        "y": 80,
+        "kind": "user",
+        "sub": "clicks, orders"
+      },
+      {
+        "id": "kin",
+        "label": "Amazon Kinesis",
+        "x": 290,
+        "y": 80,
+        "kind": "ai",
+        "sub": "real-time streams"
+      },
+      {
+        "id": "s3",
+        "label": "S3 data lake",
+        "x": 490,
+        "y": 80,
+        "kind": "storage"
+      },
+      {
+        "id": "glue",
+        "label": "AWS Glue",
+        "x": 490,
+        "y": 220,
+        "kind": "ai",
+        "sub": "catalog + ETL"
+      },
+      {
+        "id": "ath",
+        "label": "Amazon Athena",
+        "x": 290,
+        "y": 220,
+        "kind": "ai",
+        "sub": "SQL on S3"
+      },
+      {
+        "id": "quick",
+        "label": "Amazon Quick",
+        "x": 90,
+        "y": 220,
+        "kind": "ai",
+        "sub": "dashboards"
+      },
+      {
+        "id": "aisvc",
+        "label": "AI services",
+        "x": 290,
+        "y": 370,
+        "kind": "ai",
+        "sub": "Rekognition, Lex..."
+      },
+      {
+        "id": "sm",
+        "label": "SageMaker AI",
+        "x": 560,
+        "y": 370,
+        "kind": "ai",
+        "sub": "build your own model"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Questions",
+        "title": "What are customers doing right now?",
+        "body": [
+          "Thousands of clicks and orders arrive every minute. The business wants live dashboards, answers to ad-hoc questions, and smarter features such as a chatbot and product tagging.",
+          "Start by capturing the data."
+        ],
+        "show": [
+          "events"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Kinesis",
+        "title": "Capture the stream with Kinesis",
+        "body": [
+          "Amazon Kinesis collects and processes streaming data in real time: clickstreams, logs, IoT readings.",
+          "Amazon Data Firehose can deliver the stream into S3, which becomes your data lake."
+        ],
+        "show": [
+          "events",
+          "kin",
+          "s3"
+        ],
+        "focus": [
+          "kin"
+        ],
+        "edges": [
+          {
+            "from": "events",
+            "to": "kin",
+            "label": "real time",
+            "fresh": true
+          },
+          {
+            "from": "kin",
+            "to": "s3",
+            "label": "deliver",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Glue + Athena",
+        "title": "Catalog the data, then query it with SQL",
+        "body": [
+          "AWS Glue is serverless ETL: it discovers the data's structure, stores it in the Glue Data Catalog, and cleans or transforms it.",
+          "Amazon Athena then runs standard SQL directly on files in S3. It's serverless, and you pay per query by the data scanned."
+        ],
+        "show": [
+          "events",
+          "kin",
+          "s3",
+          "glue",
+          "ath"
+        ],
+        "focus": [
+          "glue",
+          "ath"
+        ],
+        "edges": [
+          {
+            "from": "events",
+            "to": "kin",
+            "label": "real time"
+          },
+          {
+            "from": "kin",
+            "to": "s3",
+            "label": "deliver"
+          },
+          {
+            "from": "s3",
+            "to": "glue",
+            "label": "crawl",
+            "fresh": true
+          },
+          {
+            "from": "glue",
+            "to": "ath",
+            "label": "tables",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Big, always-on warehouse? Amazon Redshift. Spark or Hadoop clusters? Amazon EMR. Search and log analytics? OpenSearch Service."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Dashboards",
+        "title": "Show it in Amazon Quick",
+        "body": [
+          "Amazon Quick provides business intelligence, including the dashboard capabilities previously offered as Amazon QuickSight. Managers get interactive charts without writing SQL."
+        ],
+        "show": [
+          "events",
+          "kin",
+          "s3",
+          "glue",
+          "ath",
+          "quick"
+        ],
+        "focus": [
+          "quick"
+        ],
+        "edges": [
+          {
+            "from": "events",
+            "to": "kin",
+            "label": "real time"
+          },
+          {
+            "from": "kin",
+            "to": "s3",
+            "label": "deliver"
+          },
+          {
+            "from": "s3",
+            "to": "glue",
+            "label": "crawl"
+          },
+          {
+            "from": "glue",
+            "to": "ath",
+            "label": "tables"
+          },
+          {
+            "from": "ath",
+            "to": "quick",
+            "label": "results",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "AI services",
+        "title": "Add AI with ready-made services",
+        "body": [
+          "No ML experts needed: call an API. Amazon Rekognition analyses images and video. Amazon Comprehend finds sentiment and entities in text. Amazon Lex builds chatbots. Amazon Polly speaks text and Amazon Transcribe writes down speech. Amazon Translate translates. Amazon Textract reads forms."
+        ],
+        "show": [
+          "events",
+          "kin",
+          "s3",
+          "glue",
+          "ath",
+          "quick",
+          "aisvc"
+        ],
+        "focus": [
+          "aisvc"
+        ],
+        "edges": [
+          {
+            "from": "events",
+            "to": "kin",
+            "label": "real time"
+          },
+          {
+            "from": "kin",
+            "to": "s3",
+            "label": "deliver"
+          },
+          {
+            "from": "s3",
+            "to": "glue",
+            "label": "crawl"
+          },
+          {
+            "from": "glue",
+            "to": "ath",
+            "label": "tables"
+          },
+          {
+            "from": "ath",
+            "to": "quick",
+            "label": "results"
+          },
+          {
+            "from": "s3",
+            "to": "aisvc",
+            "label": "photos, reviews",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "SageMaker",
+        "title": "Build your own model with SageMaker AI",
+        "body": [
+          "When no ready-made service fits, for example predicting which customers will leave, Amazon SageMaker AI lets data scientists build, train, tune, deploy and monitor their own ML models."
+        ],
+        "show": [
+          "events",
+          "kin",
+          "s3",
+          "glue",
+          "ath",
+          "quick",
+          "aisvc",
+          "sm"
+        ],
+        "focus": [
+          "sm"
+        ],
+        "edges": [
+          {
+            "from": "events",
+            "to": "kin",
+            "label": "real time"
+          },
+          {
+            "from": "kin",
+            "to": "s3",
+            "label": "deliver"
+          },
+          {
+            "from": "s3",
+            "to": "glue",
+            "label": "crawl"
+          },
+          {
+            "from": "glue",
+            "to": "ath",
+            "label": "tables"
+          },
+          {
+            "from": "ath",
+            "to": "quick",
+            "label": "results"
+          },
+          {
+            "from": "s3",
+            "to": "aisvc",
+            "label": "photos, reviews"
+          },
+          {
+            "from": "s3",
+            "to": "sm",
+            "label": "training data",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Ready-made task (images, text, speech, chatbot)? Use an AI service. Custom model? SageMaker AI."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "From events to insight to AI",
+        "body": [
+          "Stream it, store it, query it, show it, then add AI."
+        ],
+        "show": [
+          "events",
+          "kin",
+          "s3",
+          "glue",
+          "ath",
+          "quick",
+          "aisvc",
+          "sm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "events",
+            "to": "kin",
+            "label": "real time"
+          },
+          {
+            "from": "kin",
+            "to": "s3",
+            "label": "deliver"
+          },
+          {
+            "from": "s3",
+            "to": "glue",
+            "label": "crawl"
+          },
+          {
+            "from": "glue",
+            "to": "ath",
+            "label": "tables"
+          },
+          {
+            "from": "ath",
+            "to": "quick",
+            "label": "results"
+          },
+          {
+            "from": "s3",
+            "to": "aisvc",
+            "label": "photos, reviews"
+          },
+          {
+            "from": "s3",
+            "to": "sm",
+            "label": "training data"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Kinesis: real-time streams",
+          "Glue: catalog + ETL; Athena: serverless SQL on S3",
+          "Amazon Quick: BI dashboards",
+          "AI services: Rekognition, Comprehend, Lex, Polly, Transcribe, Translate, Textract",
+          "SageMaker AI: custom ML models"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,243 @@
+{
+  "id": "az900-azure-monitor",
+  "exam": "az-900",
+  "title": "Azure Monitor, Log Analytics, alerts and Application Insights",
+  "objectiveIds": [
+    "AZ900-3.4.3"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Describe Azure Monitor, including Log Analytics, Azure Monitor alerts and Application Insights.",
+  "prerequisites": [
+    {
+      "text": "Service Health",
+      "objectiveId": "AZ900-3.4.2",
+      "lessonId": "az900-advisor-service-health"
+    }
+  ],
+  "foundation": [
+    "Azure Monitor collects data about your resources and apps (in Azure, on-premises and other clouds), analyses it and helps you act on it.",
+    "Two main data types: metrics (numbers over time, like CPU %) and logs (records of events, like errors or sign-ins).",
+    "Log Analytics is where you query logs. Alerts tell you when something needs attention. Application Insights watches your web apps: requests, failures, response times."
+  ],
+  "engineer": [
+    "Data sources: application, operating system (with the Azure Monitor Agent and data collection rules), Azure resources (platform metrics collected automatically; resource logs via diagnostic settings), subscription (Activity log: who did what, when) and tenant (Entra ID logs). Custom sources via APIs.",
+    "Metrics: lightweight, near real-time, stored in a time-series database; view in Metrics explorer. Logs: stored in a Log Analytics workspace; query with Kusto Query Language (KQL) in Log Analytics; e.g. Heartbeat | summarize count() by Computer.",
+    "Azure Monitor alerts: alert rules evaluate metrics (metric alerts), log queries (log search alerts) or the Activity log (activity log alerts, including Service Health); when triggered they call action groups (email, SMS, push, voice, webhook, Logic App, Function, ITSM). Alert processing rules can suppress or route alerts.",
+    "Application Insights: application performance monitoring (APM) for web apps on Azure, on-premises or other clouds. Enable with auto-instrumentation or an SDK (OpenTelemetry). Tracks request rates, response times, failure rates, dependency calls, exceptions, page views, user and session counts, and performance counters; availability tests ping your endpoints. Workspace-based, stored in Log Analytics.",
+    "Visualise and act: dashboards, workbooks, Power BI, Grafana; autoscale and automated responses from alerts."
+  ],
+  "animation": {
+    "id": "az900-monitor-sim",
+    "caption": "Collect the right data, choose the alert type and notify people; pick the monitoring service for each question."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "src",
+        "label": "Sources: apps, OS, resources, Activity log",
+        "x": 0,
+        "y": 100,
+        "kind": "compute"
+      },
+      {
+        "id": "met",
+        "label": "Metrics",
+        "x": 280,
+        "y": 30,
+        "kind": "storage"
+      },
+      {
+        "id": "logs",
+        "label": "Logs: Log Analytics workspace (KQL)",
+        "x": 280,
+        "y": 170,
+        "kind": "storage"
+      },
+      {
+        "id": "ai",
+        "label": "Application Insights",
+        "x": 0,
+        "y": 250,
+        "kind": "compute"
+      },
+      {
+        "id": "alert",
+        "label": "Alert rule",
+        "x": 560,
+        "y": 100,
+        "kind": "security"
+      },
+      {
+        "id": "ag",
+        "label": "Action group: email, SMS, webhook",
+        "x": 800,
+        "y": 100,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "src",
+        "to": "met"
+      },
+      {
+        "from": "src",
+        "to": "logs"
+      },
+      {
+        "from": "ai",
+        "to": "logs"
+      },
+      {
+        "from": "met",
+        "to": "alert"
+      },
+      {
+        "from": "logs",
+        "to": "alert"
+      },
+      {
+        "from": "alert",
+        "to": "ag"
+      }
+    ]
+  },
+  "example": {
+    "title": "An online bank's monitoring",
+    "body": [
+      "Platform metrics show database DTU; a metric alert emails DBAs when it stays above 90%. The Azure Monitor Agent sends VM security event logs to a Log Analytics workspace, where a log search alert flags repeated failed sign-ins.",
+      "Application Insights shows that the payment page's response time doubled after a release and pinpoints a slow dependency call."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Log ingestion and retention beyond included amounts are billed",
+      "Platform metrics are kept 93 days"
+    ],
+    "portal": [
+      "Monitor > Metrics; Monitor > Logs (KQL); Monitor > Alerts > Create alert rule; Monitor > Action groups.",
+      "Resource > Diagnostic settings: send resource logs to a workspace.",
+      "Create a resource > Application Insights; or App Service > Application Insights > Turn on."
+    ],
+    "cli": "az monitor metrics list --resource <vm-id> --metric \"Percentage CPU\" --interval PT5M\naz monitor log-analytics query -w <workspace-guid> --analytics-query \"Heartbeat | summarize count() by Computer\"\naz monitor action-group create -g <rg> -n oncall --short-name oncall --action email ops ops@contoso.com",
+    "powershell": "Get-AzMetric -ResourceId <vm-id> -MetricName 'Percentage CPU'\nInvoke-AzOperationalInsightsQuery -WorkspaceId <guid> -Query 'Heartbeat | take 10'"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-monitor-sim",
+    "objective": "Build a working alert and choose monitoring services.",
+    "duration": 15,
+    "steps": [
+      "From data to alert tab: run the default, then each preset.",
+      "Monitoring tools tab: answer every question."
+    ],
+    "expected": [
+      "Guest OS logs need the agent and a data collection rule",
+      "Alerts need an action group to notify"
+    ],
+    "validation": [
+      {
+        "id": "monitor-alert-ok",
+        "text": "Built a working alert"
+      },
+      {
+        "id": "monitor-alert-broken",
+        "text": "Found a gap in the alert chain"
+      },
+      {
+        "id": "monitoring-correct",
+        "text": "Chose the right monitoring service"
+      },
+      {
+        "id": "monitoring-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Expecting guest OS logs without an agent",
+      "Creating alerts without an action group"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Log query returns no data from a VM.",
+      "cause": "No Azure Monitor Agent or data collection rule.",
+      "fix": "Install the agent and associate a DCR with the VM."
+    },
+    {
+      "symptom": "Alert fires but nobody is told.",
+      "cause": "No action group on the rule.",
+      "fix": "Attach an action group."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Metrics vs logs",
+      "difference": "Metrics: numeric, fast, near real-time. Logs: rich records, queried with KQL."
+    },
+    {
+      "service": "Application Insights vs Log Analytics",
+      "difference": "App Insights collects app telemetry; Log Analytics is the query tool and workspace store."
+    },
+    {
+      "service": "Azure Monitor vs Service Health",
+      "difference": "Monitor: your resources; Service Health: the Azure platform."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Azure Monitor only works for Azure resources.",
+      "reality": "It also monitors on-premises and other clouds."
+    },
+    {
+      "myth": "Application Insights is only for .NET.",
+      "reality": "It supports many languages via OpenTelemetry."
+    },
+    {
+      "myth": "All logs are collected automatically.",
+      "reality": "Resource logs need diagnostic settings; OS logs need the agent."
+    }
+  ],
+  "architectureDecisions": [
+    "Send resource logs to a central workspace.",
+    "Use metric alerts for fast numeric signals; log alerts for patterns.",
+    "Enable Application Insights for every web app."
+  ],
+  "docs": [
+    {
+      "title": "Describe monitoring tools in Azure (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-monitoring-tools-azure/"
+    },
+    {
+      "title": "Azure Monitor overview",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/overview"
+    },
+    {
+      "title": "Log Analytics overview",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-overview"
+    },
+    {
+      "title": "Azure Monitor alerts",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-overview"
+    },
+    {
+      "title": "Application Insights",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

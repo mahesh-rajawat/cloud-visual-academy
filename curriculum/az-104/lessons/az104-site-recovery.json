@@ -1,0 +1,604 @@
+{
+  "id": "az104-site-recovery",
+  "exam": "az-104",
+  "title": "Azure Site Recovery: replication and failover",
+  "objectiveIds": [
+    "AZ104-5.2.5",
+    "AZ104-5.2.6"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Configure Azure-to-Azure replication with Site Recovery, run test failovers, fail over to a secondary region, commit, re-protect and fail back.",
+  "prerequisites": [
+    {
+      "text": "Recovery Services vaults",
+      "objectiveId": "AZ104-5.2.1",
+      "lessonId": "az104-backup-vaults"
+    }
+  ],
+  "foundation": [
+    "Site Recovery keeps a continuously updated copy of your VMs in another region. If the primary region fails, you fail over and run the VMs there within minutes.",
+    "A test failover proves it works without affecting production."
+  ],
+  "engineer": [
+    "Set up: create a Recovery Services vault in the target region (not the source); enable replication from the VM (Disaster recovery) or the vault: target region, resource group, VNet/subnet, availability options, cache storage account in the source region, replication policy (recovery point retention up to 15 days, app-consistent snapshot frequency). The Mobility service extension is installed on the VMs.",
+    "Network mapping maps source VNets to target VNets. Recovery plans group VMs into ordered groups with scripts/manual actions for multi-tier apps.",
+    "Test failover: choose a recovery point and an isolated VNet; validate; then Cleanup test failover.",
+    "Failover: choose a recovery point (Latest = lowest RPO, processes pending data; Latest processed = lowest RTO; Latest app-consistent; Custom). Then Commit (discards other recovery points), Re-protect (replicate from the secondary back to the primary), and later fail back the same way.",
+    "RPO: how much data you can lose; RTO: how long recovery takes. Site Recovery targets low RPO (continuous replication) for Azure VMs."
+  ],
+  "animation": {
+    "id": "backup-dr-sim",
+    "caption": "Site Recovery: configure and fail over tab."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "src",
+        "label": "East US VMs + Mobility extension",
+        "x": 20,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "cache",
+        "label": "Cache storage (East US)",
+        "x": 240,
+        "y": 30,
+        "kind": "storage"
+      },
+      {
+        "id": "vault",
+        "label": "RSV in West US",
+        "x": 460,
+        "y": 30,
+        "kind": "storage"
+      },
+      {
+        "id": "tgt",
+        "label": "West US replica disks",
+        "x": 460,
+        "y": 200,
+        "kind": "storage"
+      },
+      {
+        "id": "fo",
+        "label": "Failover VMs",
+        "x": 680,
+        "y": 120,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "src",
+        "to": "cache"
+      },
+      {
+        "from": "cache",
+        "to": "tgt",
+        "label": "replication"
+      },
+      {
+        "from": "vault",
+        "to": "tgt",
+        "label": "orchestrates"
+      },
+      {
+        "from": "tgt",
+        "to": "fo",
+        "label": "failover"
+      },
+      {
+        "from": "fo",
+        "to": "src",
+        "label": "re-protect / failback"
+      }
+    ]
+  },
+  "example": {
+    "title": "Quarterly DR drill",
+    "body": [
+      "Every quarter, the team runs a test failover of the recovery plan 'erp' into vnet-dr-test in West US, runs smoke tests, then cleans up. During a real East US outage they failed over with Latest processed, committed, and re-protected once East US recovered, failing back a week later."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with VMs to monitor or protect"
+    ],
+    "permissions": [
+      "Site Recovery Contributor on the vault plus VM Contributor at source and target"
+    ],
+    "limits": [
+      "Recovery point retention up to 15 days",
+      "Vault must be in a region other than the source region"
+    ],
+    "portal": [
+      "VM > Disaster recovery: target region, advanced settings (resource group, VNet, cache storage, replication policy), Start replication.",
+      "Vault > Replicated items: monitor status until Protected.",
+      "Replicated item > Test failover > Cleanup test failover.",
+      "Failover > Commit > Re-protect > Failover (failback)."
+    ],
+    "cli": "# Azure CLI support for Site Recovery is limited (az site-recovery extension); the portal and PowerShell are typical\naz backup vault create -g rg-dr -n rsv-dr-wus -l westus\naz extension add --name site-recovery\naz site-recovery fabric list -g rg-dr --vault-name rsv-dr-wus",
+    "powershell": "$v = New-AzRecoveryServicesVault -ResourceGroupName rg-dr -Name rsv-dr-wus -Location westus\nSet-AzRecoveryServicesAsrVaultContext -Vault $v\n$fab = Get-AzRecoveryServicesAsrFabric\n$rpi = Get-AzRecoveryServicesAsrReplicationProtectedItem -ProtectionContainer (Get-AzRecoveryServicesAsrProtectionContainer -Fabric $fab[0])\nStart-AzRecoveryServicesAsrTestFailoverJob -ReplicationProtectedItem $rpi[0] -Direction PrimaryToRecovery -AzureVMNetworkId $testVnetId\nStart-AzRecoveryServicesAsrUnplannedFailoverJob -ReplicationProtectedItem $rpi[0] -Direction PrimaryToRecovery\nStart-AzRecoveryServicesAsrCommitFailoverJob -ReplicationProtectedItem $rpi[0]"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "backup-dr-sim",
+    "objective": "Run a full DR drill.",
+    "duration": 15,
+    "steps": [
+      "Run the default (vault in the source region).",
+      "Apply 'Vault in the target region' and read the next missing step.",
+      "Apply 'Full DR drill'."
+    ],
+    "expected": [
+      "Vault in target region",
+      "Test failover first",
+      "Commit and re-protect"
+    ],
+    "validation": [
+      {
+        "id": "asr-test-failover",
+        "text": "Ran a test failover"
+      },
+      {
+        "id": "asr-failover",
+        "text": "Completed failover, commit and re-protect"
+      },
+      {
+        "id": "asr-incomplete",
+        "text": "Identified a missing DR step"
+      }
+    ],
+    "failureScenarios": [
+      "Vault in the source region",
+      "Skipping test failover",
+      "Not re-protecting"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Can't select the source region's vault.",
+      "cause": "A2A vault must be in another region.",
+      "fix": "Create the vault in the target region."
+    },
+    {
+      "symptom": "Re-protect unavailable.",
+      "cause": "Failover not committed.",
+      "fix": "Commit first."
+    },
+    {
+      "symptom": "Failed-over VMs can't reach each other.",
+      "cause": "No network mapping or wrong subnet.",
+      "fix": "Configure network mapping and recovery plan order."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Backup Cross Region Restore",
+      "difference": "Restores from backups (higher RPO/RTO); Site Recovery replicates continuously."
+    },
+    {
+      "service": "AWS Elastic Disaster Recovery",
+      "difference": "AWS equivalent for continuous replication and failover."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Test failover affects production.",
+      "reality": "It runs in an isolated network; production keeps running."
+    },
+    {
+      "myth": "Site Recovery replaces backups.",
+      "reality": "It doesn't keep long-term history; use both."
+    }
+  ],
+  "architectureDecisions": [
+    "Use recovery plans for multi-tier apps.",
+    "Run test failovers regularly and after major changes.",
+    "Choose 'Latest processed' for fastest RTO or 'Latest' for lowest data loss."
+  ],
+  "docs": [
+    {
+      "title": "Set up Azure VM disaster recovery",
+      "url": "https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-enable-replication"
+    },
+    {
+      "title": "Fail over and fail back Azure VMs",
+      "url": "https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-failover-failback"
+    },
+    {
+      "title": "Run a test failover",
+      "url": "https://learn.microsoft.com/azure/site-recovery/site-recovery-test-failover-to-azure"
+    },
+    {
+      "title": "Site Recovery overview",
+      "url": "https://learn.microsoft.com/azure/site-recovery/site-recovery-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Keep a running copy of your VMs in another region, and switch to it if the main region fails.",
+    "learn": [
+      "Backup vs disaster recovery",
+      "How replication works",
+      "Test failover",
+      "Failover, commit and re-protect",
+      "Recovery plans"
+    ],
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "VM in UAE North",
+        "x": 130,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "cache",
+        "label": "Cache storage",
+        "x": 130,
+        "y": 380,
+        "kind": "storage"
+      },
+      {
+        "id": "vault",
+        "label": "RSV in target region",
+        "x": 400,
+        "y": 80,
+        "kind": "security"
+      },
+      {
+        "id": "rep",
+        "label": "Replica disks",
+        "x": 650,
+        "y": 220,
+        "kind": "storage",
+        "sub": "UAE Central"
+      },
+      {
+        "id": "tvm",
+        "label": "Test VM",
+        "x": 650,
+        "y": 380,
+        "kind": "compute",
+        "sub": "isolated VNet"
+      },
+      {
+        "id": "fvm",
+        "label": "Failed-over VM",
+        "x": 650,
+        "y": 80,
+        "kind": "compute"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Region down",
+        "title": "The whole region is unavailable",
+        "body": [
+          "A backup lets you rebuild, but restoring dozens of VMs takes hours. The business needs to be running again in minutes."
+        ],
+        "show": [
+          "vm"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "DR",
+        "title": "Disaster recovery keeps a warm copy",
+        "body": [
+          "Azure Site Recovery (ASR) replicates VM disks continuously to another region. Recovery point objective (RPO): how much data you might lose, usually seconds to minutes. Recovery time objective (RTO): how long until you are running again."
+        ],
+        "show": [
+          "vm",
+          "vault",
+          "rep",
+          "cache"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "cache",
+            "fresh": true
+          },
+          {
+            "from": "cache",
+            "to": "rep",
+            "label": "continuous replication",
+            "fresh": true
+          },
+          {
+            "from": "vault",
+            "to": "rep",
+            "label": "manages",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Test",
+        "title": "Practise with a test failover",
+        "body": [
+          "A test failover creates VMs from a recovery point in an isolated network you choose, without stopping replication or touching production. Check the app, then 'Cleanup test failover'."
+        ],
+        "show": [
+          "vm",
+          "vault",
+          "rep",
+          "cache",
+          "tvm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "cache"
+          },
+          {
+            "from": "cache",
+            "to": "rep",
+            "label": "continuous replication"
+          },
+          {
+            "from": "vault",
+            "to": "rep",
+            "label": "manages"
+          },
+          {
+            "from": "rep",
+            "to": "tvm",
+            "label": "test",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Always use a separate, isolated VNet for test failovers."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Failover",
+        "title": "The real thing",
+        "body": [
+          "Failover creates VMs in the target region from a recovery point. Commit makes it final. Re-protect starts replicating back the other way, so later you can fail back."
+        ],
+        "show": [
+          "vm",
+          "vault",
+          "rep",
+          "cache",
+          "tvm",
+          "fvm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "cache"
+          },
+          {
+            "from": "cache",
+            "to": "rep",
+            "label": "continuous replication"
+          },
+          {
+            "from": "vault",
+            "to": "rep",
+            "label": "manages"
+          },
+          {
+            "from": "rep",
+            "to": "tvm",
+            "label": "test"
+          },
+          {
+            "from": "rep",
+            "to": "fvm",
+            "label": "failover",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Plans",
+        "title": "Recovery plans",
+        "body": [
+          "A recovery plan groups VMs and sets their order (database first, then app, then web), with scripts or manual steps between groups."
+        ],
+        "show": [
+          "vm",
+          "vault",
+          "rep",
+          "cache",
+          "tvm",
+          "fvm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "cache"
+          },
+          {
+            "from": "cache",
+            "to": "rep",
+            "label": "continuous replication"
+          },
+          {
+            "from": "vault",
+            "to": "rep",
+            "label": "manages"
+          },
+          {
+            "from": "rep",
+            "to": "tvm",
+            "label": "test"
+          },
+          {
+            "from": "rep",
+            "to": "fvm",
+            "label": "failover"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Site Recovery",
+        "body": [
+          "Replicate, test, fail over, commit, re-protect."
+        ],
+        "show": [
+          "vm",
+          "vault",
+          "rep",
+          "cache",
+          "tvm",
+          "fvm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "cache"
+          },
+          {
+            "from": "cache",
+            "to": "rep",
+            "label": "continuous replication"
+          },
+          {
+            "from": "vault",
+            "to": "rep",
+            "label": "manages"
+          },
+          {
+            "from": "rep",
+            "to": "tvm",
+            "label": "test"
+          },
+          {
+            "from": "rep",
+            "to": "fvm",
+            "label": "failover"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Backup = restore later; ASR = switch over quickly",
+          "Vault in the target region; continuous replication",
+          "Test failover into an isolated VNet, then clean up",
+          "Failover → commit → re-protect → fail back",
+          "Recovery plans order the VMs"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Replicate a VM to another region and run a test failover",
+    "minutes": 75,
+    "costLevel": "low",
+    "cost": "Low. One B1s VM costs about US$0.01 per hour. Delete the same day. Site Recovery is free for each protected VM for the first 31 days; replicated disks add cents. Allow time: initial replication takes 30–60 minutes.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A small Linux VM vm-lab in rg-az104-lab: Virtual machines > + Create, Ubuntu 24.04, Standard_B1s, password authentication, public inbound ports None. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead. Monitoring agents, Azure Backup and Site Recovery all need to reach Azure services.",
+      "Pick a second region for the copy, for example UAE Central if your subscription can use it, or another nearby region."
+    ],
+    "steps": [
+      {
+        "do": "Open vm-lab > Operations > Disaster recovery. Target region: your second region. Review the advanced settings: target resource group, VNet, cache storage. Review + Start replication.",
+        "see": "A job enabling replication. Azure creates a vault and target resources for you."
+      },
+      {
+        "do": "Wait until vm-lab > Disaster recovery shows Replication health: Healthy and status Protected (30–60 minutes).",
+        "see": "A map with source and target regions and the latest recovery points."
+      },
+      {
+        "do": "Create a VNet in the target region named vnet-test (any range) for the test failover."
+      },
+      {
+        "do": "On vm-lab > Disaster recovery select Test failover. Recovery point: Latest processed. Azure virtual network: vnet-test. OK.",
+        "see": "A test failover job. A new VM named like vm-lab-test appears in the target region."
+      },
+      {
+        "do": "Open the test VM.",
+        "see": "It is running in the target region, in vnet-test. Production vm-lab is untouched."
+      },
+      {
+        "do": "Back on vm-lab > Disaster recovery select Cleanup test failover, tick 'Testing is complete', OK.",
+        "see": "The test VM is deleted. Replication continues."
+      },
+      {
+        "do": "Read the Failover and Commit buttons, but do not run a real failover."
+      }
+    ],
+    "check": [
+      "A test failover VM ran in the target region and was cleaned up."
+    ],
+    "cleanup": [
+      "vm-lab > Disaster recovery > Disable replication.",
+      "Delete the resource groups Site Recovery created in the target region (names ending in -asr) and vnet-test.",
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Tutorial: set up disaster recovery for Azure VMs",
+        "url": "https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-enable-replication"
+      },
+      {
+        "title": "Run a disaster recovery drill (test failover)",
+        "url": "https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-dr-drill"
+      },
+      {
+        "title": "Fail over and re-protect Azure VMs",
+        "url": "https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-failover-failback"
+      }
+    ]
+  }
+}

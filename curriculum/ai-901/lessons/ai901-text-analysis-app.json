@@ -1,0 +1,212 @@
+{
+  "id": "ai901-text-analysis-app",
+  "exam": "ai-901",
+  "title": "Build an app that includes text analysis",
+  "objectiveIds": [
+    "AI901-2.2.1"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Build a lightweight application that includes text analysis with Azure Language in Foundry Tools or a model prompt with structured output.",
+  "prerequisites": [
+    {
+      "text": "Text analysis techniques",
+      "objectiveId": "AI901-1.3.2",
+      "lessonId": "ai901-text-analysis"
+    },
+    {
+      "text": "Chat client with the SDK",
+      "objectiveId": "AI901-2.1.3",
+      "lessonId": "ai901-sdk-chat-client"
+    }
+  ],
+  "foundation": [
+    "A text analysis app sends text to a service and uses the results: for example, flag angry reviews, route support tickets, or redact phone numbers.",
+    "Two ways to do it: call Azure Language's prebuilt features (consistent results with confidence scores), or prompt a generative model to return the analysis as JSON (flexible)."
+  ],
+  "engineer": [
+    "Azure Language Python SDK (azure-ai-textanalytics): TextAnalyticsClient(endpoint, credential) with analyze_sentiment(docs, show_opinion_mining=True), extract_key_phrases, recognize_entities, recognize_pii_entities (redacted_text), detect_language; begin_analyze_actions for several actions or summarization in one long-running call.",
+    "Results are per document with IDs, confidence scores and errors; batch up to the documented limits per request; handle per-document errors.",
+    "Model approach: responses.create with instructions describing the fields and a JSON schema (structured output), for example {sentiment, product, refund_requested}. Validate the JSON before using it.",
+    "Design: detect language first, redact PII before storing, threshold on confidence, and log only what you need. Authenticate with Microsoft Entra ID (Cognitive Services User role) or keys in Key Vault."
+  ],
+  "animation": {
+    "id": "ai901-textapp-sim",
+    "caption": "Run text analysis on sample texts, then choose Azure Language or a model prompt for each task."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "in",
+        "label": "Reviews / tickets",
+        "x": 0,
+        "y": 100,
+        "kind": "user"
+      },
+      {
+        "id": "app",
+        "label": "Python app",
+        "x": 220,
+        "y": 100,
+        "kind": "service"
+      },
+      {
+        "id": "lang",
+        "label": "Azure Language: sentiment, NER, key phrases, PII",
+        "x": 460,
+        "y": 30,
+        "kind": "ai"
+      },
+      {
+        "id": "llm",
+        "label": "Model with JSON schema",
+        "x": 460,
+        "y": 170,
+        "kind": "ai"
+      },
+      {
+        "id": "db",
+        "label": "Results store / dashboard",
+        "x": 700,
+        "y": 100,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "in",
+        "to": "app"
+      },
+      {
+        "from": "app",
+        "to": "lang"
+      },
+      {
+        "from": "app",
+        "to": "llm"
+      },
+      {
+        "from": "lang",
+        "to": "db"
+      },
+      {
+        "from": "llm",
+        "to": "db"
+      }
+    ]
+  },
+  "example": {
+    "title": "Ticket triage",
+    "body": [
+      "A support team's app calls Azure Language to detect language and redact PII, then gets sentiment and key phrases for a dashboard.",
+      "For a custom field ('Is the customer asking for a refund?'), it prompts a chat model to return JSON with refund_requested: true/false."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Foundry portal > Language playground: test features and copy the endpoint.",
+      "Assign Cognitive Services User (or Azure AI User) to the app identity."
+    ],
+    "cli": "az cognitiveservices account keys list --name contoso-ai --resource-group rg-ai901\naz cognitiveservices account show --name contoso-ai --resource-group rg-ai901 --query properties.endpoint -o tsv",
+    "powershell": "Get-AzCognitiveServicesAccountKey -ResourceGroupName rg-ai901 -Name contoso-ai",
+    "python": "# pip install azure-ai-textanalytics azure-identity\nimport os\nfrom azure.ai.textanalytics import TextAnalyticsClient\nfrom azure.identity import DefaultAzureCredential\n\nclient = TextAnalyticsClient(endpoint=os.environ[\"LANGUAGE_ENDPOINT\"], credential=DefaultAzureCredential())\nreviews = [\"The battery life is fantastic, but the screen scratches far too easily.\"]\n\nfor doc in client.analyze_sentiment(reviews, show_opinion_mining=True):\n    print(doc.sentiment, doc.confidence_scores)\n    for sentence in doc.sentences:\n        for opinion in sentence.mined_opinions:\n            print(\" \", opinion.target.text, \"->\", opinion.target.sentiment)\n\nprint([p for p in client.extract_key_phrases(reviews)[0].key_phrases])\nprint([(e.text, e.category) for e in client.recognize_entities(reviews)[0].entities])\nprint(client.recognize_pii_entities([\"Call me on 555-0142\"])[0].redacted_text)\n"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-textapp-sim",
+    "objective": "Match text tasks to techniques and approaches.",
+    "duration": 15,
+    "steps": [
+      "Run text analysis tab: meet each need with the right technique.",
+      "Azure Language or a model prompt? tab: answer every task."
+    ],
+    "expected": [
+      "Prebuilt features give consistent scores",
+      "Models handle custom definitions"
+    ],
+    "validation": [
+      {
+        "id": "ai-textrun-correct",
+        "text": "Matched a technique to a need"
+      },
+      {
+        "id": "text-approach-correct",
+        "text": "Chose the right approach"
+      },
+      {
+        "id": "text-approach-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Storing raw text with personal data",
+      "Trusting model JSON without validation"
+    ],
+    "cleanup": [
+      "Simulation: use Reset.",
+      "If you ran it in Azure: az group delete --name rg-ai901 --yes (deletes the Foundry resource, projects and deployments)."
+    ],
+    "cost": "Simulation: free. Optional real run: model tokens and Foundry Tools transactions are billed per use; delete the resource group afterwards."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Some documents return errors while others succeed.",
+      "cause": "Per-document problems (empty text, unsupported language).",
+      "fix": "Check each result's is_error and handle it."
+    },
+    {
+      "symptom": "Model returns invalid JSON occasionally.",
+      "cause": "No schema enforcement.",
+      "fix": "Use structured output with a JSON schema and validate."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Language vs model prompt",
+      "difference": "Language: fixed features, scores, low cost per item. Model: flexible, custom fields, needs validation."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "You must choose one approach.",
+      "reality": "Combine them: prebuilt for standard tasks, a model for custom ones."
+    }
+  ],
+  "architectureDecisions": [
+    "Use prebuilt features for sentiment, PII and entities.",
+    "Use a model for custom classification.",
+    "Redact before storing."
+  ],
+  "docs": [
+    {
+      "title": "Azure Language overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/language-service/overview"
+    },
+    {
+      "title": "Text Analytics client library for Python",
+      "url": "https://learn.microsoft.com/python/api/overview/azure/ai-textanalytics-readme"
+    },
+    {
+      "title": "Sentiment analysis and opinion mining",
+      "url": "https://learn.microsoft.com/azure/ai-services/language-service/sentiment-opinion-mining/overview"
+    },
+    {
+      "title": "Structured outputs",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/how-to/structured-outputs"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

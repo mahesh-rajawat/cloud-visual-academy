@@ -1,0 +1,496 @@
+{
+  "id": "az104-bastion",
+  "exam": "az-104",
+  "title": "Azure Bastion",
+  "objectiveIds": [
+    "AZ104-4.2.3"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Deploy Azure Bastion with the right SKU and subnet to give secure RDP and SSH access to VMs without public IPs.",
+  "prerequisites": [
+    {
+      "text": "NSGs and ASGs",
+      "objectiveId": "AZ104-4.2.1",
+      "lessonId": "az104-nsg-asg"
+    }
+  ],
+  "foundation": [
+    "Azure Bastion is a managed jump host: admins connect to VMs from the Azure portal (or a native client) over TLS, and the VMs don't need public IPs or open RDP/SSH ports to the internet."
+  ],
+  "engineer": [
+    "SKUs: Developer (free, shared infrastructure, one connection at a time, no dedicated subnet, limited regions), Basic, Standard (native client support, shareable links, host scaling, IP-based connection, custom ports), Premium (adds session recording and private-only deployment).",
+    "Basic/Standard/Premium need a subnet named AzureBastionSubnet of /26 or larger and a Standard SKU public IP (except Premium private-only).",
+    "Bastion connects to VMs in its VNet and in peered VNets. VM NSGs must allow RDP/SSH from the AzureBastionSubnet address range; an NSG on AzureBastionSubnet itself needs specific required rules.",
+    "Native client: az network bastion rdp / az network bastion ssh (Standard or Premium, with Native client support enabled).",
+    "Pricing is hourly per deployment plus outbound data; scale units on Standard/Premium add hourly cost."
+  ],
+  "animation": {
+    "id": "network-access-sim",
+    "caption": "Azure Bastion tab: SKU, subnet, public IP and NSG checks."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "adm",
+        "label": "Admin (portal / native client)",
+        "x": 20,
+        "y": 120,
+        "kind": "user"
+      },
+      {
+        "id": "bas",
+        "label": "Azure Bastion (AzureBastionSubnet /26)",
+        "x": 260,
+        "y": 120,
+        "kind": "security"
+      },
+      {
+        "id": "vm1",
+        "label": "vm-app (no public IP)",
+        "x": 520,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "vm2",
+        "label": "vm-db in peered VNet",
+        "x": 520,
+        "y": 190,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "adm",
+        "to": "bas",
+        "label": "TLS 443"
+      },
+      {
+        "from": "bas",
+        "to": "vm1",
+        "label": "RDP/SSH private IP"
+      },
+      {
+        "from": "bas",
+        "to": "vm2",
+        "label": "via peering"
+      }
+    ]
+  },
+  "example": {
+    "title": "Removing public IPs from admin access",
+    "body": [
+      "Contoso deploys Standard Bastion in the hub VNet, removes all VM public IPs and lets admins connect from the portal or with az network bastion ssh from their laptops."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription and a resource group (rg-net)"
+    ],
+    "permissions": [
+      "Network Contributor on the resource group"
+    ],
+    "limits": [
+      "AzureBastionSubnet /26 or larger",
+      "Native client and shareable links need Standard or Premium"
+    ],
+    "portal": [
+      "vnet-hub > Subnets > + Subnet: name AzureBastionSubnet, /26.",
+      "Create a resource > Bastion: choose tier, VNet, new Standard public IP.",
+      "VM > Connect > Bastion: enter credentials (or a Key Vault secret)."
+    ],
+    "cli": "az network vnet subnet create -g rg-net --vnet-name vnet-hub -n AzureBastionSubnet --address-prefixes 10.0.254.0/26\naz network public-ip create -g rg-net -n pip-bastion --sku Standard\naz network bastion create -g rg-net -n bas-hub --vnet-name vnet-hub --public-ip-address pip-bastion --sku Standard --enable-tunneling true\naz network bastion ssh -g rg-net -n bas-hub --target-resource-id <vm-id> --auth-type AAD",
+    "powershell": "$vnet = Get-AzVirtualNetwork -Name vnet-hub -ResourceGroupName rg-net\nAdd-AzVirtualNetworkSubnetConfig -Name AzureBastionSubnet -VirtualNetwork $vnet -AddressPrefix 10.0.254.0/26 | Set-AzVirtualNetwork\n$pip = New-AzPublicIpAddress -ResourceGroupName rg-net -Name pip-bastion -Location eastus -AllocationMethod Static -Sku Standard\nNew-AzBastion -ResourceGroupName rg-net -Name bas-hub -PublicIpAddressRgName rg-net -PublicIpAddressName pip-bastion -VirtualNetworkRgName rg-net -VirtualNetworkName vnet-hub -Sku Standard"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "network-access-sim",
+    "objective": "Deploy Bastion correctly and enable native client access.",
+    "duration": 10,
+    "steps": [
+      "Run the default (wrong subnet name and size).",
+      "Apply 'Correct Basic deployment'.",
+      "Apply 'Native client on Basic' and read the SKU error.",
+      "Apply 'Standard with native client'."
+    ],
+    "expected": [
+      "AzureBastionSubnet /26+",
+      "Native client needs Standard"
+    ],
+    "validation": [
+      {
+        "id": "bastion-connected",
+        "text": "Connected through Bastion"
+      },
+      {
+        "id": "bastion-native",
+        "text": "Used native client with Standard"
+      },
+      {
+        "id": "bastion-error",
+        "text": "Diagnosed a Bastion configuration error"
+      }
+    ],
+    "failureScenarios": [
+      "Wrong subnet name",
+      "/27 subnet",
+      "Basic SKU for native client"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Bastion deployment fails.",
+      "cause": "Subnet isn't named AzureBastionSubnet or is smaller than /26.",
+      "fix": "Create the correct subnet."
+    },
+    {
+      "symptom": "az network bastion ssh fails.",
+      "cause": "Basic SKU or native client support disabled.",
+      "fix": "Upgrade to Standard and enable native client support."
+    },
+    {
+      "symptom": "Connection times out.",
+      "cause": "VM NSG blocks RDP/SSH from the Bastion subnet.",
+      "fix": "Allow 3389/22 from the AzureBastionSubnet range."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Jump box VM",
+      "difference": "You patch and secure it yourself and expose it publicly."
+    },
+    {
+      "service": "AWS Systems Manager Session Manager",
+      "difference": "AWS's agent-based alternative for shell access without open ports."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "VMs need public IPs to use Bastion.",
+      "reality": "They don't; Bastion uses private IPs."
+    },
+    {
+      "myth": "Any subnet name works.",
+      "reality": "It must be AzureBastionSubnet."
+    }
+  ],
+  "architectureDecisions": [
+    "Deploy Bastion in the hub and reach spokes through peering.",
+    "Use Standard for native client and shareable links; Premium for session recording."
+  ],
+  "docs": [
+    {
+      "title": "What is Azure Bastion?",
+      "url": "https://learn.microsoft.com/azure/bastion/bastion-overview"
+    },
+    {
+      "title": "Bastion configuration settings and SKUs",
+      "url": "https://learn.microsoft.com/azure/bastion/configuration-settings"
+    },
+    {
+      "title": "Connect using native client",
+      "url": "https://learn.microsoft.com/azure/bastion/native-client"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Connect to VMs with RDP or SSH from the browser, without giving them public IPs.",
+    "learn": [
+      "Why not open RDP/SSH to the internet",
+      "How Bastion works",
+      "SKUs and what they add",
+      "Subnet and NSG requirements"
+    ],
+    "nodes": [
+      {
+        "id": "admin",
+        "label": "Admin browser",
+        "x": 120,
+        "y": 220,
+        "kind": "user",
+        "sub": "HTTPS 443"
+      },
+      {
+        "id": "bas",
+        "label": "Azure Bastion",
+        "x": 380,
+        "y": 220,
+        "kind": "security",
+        "sub": "AzureBastionSubnet"
+      },
+      {
+        "id": "vm1",
+        "label": "VM (no public IP)",
+        "x": 650,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "vm2",
+        "label": "VM (no public IP)",
+        "x": 650,
+        "y": 320,
+        "kind": "compute"
+      },
+      {
+        "id": "bad",
+        "label": "Open RDP 3389",
+        "x": 380,
+        "y": 380,
+        "kind": "security",
+        "sub": "attacked"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Exposed",
+        "title": "RDP open to the world",
+        "body": [
+          "Opening RDP or SSH on a public IP invites password-guessing attacks around the clock."
+        ],
+        "show": [
+          "admin",
+          "bad"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "admin",
+            "to": "bad",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Bastion",
+        "title": "Bastion is a managed jump box",
+        "body": [
+          "Azure Bastion runs in your VNet. You open the portal, select Connect > Bastion, and get an RDP or SSH session in the browser over TLS (port 443). The VMs need only private IPs."
+        ],
+        "show": [
+          "admin",
+          "bas",
+          "vm1",
+          "vm2"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "admin",
+            "to": "bas",
+            "label": "443",
+            "fresh": true
+          },
+          {
+            "from": "bas",
+            "to": "vm1",
+            "label": "RDP/SSH",
+            "fresh": true
+          },
+          {
+            "from": "bas",
+            "to": "vm2",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "SKUs",
+        "title": "Bastion SKUs",
+        "body": [
+          "Developer: free, shared, one VM connection at a time, for dev and test. Basic: dedicated host. Standard: adds native client (connect from your own RDP/SSH app), shareable links, host scaling, IP-based connection. Premium: adds session recording and private-only deployment."
+        ],
+        "show": [
+          "admin",
+          "bas",
+          "vm1",
+          "vm2"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "admin",
+            "to": "bas",
+            "label": "443"
+          },
+          {
+            "from": "bas",
+            "to": "vm1",
+            "label": "RDP/SSH"
+          },
+          {
+            "from": "bas",
+            "to": "vm2"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Native client support requires Standard or Premium."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Network",
+        "title": "What Bastion needs",
+        "body": [
+          "Basic and higher need a subnet named exactly AzureBastionSubnet, size /26 or larger, and a Standard public IP (except private-only Premium). The target VMs' NSGs must allow RDP/SSH from the Bastion subnet."
+        ],
+        "show": [
+          "admin",
+          "bas",
+          "vm1",
+          "vm2"
+        ],
+        "focus": [
+          "bas"
+        ],
+        "edges": [
+          {
+            "from": "admin",
+            "to": "bas",
+            "label": "443"
+          },
+          {
+            "from": "bas",
+            "to": "vm1",
+            "label": "RDP/SSH"
+          },
+          {
+            "from": "bas",
+            "to": "vm2"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Wrong subnet name or a subnet smaller than /26 = deployment fails."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Bastion",
+        "body": [
+          "Browser RDP/SSH, no public IPs on VMs."
+        ],
+        "show": [
+          "admin",
+          "bas",
+          "vm1",
+          "vm2"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "admin",
+            "to": "bas",
+            "label": "443"
+          },
+          {
+            "from": "bas",
+            "to": "vm1",
+            "label": "RDP/SSH"
+          },
+          {
+            "from": "bas",
+            "to": "vm2"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "No RDP/SSH exposed to the internet",
+          "Sessions over HTTPS 443 in the browser",
+          "Developer, Basic, Standard (native client), Premium (recording)",
+          "AzureBastionSubnet, /26 or larger",
+          "VM NSGs must allow from the Bastion subnet"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Connect to a VM with no public IP through Bastion",
+    "minutes": 25,
+    "costLevel": "watch",
+    "cost": "Low. One B1s VM costs about US$0.01 per hour. Delete the same day. Bastion Developer is free where offered; otherwise Basic costs about US$0.19 per hour, so delete it straight after.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A virtual network vnet-lab (10.10.0.0/16) in rg-az104-lab with a subnet snet-app (10.10.1.0/24): Virtual networks > + Create > IP addresses tab. For these labs, untick 'Enable private subnet' on snet-app so lab VMs can reach the internet (in production use a NAT gateway instead).",
+      "A small Linux VM vm-lab in snet-app of vnet-lab: Virtual machines > + Create. Image Ubuntu 24.04, size Standard_B1s, password authentication, Networking tab: vnet-lab / snet-app, public IP: None, NIC network security group: Basic, public inbound ports: None. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead."
+    ],
+    "steps": [
+      {
+        "do": "Open vm-lab > Connect > Connect via Bastion (or Bastion in the menu).",
+        "see": "Options to deploy Bastion. If 'Deploy Bastion Developer' is offered, choose it (free, no extra subnet)."
+      },
+      {
+        "do": "If Developer is not offered: open vnet-lab > Subnets > + Subnet, purpose Azure Bastion (name AzureBastionSubnet), range 10.10.3.0/26. Then deploy Bastion Basic from the VM's Bastion page.",
+        "see": "Deployment takes 5–10 minutes."
+      },
+      {
+        "do": "When Bastion is ready, enter azureuser and the VM's password, and Connect.",
+        "see": "A new browser tab with a Linux terminal on vm-lab."
+      },
+      {
+        "do": "In that terminal type: hostname && ip addr",
+        "see": "The VM's name and its private IP 10.10.1.x. It has no public IP."
+      },
+      {
+        "do": "Open the Bastion resource > Settings > Configuration.",
+        "see": "The tier and the features available, such as native client support and shareable link (Standard+)."
+      }
+    ],
+    "check": [
+      "You opened an SSH session to a VM that has no public IP."
+    ],
+    "cleanup": [
+      "Delete the Bastion resource right away if it is Basic or higher (billed hourly).",
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: deploy Bastion Developer",
+        "url": "https://learn.microsoft.com/azure/bastion/quickstart-developer"
+      },
+      {
+        "title": "Tutorial: deploy Bastion with specified settings",
+        "url": "https://learn.microsoft.com/azure/bastion/tutorial-create-host-portal"
+      },
+      {
+        "title": "Bastion configuration settings and SKUs",
+        "url": "https://learn.microsoft.com/azure/bastion/configuration-settings"
+      }
+    ]
+  }
+}

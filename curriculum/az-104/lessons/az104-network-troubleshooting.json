@@ -1,0 +1,619 @@
+{
+  "id": "az104-network-troubleshooting",
+  "exam": "az-104",
+  "title": "Troubleshooting network connectivity",
+  "objectiveIds": [
+    "AZ104-4.1.5"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Diagnose connectivity problems between Azure resources using effective routes and security rules and Network Watcher tools.",
+  "prerequisites": [
+    {
+      "text": "NSGs and ASGs",
+      "objectiveId": "AZ104-4.2.1",
+      "lessonId": "az104-nsg-asg"
+    },
+    {
+      "text": "User-defined routes",
+      "objectiveId": "AZ104-4.1.4",
+      "lessonId": "az104-udr"
+    }
+  ],
+  "foundation": [
+    "When a connection fails, check each hop in order: source NSG outbound, routing, destination NSG inbound, then the guest OS firewall and the application.",
+    "Network Watcher is Azure's built-in toolkit for this. It's enabled automatically per region."
+  ],
+  "engineer": [
+    "IP flow verify: tests a 5-tuple against the NIC's NSGs and returns Allow/Deny plus the rule name.",
+    "NSG diagnostics: like IP flow verify, but evaluates NSGs at the subnet and NIC levels for a flow and shows each.",
+    "Next hop: returns the next hop type, IP and route table for a destination from a VM.",
+    "Effective security rules / effective routes (on the NIC): the merged view Azure actually applies.",
+    "Connection troubleshoot: an end-to-end TCP/ICMP test from a VM (or Bastion/App Gateway) to a destination, reporting hops, latency and the failing component, including when the destination doesn't respond (for example a stopped service).",
+    "Packet capture records traffic on a VM; VNet flow logs record IP flows for analysis (NSG flow logs are being retired: new ones can't be created after 30 June 2025). Connection troubleshoot and packet capture need the Network Watcher agent VM extension."
+  ],
+  "animation": {
+    "id": "network-routing-sim",
+    "caption": "Troubleshoot connectivity tab: pick a tool and see whether it reveals the hidden fault."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "web",
+        "label": "web-vm",
+        "x": 40,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "o",
+        "label": "NSG outbound",
+        "x": 180,
+        "y": 120,
+        "kind": "security"
+      },
+      {
+        "id": "r",
+        "label": "Routes",
+        "x": 320,
+        "y": 120,
+        "kind": "network"
+      },
+      {
+        "id": "i",
+        "label": "NSG inbound",
+        "x": 460,
+        "y": 120,
+        "kind": "security"
+      },
+      {
+        "id": "db",
+        "label": "db-vm :1433",
+        "x": 620,
+        "y": 120,
+        "kind": "storage"
+      },
+      {
+        "id": "nw",
+        "label": "Network Watcher",
+        "x": 330,
+        "y": 10,
+        "kind": "service"
+      }
+    ],
+    "edges": [
+      {
+        "from": "web",
+        "to": "o"
+      },
+      {
+        "from": "o",
+        "to": "r"
+      },
+      {
+        "from": "r",
+        "to": "i"
+      },
+      {
+        "from": "i",
+        "to": "db"
+      },
+      {
+        "from": "nw",
+        "to": "r",
+        "label": "next hop"
+      },
+      {
+        "from": "nw",
+        "to": "i",
+        "label": "IP flow verify"
+      }
+    ]
+  },
+  "example": {
+    "title": "An app can't reach its database",
+    "body": [
+      "IP flow verify reports Allow. Next hop shows VnetLocal. Connection troubleshoot reports the destination port is not reachable: the SQL Server service had stopped after patching."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription and a resource group (rg-net)"
+    ],
+    "permissions": [
+      "Network Contributor, or a custom role with Network Watcher permissions plus read on the VMs"
+    ],
+    "limits": [
+      "See Azure networking limits in the subscription service limits page"
+    ],
+    "portal": [
+      "Network Watcher > IP flow verify: choose VM, NIC, protocol, direction, local/remote IP and port.",
+      "Network Watcher > Next hop: VM, source IP, destination IP.",
+      "Network Watcher > Connection troubleshoot: source VM, destination and port.",
+      "VM > Networking > Effective security rules; NIC > Effective routes."
+    ],
+    "cli": "az network watcher test-ip-flow -g rg-net --vm web-vm --direction Outbound --protocol TCP --local 10.1.1.4:60000 --remote 10.1.2.4:1433\naz network watcher show-next-hop -g rg-net --vm web-vm --source-ip 10.1.1.4 --dest-ip 10.1.2.4\naz network watcher test-connectivity -g rg-net --source-resource web-vm --dest-address 10.1.2.4 --dest-port 1433\naz network nic list-effective-nsg -g rg-net -n web-vm-nic",
+    "powershell": "$nw = Get-AzNetworkWatcher -Location eastus\n$vm = Get-AzVM -Name web-vm -ResourceGroupName rg-net\nTest-AzNetworkWatcherIPFlow -NetworkWatcher $nw -TargetVirtualMachineId $vm.Id -Direction Outbound -Protocol TCP -LocalIPAddress 10.1.1.4 -LocalPort 60000 -RemoteIPAddress 10.1.2.4 -RemotePort 1433\nGet-AzNetworkWatcherNextHop -NetworkWatcher $nw -TargetVirtualMachineId $vm.Id -SourceIPAddress 10.1.1.4 -DestinationIPAddress 10.1.2.4\nTest-AzNetworkWatcherConnectivity -NetworkWatcher $nw -SourceId $vm.Id -DestinationAddress 10.1.2.4 -DestinationPort 1433"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "network-routing-sim",
+    "objective": "Match each fault to the Network Watcher tool that reveals it.",
+    "duration": 15,
+    "steps": [
+      "Run the default (Next hop against an NSG fault) and read why it can't see it.",
+      "Apply 'Use IP flow verify'.",
+      "Apply 'Routing fault'.",
+      "Set fault to 'SQL service stopped' and find the only tool that detects it."
+    ],
+    "expected": [
+      "NSG faults: IP flow verify / effective rules",
+      "Routing faults: Next hop",
+      "Application faults: Connection troubleshoot"
+    ],
+    "validation": [
+      {
+        "id": "conn-root-cause",
+        "text": "Found a root cause with the right tool"
+      },
+      {
+        "id": "conn-wrong-tool",
+        "text": "Saw a tool's limits"
+      }
+    ],
+    "failureScenarios": [
+      "Using Next hop for NSG problems",
+      "Ignoring the guest OS"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "IP flow verify says Allow but the connection fails.",
+      "cause": "Problem is routing, guest firewall or the app.",
+      "fix": "Use Next hop and Connection troubleshoot."
+    },
+    {
+      "symptom": "Connection troubleshoot fails to start.",
+      "cause": "Network Watcher agent extension missing.",
+      "fix": "Install the extension (it installs automatically when possible)."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS Reachability Analyzer and VPC Flow Logs",
+      "difference": "AWS equivalents for path analysis and flow logging."
+    },
+    {
+      "service": "ping/tcping inside the VM",
+      "difference": "Tests from the guest, but doesn't show which Azure rule blocks traffic."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "If NSGs allow it, the app must be reachable.",
+      "reality": "Routes, guest firewalls and the application can still block it."
+    },
+    {
+      "myth": "Network Watcher must be bought separately.",
+      "reality": "It's enabled automatically; some features (flow logs, Connection Monitor) incur charges."
+    }
+  ],
+  "architectureDecisions": [
+    "Troubleshoot hop by hop: NSG out, route, NSG in, guest, app.",
+    "Enable VNet flow logs on critical networks before incidents happen."
+  ],
+  "docs": [
+    {
+      "title": "Network Watcher overview",
+      "url": "https://learn.microsoft.com/azure/network-watcher/network-watcher-overview"
+    },
+    {
+      "title": "IP flow verify",
+      "url": "https://learn.microsoft.com/azure/network-watcher/ip-flow-verify-overview"
+    },
+    {
+      "title": "Next hop",
+      "url": "https://learn.microsoft.com/azure/network-watcher/next-hop-overview"
+    },
+    {
+      "title": "Connection troubleshoot",
+      "url": "https://learn.microsoft.com/azure/network-watcher/connection-troubleshoot-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Find out why two things cannot talk, step by step, with Network Watcher.",
+    "learn": [
+      "A checklist from source to destination",
+      "IP flow verify and effective security rules",
+      "Next hop and effective routes",
+      "Connection troubleshoot, packet capture and flow logs"
+    ],
+    "nodes": [
+      {
+        "id": "src",
+        "label": "Source VM",
+        "x": 110,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "nsg1",
+        "label": "NSG outbound",
+        "x": 300,
+        "y": 120,
+        "kind": "security"
+      },
+      {
+        "id": "route",
+        "label": "Route",
+        "x": 400,
+        "y": 260,
+        "kind": "network"
+      },
+      {
+        "id": "nsg2",
+        "label": "NSG inbound",
+        "x": 500,
+        "y": 120,
+        "kind": "security"
+      },
+      {
+        "id": "dst",
+        "label": "Destination",
+        "x": 690,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "nw",
+        "label": "Network Watcher",
+        "x": 400,
+        "y": 400,
+        "kind": "service",
+        "sub": "diagnostic tools"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Can't connect",
+        "title": "'The app server cannot reach the database'",
+        "body": [
+          "That sentence could mean a stopped VM, a blocking NSG, a wrong route, a DNS error or a firewall inside the OS. Guessing wastes hours."
+        ],
+        "show": [
+          "src",
+          "dst"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Checklist",
+        "title": "Walk the path",
+        "body": [
+          "Check in order: is the VM running? Does DNS resolve? Does the source NSG allow outbound? Which route is used? Does the destination NSG allow inbound? Is the app listening, and is the OS firewall open?"
+        ],
+        "show": [
+          "src",
+          "dst",
+          "nsg1",
+          "route",
+          "nsg2"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "src",
+            "to": "nsg1",
+            "fresh": true
+          },
+          {
+            "from": "nsg1",
+            "to": "route",
+            "fresh": true
+          },
+          {
+            "from": "route",
+            "to": "nsg2",
+            "fresh": true
+          },
+          {
+            "from": "nsg2",
+            "to": "dst",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "NSG tools",
+        "title": "Is a security rule blocking it?",
+        "body": [
+          "IP flow verify tests one packet (direction, protocol, ports, IPs) and names the rule that allows or denies it. Effective security rules shows the combined rules of the NIC and subnet NSGs."
+        ],
+        "show": [
+          "src",
+          "dst",
+          "nsg1",
+          "route",
+          "nsg2",
+          "nw"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "src",
+            "to": "nsg1"
+          },
+          {
+            "from": "nsg1",
+            "to": "route"
+          },
+          {
+            "from": "route",
+            "to": "nsg2"
+          },
+          {
+            "from": "nsg2",
+            "to": "dst"
+          },
+          {
+            "from": "nw",
+            "to": "nsg1",
+            "fresh": true
+          },
+          {
+            "from": "nw",
+            "to": "nsg2",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Route tools",
+        "title": "Is traffic going the right way?",
+        "body": [
+          "Next hop shows where a packet would go and which route table decided it. Effective routes on a NIC lists every route in force."
+        ],
+        "show": [
+          "src",
+          "dst",
+          "nsg1",
+          "route",
+          "nsg2",
+          "nw"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "src",
+            "to": "nsg1"
+          },
+          {
+            "from": "nsg1",
+            "to": "route"
+          },
+          {
+            "from": "route",
+            "to": "nsg2"
+          },
+          {
+            "from": "nsg2",
+            "to": "dst"
+          },
+          {
+            "from": "nw",
+            "to": "nsg1"
+          },
+          {
+            "from": "nw",
+            "to": "nsg2"
+          },
+          {
+            "from": "nw",
+            "to": "route",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Deeper",
+        "title": "When you need more",
+        "body": [
+          "Connection troubleshoot tests a real connection end to end and reports where it fails. Packet capture records traffic on a VM. VNet flow logs record allowed and denied flows for later analysis (they replace NSG flow logs). Connection monitor watches a path continuously."
+        ],
+        "show": [
+          "src",
+          "dst",
+          "nsg1",
+          "route",
+          "nsg2",
+          "nw"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "src",
+            "to": "nsg1"
+          },
+          {
+            "from": "nsg1",
+            "to": "route"
+          },
+          {
+            "from": "route",
+            "to": "nsg2"
+          },
+          {
+            "from": "nsg2",
+            "to": "dst"
+          },
+          {
+            "from": "nw",
+            "to": "nsg1"
+          },
+          {
+            "from": "nw",
+            "to": "nsg2"
+          },
+          {
+            "from": "nw",
+            "to": "route"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Network Watcher is enabled automatically per region when you create a VNet."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Troubleshooting",
+        "body": [
+          "Walk the path; let the tools name the culprit."
+        ],
+        "show": [
+          "src",
+          "dst",
+          "nsg1",
+          "route",
+          "nsg2",
+          "nw"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "src",
+            "to": "nsg1"
+          },
+          {
+            "from": "nsg1",
+            "to": "route"
+          },
+          {
+            "from": "route",
+            "to": "nsg2"
+          },
+          {
+            "from": "nsg2",
+            "to": "dst"
+          },
+          {
+            "from": "nw",
+            "to": "nsg1"
+          },
+          {
+            "from": "nw",
+            "to": "nsg2"
+          },
+          {
+            "from": "nw",
+            "to": "route"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Running? DNS? NSG out? Route? NSG in? App listening?",
+          "IP flow verify names the blocking rule",
+          "Effective security rules = NIC + subnet NSGs",
+          "Next hop / effective routes for routing",
+          "Connection troubleshoot, packet capture, VNet flow logs"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Diagnose a blocked port with Network Watcher",
+    "minutes": 25,
+    "costLevel": "low",
+    "cost": "Low. One B1s VM costs about US$0.01 per hour. Delete the same day.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A virtual network vnet-lab (10.10.0.0/16) in rg-az104-lab with a subnet snet-app (10.10.1.0/24): Virtual networks > + Create > IP addresses tab. For these labs, untick 'Enable private subnet' on snet-app so lab VMs can reach the internet (in production use a NAT gateway instead).",
+      "A small Linux VM vm-lab in snet-app of vnet-lab: Virtual machines > + Create. Image Ubuntu 24.04, size Standard_B1s, password authentication, Networking tab: vnet-lab / snet-app, public IP: None, NIC network security group: Basic, public inbound ports: None. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Network Watcher' > Network diagnostic tools > IP flow verify. VM: vm-lab, protocol TCP, direction Inbound, local port 22, remote IP 203.0.113.10, remote port 50000. Check.",
+        "see": "Access denied, with the rule DenyAllInBound named."
+      },
+      {
+        "do": "Open vm-lab > Networking > Network settings > Create port rule > Inbound port rule. Source: IP addresses 203.0.113.10, destination port 22, TCP, Allow, priority 300, name allow-ssh-test. Add."
+      },
+      {
+        "do": "Run IP flow verify again with the same values.",
+        "see": "Access allowed, by rule allow-ssh-test."
+      },
+      {
+        "do": "Open Network Watcher > Effective security rules, choose vm-lab's NIC.",
+        "see": "All rules in force, including the default rules at priorities 65000–65500."
+      },
+      {
+        "do": "Open Network Watcher > Connection troubleshoot. Source: vm-lab, destination URI www.microsoft.com, port 443. Run.",
+        "see": "Either Reachable, or Unreachable with the hop where it failed (private subnets without NAT have no internet)."
+      },
+      {
+        "do": "Open Network Watcher > Topology (or the VNet > Diagram) for vnet-lab.",
+        "see": "A picture of the VNet, subnets, NIC and NSG."
+      }
+    ],
+    "check": [
+      "IP flow verify showed denied, then allowed, naming the rule each time."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Diagnose a VM network traffic filter problem (IP flow verify)",
+        "url": "https://learn.microsoft.com/azure/network-watcher/diagnose-vm-network-traffic-filtering-problem"
+      },
+      {
+        "title": "Connection troubleshoot overview",
+        "url": "https://learn.microsoft.com/azure/network-watcher/connection-troubleshoot-overview"
+      },
+      {
+        "title": "VNet flow logs overview",
+        "url": "https://learn.microsoft.com/azure/network-watcher/vnet-flow-logs-overview"
+      }
+    ]
+  }
+}

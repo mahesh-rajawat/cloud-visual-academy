@@ -1,0 +1,586 @@
+{
+  "id": "az104-insights-network-watcher",
+  "exam": "az-104",
+  "title": "Azure Monitor Insights, Network Watcher and Connection Monitor",
+  "objectiveIds": [
+    "AZ104-5.1.5",
+    "AZ104-5.1.6"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Configure and interpret VM insights, Storage insights and Network insights, and use Network Watcher and Connection Monitor to monitor connectivity.",
+  "prerequisites": [
+    {
+      "text": "Metrics and log settings",
+      "objectiveId": "AZ104-5.1.2",
+      "lessonId": "az104-monitor-metrics-logs"
+    },
+    {
+      "text": "Troubleshooting network connectivity",
+      "objectiveId": "AZ104-4.1.5",
+      "lessonId": "az104-network-troubleshooting"
+    }
+  ],
+  "foundation": [
+    "Insights are ready-made monitoring experiences for a type of resource: VMs, storage accounts, networks, containers and more.",
+    "Network Watcher diagnoses and monitors network connectivity; Connection Monitor tests connections continuously."
+  ],
+  "engineer": [
+    "VM insights: enable on VMs/scale sets (installs Azure Monitor Agent and a DCR sending performance data to a workspace; the optional Map feature adds dependency data). Shows CPU, memory, disk and network trends, top N machines and processes/connections.",
+    "Storage insights: built from storage platform metrics, no setup: capacity, availability, transactions, end-to-end and server latency, failures by type across accounts.",
+    "Network insights: topology and health of network resources (gateways, load balancers, VNets), with links to resource-specific insights and Connection Monitor results.",
+    "Network Watcher tools: topology, IP flow verify, NSG diagnostics, next hop, effective security rules, connection troubleshoot, packet capture, VPN troubleshoot, VNet flow logs and Traffic analytics.",
+    "Connection Monitor: test groups of sources (Azure VMs with the Network Watcher agent extension, Arc-enabled or on-premises machines with Azure Monitor Agent) and destinations (IP, FQDN, Azure resources) using TCP, HTTP or ICMP test configurations with thresholds for checks failed % and round-trip time. Results go to Log Analytics and can trigger alerts."
+  ],
+  "animation": {
+    "id": "monitor-sim",
+    "caption": "Insights and Network Watcher, and Connection Monitor tabs."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "VMs (AMA + DCR)",
+        "x": 20,
+        "y": 40,
+        "kind": "compute"
+      },
+      {
+        "id": "st",
+        "label": "Storage accounts",
+        "x": 20,
+        "y": 140,
+        "kind": "storage"
+      },
+      {
+        "id": "net",
+        "label": "Network resources",
+        "x": 20,
+        "y": 240,
+        "kind": "network"
+      },
+      {
+        "id": "ins",
+        "label": "Azure Monitor Insights",
+        "x": 300,
+        "y": 140,
+        "kind": "service"
+      },
+      {
+        "id": "cm",
+        "label": "Connection Monitor",
+        "x": 560,
+        "y": 60,
+        "kind": "security"
+      },
+      {
+        "id": "law",
+        "label": "Log Analytics",
+        "x": 560,
+        "y": 220,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "vm",
+        "to": "ins"
+      },
+      {
+        "from": "st",
+        "to": "ins"
+      },
+      {
+        "from": "net",
+        "to": "ins"
+      },
+      {
+        "from": "cm",
+        "to": "law"
+      },
+      {
+        "from": "vm",
+        "to": "cm",
+        "label": "agent tests"
+      }
+    ]
+  },
+  "example": {
+    "title": "Watching the on-premises link",
+    "body": [
+      "Connection Monitor tests TCP 443 from three Azure VMs to an on-premises ERP server every 30 seconds with thresholds of 5% failed checks and 100 ms RTT. When the VPN degrades, the test state turns Fail and the ops action group is alerted; the topology view shows the failing hop."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with VMs to monitor or protect"
+    ],
+    "permissions": [
+      "Monitoring Contributor (alerts, diagnostic settings) or Backup Contributor (vaults, policies)"
+    ],
+    "limits": [
+      "See Azure Monitor / Azure Backup service limits"
+    ],
+    "portal": [
+      "Monitor > Virtual Machines (VM insights) > Configure insights: choose a DCR and workspace.",
+      "Monitor > Storage accounts (Storage insights): review failures and latency.",
+      "Network Watcher > Connection monitor > Create: sources, destinations, test configuration, thresholds, alerting.",
+      "Monitor > Networks: topology and health."
+    ],
+    "cli": "az vm extension set -g rg-app --vm-name vm-app -n NetworkWatcherAgentLinux --publisher Microsoft.Azure.NetworkWatcher\naz network watcher connection-monitor create -n cm-erp --location eastus --endpoint-source-name vm-app --endpoint-source-resource-id $VM_ID --endpoint-dest-name erp --endpoint-dest-address erp.contoso.local --test-config-name tcp443 --protocol Tcp --tcp-port 443 --frequency 30 --threshold-failed-percent 5 --threshold-round-trip-time 100",
+    "powershell": "Set-AzVMExtension -ResourceGroupName rg-app -VMName vm-app -Name NetworkWatcherAgentWindows -Publisher Microsoft.Azure.NetworkWatcher -Type NetworkWatcherAgentWindows -TypeHandlerVersion 1.4\nGet-AzNetworkWatcherConnectionMonitor -Location eastus"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "monitor-sim",
+    "objective": "Pick the right Insight or Network Watcher tool and set up Connection Monitor.",
+    "duration": 15,
+    "steps": [
+      "Insights and Network Watcher: answer every requirement.",
+      "Connection Monitor: run the default (no agent).",
+      "Apply 'Install the agent', then 'Latency degradation' and 'Destination down'."
+    ],
+    "expected": [
+      "VM insights needs AMA + DCR",
+      "Connection Monitor needs an agent on sources",
+      "Thresholds decide Pass/Fail"
+    ],
+    "validation": [
+      {
+        "id": "insights-correct",
+        "text": "Chose the right monitoring feature"
+      },
+      {
+        "id": "cm-pass",
+        "text": "Saw a passing connection test"
+      },
+      {
+        "id": "cm-alert",
+        "text": "Saw a threshold breach raise an alert"
+      },
+      {
+        "id": "cm-no-agent",
+        "text": "Diagnosed a missing agent"
+      }
+    ],
+    "failureScenarios": [
+      "No agent on the source VM",
+      "Thresholds too loose"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "VM insights shows no data.",
+      "cause": "No DCR association or agent not reporting.",
+      "fix": "Check the agent extension and Heartbeat table."
+    },
+    {
+      "symptom": "Connection Monitor source shows unavailable.",
+      "cause": "Network Watcher agent missing or Network Watcher not enabled in the region.",
+      "fix": "Install the extension; enable Network Watcher."
+    },
+    {
+      "symptom": "Storage insights shows high server latency.",
+      "cause": "Service-side processing (hot partitions, large operations).",
+      "fix": "Investigate request patterns; E2E vs server latency difference indicates client/network."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "CloudWatch Container/Lambda Insights and VPC Reachability Analyzer",
+      "difference": "AWS equivalents."
+    },
+    {
+      "service": "Network Watcher one-off tools",
+      "difference": "Connection Monitor is continuous; IP flow verify/next hop are point-in-time."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Storage insights needs an agent.",
+      "reality": "It uses platform metrics."
+    },
+    {
+      "myth": "Connection Monitor works without anything on the VM.",
+      "reality": "Azure VM sources need the Network Watcher agent extension."
+    }
+  ],
+  "architectureDecisions": [
+    "Enable VM insights through Azure Policy for all production VMs.",
+    "Monitor critical hybrid paths with Connection Monitor and alert on thresholds."
+  ],
+  "docs": [
+    {
+      "title": "VM insights overview",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/vm/vminsights-overview"
+    },
+    {
+      "title": "Storage insights",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-insights-overview"
+    },
+    {
+      "title": "Network insights",
+      "url": "https://learn.microsoft.com/azure/network-watcher/network-insights-overview"
+    },
+    {
+      "title": "Connection Monitor overview",
+      "url": "https://learn.microsoft.com/azure/network-watcher/connection-monitor-overview"
+    },
+    {
+      "title": "Network Watcher overview",
+      "url": "https://learn.microsoft.com/azure/network-watcher/network-watcher-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Use ready-made monitoring views for VMs, storage and networks, and watch a network path continuously.",
+    "learn": [
+      "What Insights are",
+      "VM insights and what it needs",
+      "Storage and network insights",
+      "Network Watcher tools",
+      "Connection monitor"
+    ],
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "VM",
+        "x": 110,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "sa",
+        "label": "Storage account",
+        "x": 110,
+        "y": 320,
+        "kind": "storage"
+      },
+      {
+        "id": "vmi",
+        "label": "VM insights",
+        "x": 380,
+        "y": 120,
+        "kind": "service",
+        "sub": "AMA + DCR"
+      },
+      {
+        "id": "si",
+        "label": "Storage insights",
+        "x": 380,
+        "y": 320,
+        "kind": "service",
+        "sub": "no setup"
+      },
+      {
+        "id": "nw",
+        "label": "Network Watcher",
+        "x": 650,
+        "y": 220,
+        "kind": "service",
+        "sub": "per region"
+      },
+      {
+        "id": "cm",
+        "label": "Connection monitor",
+        "x": 650,
+        "y": 380,
+        "kind": "network",
+        "sub": "vm → api:443"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Where to look",
+        "title": "Too many charts, no overview",
+        "body": [
+          "You want a dashboard per service type that shows the important numbers, without building it yourself."
+        ],
+        "show": [
+          "vm",
+          "sa"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Insights",
+        "title": "Insights are curated monitoring views",
+        "body": [
+          "Azure Monitor Insights give ready-made workbooks for a service type: VM insights, Storage insights, Network insights, Container insights and more."
+        ],
+        "show": [
+          "vm",
+          "sa"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "VM insights",
+        "title": "VM insights",
+        "body": [
+          "Enable it on a VM or scale set: it installs the Azure Monitor Agent and a data collection rule, sending data to a Log Analytics workspace. You get performance charts (CPU, memory, disk) and optionally a Map of processes and connections."
+        ],
+        "show": [
+          "vm",
+          "sa",
+          "vmi"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "vmi",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Storage + network",
+        "title": "Storage and Network insights",
+        "body": [
+          "Storage insights use platform metrics, so they work without setup: capacity, transactions, availability and latency across accounts. Network insights show the health and topology of your network resources."
+        ],
+        "show": [
+          "vm",
+          "sa",
+          "vmi",
+          "si"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "vmi"
+          },
+          {
+            "from": "sa",
+            "to": "si",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Network Watcher",
+        "title": "Network Watcher's toolbox",
+        "body": [
+          "Per-region service with diagnostic tools: IP flow verify, Next hop, Effective security rules, Connection troubleshoot, Packet capture, VPN troubleshoot, Topology, and VNet flow logs."
+        ],
+        "show": [
+          "vm",
+          "sa",
+          "vmi",
+          "si",
+          "nw"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "vmi"
+          },
+          {
+            "from": "sa",
+            "to": "si"
+          },
+          {
+            "from": "nw",
+            "to": "vm",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Connection monitor",
+        "title": "Connection monitor watches a path",
+        "body": [
+          "Connection monitor runs tests continuously from sources (Azure VMs or on-premises machines with the agent) to destinations (VMs, URLs, IPs) on a port. It records failed checks and round-trip time and can raise alerts when thresholds are crossed."
+        ],
+        "show": [
+          "vm",
+          "sa",
+          "vmi",
+          "si",
+          "nw",
+          "cm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "vmi"
+          },
+          {
+            "from": "sa",
+            "to": "si"
+          },
+          {
+            "from": "nw",
+            "to": "vm"
+          },
+          {
+            "from": "vm",
+            "to": "cm",
+            "label": "every 30 s",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Connection troubleshoot = one-off check. Connection monitor = continuous."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Insights and Network Watcher",
+        "body": [
+          "Ready-made views; tools for network questions."
+        ],
+        "show": [
+          "vm",
+          "sa",
+          "vmi",
+          "si",
+          "nw",
+          "cm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "vmi"
+          },
+          {
+            "from": "sa",
+            "to": "si"
+          },
+          {
+            "from": "nw",
+            "to": "vm"
+          },
+          {
+            "from": "vm",
+            "to": "cm",
+            "label": "every 30 s"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Insights = curated workbooks per service",
+          "VM insights needs AMA + DCR + workspace",
+          "Storage insights work from metrics",
+          "Network Watcher diagnostic tools per region",
+          "Connection monitor = continuous path testing"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Turn on VM insights and a connection monitor",
+    "minutes": 30,
+    "costLevel": "low",
+    "cost": "Low. One B1s VM costs about US$0.01 per hour. Delete the same day. Insights data in Log Analytics adds cents.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A small Linux VM vm-lab in rg-az104-lab: Virtual machines > + Create, Ubuntu 24.04, Standard_B1s, password authentication, public inbound ports None. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead. Monitoring agents, Azure Backup and Site Recovery all need to reach Azure services."
+    ],
+    "steps": [
+      {
+        "do": "Open vm-lab > Monitoring > Insights > Enable. Choose Azure Monitor Agent, data collection rule: create new, workspace: create or pick one. Configure.",
+        "see": "Deployment of the agent and DCR. Data appears after about 10 minutes."
+      },
+      {
+        "do": "Return to vm-lab > Insights > Performance.",
+        "see": "Charts for CPU, available memory, logical disk space and network."
+      },
+      {
+        "do": "Search 'Monitor' > Insights > Storage accounts (if you have one) or Networks.",
+        "see": "Ready-made views across your resources."
+      },
+      {
+        "do": "Search 'Network Watcher' > Monitoring > Connection monitor > + Create. Name cm-lab, region your region."
+      },
+      {
+        "do": "Add a test group: source vm-lab; destination: external address www.microsoft.com; test configuration HTTP or TCP port 443, every 30 seconds. Create.",
+        "see": "cm-lab listed. Results after a few minutes."
+      },
+      {
+        "do": "Open cm-lab.",
+        "see": "Checks failed % and round-trip time from vm-lab to the destination. (Fails if the subnet has no outbound internet: that is useful to see too.)"
+      }
+    ],
+    "check": [
+      "VM insights shows performance data; cm-lab reports checks."
+    ],
+    "cleanup": [
+      "Delete cm-lab.",
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Enable VM insights",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/vm/vminsights-enable-portal"
+      },
+      {
+        "title": "Storage insights",
+        "url": "https://learn.microsoft.com/azure/storage/common/storage-insights-overview"
+      },
+      {
+        "title": "Create a connection monitor in the portal",
+        "url": "https://learn.microsoft.com/azure/network-watcher/connection-monitor-create-using-portal"
+      },
+      {
+        "title": "What is Azure Network Watcher?",
+        "url": "https://learn.microsoft.com/azure/network-watcher/network-watcher-overview"
+      }
+    ]
+  }
+}

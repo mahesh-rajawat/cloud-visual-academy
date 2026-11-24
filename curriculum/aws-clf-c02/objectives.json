@@ -1,0 +1,1403 @@
+{
+  "examCode": "CLF-C02",
+  "examName": "AWS Certified Cloud Practitioner",
+  "vendor": "AWS",
+  "sourceUrl": "https://docs.aws.amazon.com/aws-certification/latest/cloud-practitioner-02/cloud-practitioner-02.html",
+  "skillsMeasuredAsOf": "October 29, 2026",
+  "guideVersion": "1.3",
+  "revisionHistory": [
+    {
+      "version": "1.0",
+      "publicationDate": "June 24, 2026"
+    },
+    {
+      "version": "1.1",
+      "publicationDate": "August 28, 2026"
+    },
+    {
+      "version": "1.2",
+      "publicationDate": "September 24, 2026"
+    },
+    {
+      "version": "1.3",
+      "publicationDate": "October 29, 2026"
+    }
+  ],
+  "inScopeServices": {
+    "Analytics": [
+      "Amazon Athena",
+      "Amazon EMR",
+      "AWS Glue",
+      "Amazon Kinesis",
+      "Amazon OpenSearch Service",
+      "Amazon Quick",
+      "Amazon Redshift"
+    ],
+    "Application Integration": [
+      "Amazon EventBridge",
+      "Amazon Simple Notification Service (Amazon SNS)",
+      "Amazon Simple Queue Service (Amazon SQS)",
+      "AWS Step Functions"
+    ],
+    "Business Applications": [
+      "Amazon Connect",
+      "Amazon Simple Email Service (Amazon SES)"
+    ],
+    "Cloud Financial Management": [
+      "AWS Budgets",
+      "AWS Cost and Usage Reports",
+      "AWS Cost Explorer",
+      "AWS Marketplace"
+    ],
+    "Compute": [
+      "AWS Batch",
+      "Amazon EC2",
+      "AWS Elastic Beanstalk",
+      "Amazon Lightsail",
+      "AWS Outposts"
+    ],
+    "Containers": [
+      "Amazon Elastic Container Registry (Amazon ECR)",
+      "Amazon Elastic Container Service (Amazon ECS)",
+      "Amazon Elastic Kubernetes Service (Amazon EKS)"
+    ],
+    "Customer Enablement": [
+      "AWS Support"
+    ],
+    "Database": [
+      "Amazon Aurora",
+      "Amazon DocumentDB",
+      "Amazon DynamoDB",
+      "Amazon ElastiCache",
+      "Amazon Neptune",
+      "Amazon RDS"
+    ],
+    "Developer Tools": [
+      "AWS CLI",
+      "AWS CodeBuild",
+      "AWS CodePipeline",
+      "AWS X-Ray"
+    ],
+    "End User Computing": [
+      "Amazon AppStream 2.0",
+      "Amazon WorkSpaces",
+      "Amazon WorkSpaces Secure Browser"
+    ],
+    "Frontend Web and Mobile": [
+      "AWS Amplify"
+    ],
+    "Internet of Things (IoT)": [
+      "AWS IoT Core"
+    ],
+    "Machine Learning": [
+      "Amazon Comprehend",
+      "Amazon Lex",
+      "Amazon Polly",
+      "Amazon Q",
+      "Amazon Rekognition",
+      "Amazon SageMaker AI",
+      "Amazon Textract",
+      "Amazon Transcribe",
+      "Amazon Translate"
+    ],
+    "Management and Governance": [
+      "AWS Auto Scaling",
+      "AWS CloudFormation",
+      "AWS CloudTrail",
+      "Amazon CloudWatch",
+      "AWS Compute Optimizer",
+      "AWS Config",
+      "AWS Control Tower",
+      "AWS Health Dashboard",
+      "AWS License Manager",
+      "AWS Management Console",
+      "AWS Organizations",
+      "AWS Service Catalog",
+      "Service Quotas",
+      "AWS Systems Manager",
+      "AWS Trusted Advisor",
+      "AWS Well-Architected Tool"
+    ],
+    "Migration and Transfer": [
+      "AWS Application Discovery Service",
+      "AWS Application Migration Service",
+      "AWS Database Migration Service (AWS DMS)",
+      "Migration Evaluator",
+      "AWS Migration Hub",
+      "AWS Schema Conversion Tool (AWS SCT)"
+    ],
+    "Networking and Content Delivery": [
+      "Amazon API Gateway",
+      "Amazon CloudFront",
+      "AWS Direct Connect",
+      "AWS Global Accelerator",
+      "AWS PrivateLink",
+      "Amazon Route 53",
+      "AWS Transit Gateway",
+      "Amazon VPC",
+      "AWS VPN",
+      "AWS Site-to-Site VPN",
+      "AWS Client VPN"
+    ],
+    "Security, Identity, and Compliance": [
+      "AWS Artifact",
+      "AWS Certificate Manager (ACM)",
+      "AWS CloudHSM",
+      "Amazon Cognito",
+      "Amazon Detective",
+      "AWS Directory Service",
+      "AWS Firewall Manager",
+      "Amazon GuardDuty",
+      "AWS Identity and Access Management (IAM)",
+      "AWS IAM Identity Center",
+      "Amazon Inspector",
+      "AWS Key Management Service (AWS KMS)",
+      "Amazon Macie",
+      "AWS Resource Access Manager (AWS RAM)",
+      "AWS Secrets Manager",
+      "AWS Security Hub",
+      "AWS Shield",
+      "AWS WAF"
+    ],
+    "Serverless": [
+      "AWS Fargate",
+      "AWS Lambda"
+    ],
+    "Storage": [
+      "AWS Backup",
+      "Amazon Elastic Block Store (Amazon EBS)",
+      "Amazon Elastic File System (Amazon EFS)",
+      "AWS Elastic Disaster Recovery",
+      "Amazon FSx",
+      "Amazon S3",
+      "Amazon S3 Glacier",
+      "AWS Storage Gateway"
+    ]
+  },
+  "domains": [
+    {
+      "id": "CLFC02-1",
+      "name": "Cloud Concepts",
+      "weight": "24%",
+      "skills": [
+        {
+          "id": "CLFC02-1.1",
+          "name": "Define the benefits of the AWS Cloud.",
+          "objectives": [
+            {
+              "id": "CLFC02-1.1.1",
+              "text": "Value proposition of the AWS Cloud",
+              "kind": "knowledge",
+              "fingerprint": "3967abdf1212",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.1.2",
+              "text": "Understanding the benefits of global infrastructure (for example, speed of deployment, global reach)",
+              "kind": "skill",
+              "fingerprint": "3c81226b4d8a",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.1.3",
+              "text": "Understanding the advantages of high availability, elasticity, and agility",
+              "kind": "skill",
+              "fingerprint": "cb2523ae7c19",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-1.2",
+          "name": "Identify design principles of the AWS Cloud.",
+          "objectives": [
+            {
+              "id": "CLFC02-1.2.1",
+              "text": "AWS Well-Architected Framework",
+              "kind": "knowledge",
+              "fingerprint": "1b01cc47977f",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.2.2",
+              "text": "Understanding the pillars of the Well-Architected Framework (for example, operational excellence, security, reliability, performance efficiency, cost optimization, sustainability)",
+              "kind": "skill",
+              "fingerprint": "65768d297cf1",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.2.3",
+              "text": "Identifying differences between the pillars of the Well-Architected Framework",
+              "kind": "skill",
+              "fingerprint": "f25e2a63f2b1",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-1.3",
+          "name": "Understand the benefits of and strategies for migration to the AWS Cloud.",
+          "objectives": [
+            {
+              "id": "CLFC02-1.3.1",
+              "text": "Cloud adoption strategies",
+              "kind": "knowledge",
+              "fingerprint": "cf5833a1e6ff",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.3.2",
+              "text": "Resources to support the cloud migration journey",
+              "kind": "knowledge",
+              "fingerprint": "9e466af0a3f3",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.3.3",
+              "text": "Understanding the components of the AWS Cloud Adoption Framework (AWS CAF) (for example, reduced business risk; improved environmental, social, and governance [ESG] performance; increased revenue; increased operational efficiency)",
+              "kind": "skill",
+              "fingerprint": "06b2bad1d3c9",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.3.4",
+              "text": "Identifying appropriate migration strategies (for example, database replication)",
+              "kind": "skill",
+              "fingerprint": "6d8e58bf14a5",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-1.4",
+          "name": "Understand concepts of cloud economics.",
+          "objectives": [
+            {
+              "id": "CLFC02-1.4.1",
+              "text": "Aspects of cloud economics",
+              "kind": "knowledge",
+              "fingerprint": "610f8cb3b6e0",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.4.2",
+              "text": "Cost savings of moving to the cloud",
+              "kind": "knowledge",
+              "fingerprint": "e0bce9ca0a9a",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.4.3",
+              "text": "Understanding the role of fixed costs compared with variable costs",
+              "kind": "skill",
+              "fingerprint": "0f388bc46887",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.4.4",
+              "text": "Understanding costs that are associated with on-premises environments",
+              "kind": "skill",
+              "fingerprint": "33da09b36c04",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.4.5",
+              "text": "Understanding the differences between licensing strategies (for example, Bring Your Own License [BYOL] model compared with included licenses)",
+              "kind": "skill",
+              "fingerprint": "9fe5393de0e1",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.4.6",
+              "text": "Understanding the concept of rightsizing",
+              "kind": "skill",
+              "fingerprint": "ec9e2c89c301",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.4.7",
+              "text": "Identifying benefits of automation",
+              "kind": "skill",
+              "fingerprint": "4b1513e12747",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-1.4.8",
+              "text": "Understanding the economies of scale (for example, cost savings)",
+              "kind": "skill",
+              "fingerprint": "2570368fdc97",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CLFC02-2",
+      "name": "Security and Compliance",
+      "weight": "30%",
+      "skills": [
+        {
+          "id": "CLFC02-2.1",
+          "name": "Understand the AWS shared responsibility model.",
+          "objectives": [
+            {
+              "id": "CLFC02-2.1.1",
+              "text": "AWS shared responsibility model",
+              "kind": "knowledge",
+              "fingerprint": "b59a01481913",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.1.2",
+              "text": "Recognizing the components of the AWS shared responsibility model",
+              "kind": "skill",
+              "fingerprint": "6496161d8683",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.1.3",
+              "text": "Describing the customer's responsibilities on AWS",
+              "kind": "skill",
+              "fingerprint": "3e9c3c8146c2",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.1.4",
+              "text": "Describing AWS responsibilities",
+              "kind": "skill",
+              "fingerprint": "777c51fb37eb",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.1.5",
+              "text": "Describing responsibilities that the customer and AWS share",
+              "kind": "skill",
+              "fingerprint": "ac900fa816a0",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.1.6",
+              "text": "Describing how AWS responsibilities and customer responsibilities can shift, depending on the service used (for example, Amazon RDS, AWS Lambda, Amazon EC2)",
+              "kind": "skill",
+              "fingerprint": "a377055a9c65",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-2.2",
+          "name": "Understand AWS Cloud security, governance, and compliance concepts.",
+          "objectives": [
+            {
+              "id": "CLFC02-2.2.1",
+              "text": "AWS compliance and governance concepts",
+              "kind": "knowledge",
+              "fingerprint": "8afe7755df1b",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.2.2",
+              "text": "Benefits of cloud security (for example, encryption)",
+              "kind": "knowledge",
+              "fingerprint": "f8c414ad62bd",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.2.3",
+              "text": "Where to capture and locate logs that are associated with cloud security",
+              "kind": "knowledge",
+              "fingerprint": "31635d1735b7",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.2.4",
+              "text": "Identifying where to find AWS compliance information (for example, AWS Artifact)",
+              "kind": "skill",
+              "fingerprint": "c8706d752b75",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.2.5",
+              "text": "Understanding compliance needs among geographic locations or industries (for example, AWS compliance)",
+              "kind": "skill",
+              "fingerprint": "b8bd8778e005",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.2.6",
+              "text": "Describing how customers secure resources on AWS (for example, Amazon Inspector, AWS Security Hub, Amazon GuardDuty, AWS Shield)",
+              "kind": "skill",
+              "fingerprint": "c3d8c7389ee6",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.2.7",
+              "text": "Identifying encryption options (for example, encryption in transit, encryption at rest)",
+              "kind": "skill",
+              "fingerprint": "7815bb995a75",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.2.8",
+              "text": "Recognizing services that aid in governance and compliance (for example, monitoring with Amazon CloudWatch; auditing with AWS CloudTrail and AWS Config; reporting with access reports)",
+              "kind": "skill",
+              "fingerprint": "6d93e38723d2",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.2.9",
+              "text": "Recognizing compliance requirements that vary among AWS services",
+              "kind": "skill",
+              "fingerprint": "8faa9542e53e",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-2.3",
+          "name": "Identify AWS access management capabilities.",
+          "objectives": [
+            {
+              "id": "CLFC02-2.3.1",
+              "text": "Identity and access management (for example, AWS Identity and Access Management [IAM])",
+              "kind": "knowledge",
+              "fingerprint": "45a1990e8f64",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.3.2",
+              "text": "Importance of protecting the AWS root user account",
+              "kind": "knowledge",
+              "fingerprint": "ee2c60cc406b",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.3.3",
+              "text": "Principle of least privilege",
+              "kind": "knowledge",
+              "fingerprint": "23085399eecf",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.3.4",
+              "text": "AWS IAM Identity Center",
+              "kind": "knowledge",
+              "fingerprint": "e0afdfc0d638",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.3.5",
+              "text": "Understanding access keys, password policies, and credential storage (for example, AWS Secrets Manager, AWS Systems Manager)",
+              "kind": "skill",
+              "fingerprint": "61c3f07bd19d",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.3.6",
+              "text": "Identifying authentication methods in AWS (for example, multi-factor authentication [MFA], IAM Identity Center, cross-account IAM roles)",
+              "kind": "skill",
+              "fingerprint": "f8f1ed571ae3",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.3.7",
+              "text": "Defining groups, users, custom policies, and managed policies in compliance with the principle of least privilege",
+              "kind": "skill",
+              "fingerprint": "63319c7ef35f",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.3.8",
+              "text": "Identifying tasks that only the account root user can perform",
+              "kind": "skill",
+              "fingerprint": "edb5092592ea",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.3.9",
+              "text": "Understanding which methods can achieve root user protection",
+              "kind": "skill",
+              "fingerprint": "aa964704edde",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.3.10",
+              "text": "Understanding the types of identity management (for example, federated)",
+              "kind": "skill",
+              "fingerprint": "4fde7cf8f45f",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-2.4",
+          "name": "Identify components and resources for security.",
+          "objectives": [
+            {
+              "id": "CLFC02-2.4.1",
+              "text": "Security capabilities that AWS provides",
+              "kind": "knowledge",
+              "fingerprint": "4235985052a3",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.4.2",
+              "text": "Security-related documentation that AWS provides",
+              "kind": "knowledge",
+              "fingerprint": "b4b62f3cc75f",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.4.3",
+              "text": "Describing AWS security features and services (for example, AWS WAF, AWS Firewall Manager, AWS Shield, Amazon GuardDuty)",
+              "kind": "skill",
+              "fingerprint": "c4f825e75210",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.4.4",
+              "text": "Understanding that third-party security products are available from AWS Marketplace",
+              "kind": "skill",
+              "fingerprint": "6c2fb1ad1921",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.4.5",
+              "text": "Identifying where AWS security information is available (for example, AWS Knowledge Center, AWS Security Center, AWS Security Blog)",
+              "kind": "skill",
+              "fingerprint": "4747e7951832",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-2.4.6",
+              "text": "Understanding the use of AWS services for identifying security issues (for example, AWS Trusted Advisor)",
+              "kind": "skill",
+              "fingerprint": "4010482cb495",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CLFC02-3",
+      "name": "Cloud Technology and Services",
+      "weight": "34%",
+      "skills": [
+        {
+          "id": "CLFC02-3.1",
+          "name": "Define methods of deploying and operating in the AWS Cloud.",
+          "objectives": [
+            {
+              "id": "CLFC02-3.1.1",
+              "text": "Various ways of provisioning and operating in the AWS Cloud",
+              "kind": "knowledge",
+              "fingerprint": "f41f64ee1dee",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.1.2",
+              "text": "Various ways to access AWS services",
+              "kind": "knowledge",
+              "fingerprint": "3abd0f0476f0",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.1.3",
+              "text": "Types of cloud deployment models",
+              "kind": "knowledge",
+              "fingerprint": "128602e4e350",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.1.4",
+              "text": "Deciding between options such as programmatic access (for example, APIs, SDKs, CLI), the AWS Management Console, and infrastructure as code (IaC)",
+              "kind": "skill",
+              "fingerprint": "30a0a2458b02",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.1.5",
+              "text": "Evaluating requirements to determine whether to use one-time operations or repeatable processes",
+              "kind": "skill",
+              "fingerprint": "eaef2bf9d9b2",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.1.6",
+              "text": "Identifying deployment models (for example, cloud, hybrid, on-premises)",
+              "kind": "skill",
+              "fingerprint": "72ca2376732e",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-3.2",
+          "name": "Define the AWS global infrastructure.",
+          "objectives": [
+            {
+              "id": "CLFC02-3.2.1",
+              "text": "AWS Regions, Availability Zones, and edge locations",
+              "kind": "knowledge",
+              "fingerprint": "414e85d1c529",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.2.2",
+              "text": "High availability",
+              "kind": "knowledge",
+              "fingerprint": "8aaa0ef947b7",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.2.3",
+              "text": "Use of multiple Regions",
+              "kind": "knowledge",
+              "fingerprint": "2394dcdf5268",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.2.4",
+              "text": "Benefits of edge locations",
+              "kind": "knowledge",
+              "fingerprint": "10f8860f3df3",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.2.5",
+              "text": "Describing relationships among Regions, Availability Zones, and edge locations",
+              "kind": "skill",
+              "fingerprint": "426333c24805",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.2.6",
+              "text": "Describing how to achieve high availability by using multiple Availability Zones",
+              "kind": "skill",
+              "fingerprint": "58472d1e0e49",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.2.7",
+              "text": "Recognizing that Availability Zones do not share single points of failure",
+              "kind": "skill",
+              "fingerprint": "fd1c332c9124",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.2.8",
+              "text": "Describing when to use multiple Regions (for example, disaster recovery, business continuity, low latency for end users, data sovereignty)",
+              "kind": "skill",
+              "fingerprint": "dd663ba8ab00",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-3.3",
+          "name": "Identify AWS compute services.",
+          "objectives": [
+            {
+              "id": "CLFC02-3.3.1",
+              "text": "AWS compute services",
+              "kind": "knowledge",
+              "fingerprint": "73d9c9752cfd",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.3.2",
+              "text": "Recognizing the appropriate use of various EC2 instance types (for example, compute optimized, storage optimized)",
+              "kind": "skill",
+              "fingerprint": "57e3ba8d0172",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.3.3",
+              "text": "Recognizing the appropriate use of various container options (for example, Amazon Elastic Container Service [Amazon ECS], Amazon Elastic Kubernetes Service [Amazon EKS])",
+              "kind": "skill",
+              "fingerprint": "601820839a42",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.3.4",
+              "text": "Recognizing the appropriate use of various serverless compute options (for example, AWS Fargate, Lambda)",
+              "kind": "skill",
+              "fingerprint": "8912a9deb6b8",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.3.5",
+              "text": "Recognizing that auto scaling provides elasticity",
+              "kind": "skill",
+              "fingerprint": "476ed635d5aa",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.3.6",
+              "text": "Identifying the purposes of load balancers",
+              "kind": "skill",
+              "fingerprint": "f6e1ef4fe13d",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-3.4",
+          "name": "Identify AWS database services.",
+          "objectives": [
+            {
+              "id": "CLFC02-3.4.1",
+              "text": "AWS database services",
+              "kind": "knowledge",
+              "fingerprint": "45a239cc9e54",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.4.2",
+              "text": "Database migration",
+              "kind": "knowledge",
+              "fingerprint": "0e72874665a8",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.4.3",
+              "text": "Deciding when to use EC2 hosted databases or AWS managed databases",
+              "kind": "skill",
+              "fingerprint": "a9e5fc4a9bcc",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.4.4",
+              "text": "Identifying relational databases (for example, Amazon RDS, Amazon Aurora)",
+              "kind": "skill",
+              "fingerprint": "4a32debdd110",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.4.5",
+              "text": "Identifying NoSQL databases (for example, DynamoDB)",
+              "kind": "skill",
+              "fingerprint": "d25ed505bb04",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.4.6",
+              "text": "Identifying memory-based databases (for example, Amazon ElastiCache)",
+              "kind": "skill",
+              "fingerprint": "adab2c1055c8",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.4.7",
+              "text": "Identifying database migration tools (for example, AWS Database Migration Service [AWS DMS], AWS Schema Conversion Tool [AWS SCT])",
+              "kind": "skill",
+              "fingerprint": "555c4e110b82",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-3.5",
+          "name": "Identify AWS network services.",
+          "objectives": [
+            {
+              "id": "CLFC02-3.5.1",
+              "text": "AWS network services",
+              "kind": "knowledge",
+              "fingerprint": "7bbb795f8337",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.5.2",
+              "text": "Identifying the components of a VPC (for example, subnets, gateways)",
+              "kind": "skill",
+              "fingerprint": "20961cf70474",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.5.3",
+              "text": "Understanding security in a VPC (for example, network ACLs, security groups, Amazon Inspector)",
+              "kind": "skill",
+              "fingerprint": "84c948d3c2a1",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.5.4",
+              "text": "Understanding the purpose of Amazon Route 53",
+              "kind": "skill",
+              "fingerprint": "cc5457869ba6",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.5.5",
+              "text": "Identifying network connectivity options to AWS (for example, AWS VPN, AWS Direct Connect)",
+              "kind": "skill",
+              "fingerprint": "a65e9f924943",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-3.6",
+          "name": "Identify AWS storage services.",
+          "objectives": [
+            {
+              "id": "CLFC02-3.6.1",
+              "text": "AWS storage services",
+              "kind": "knowledge",
+              "fingerprint": "caf6a46fc9e2",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.6.2",
+              "text": "Identifying the uses for object storage",
+              "kind": "skill",
+              "fingerprint": "05e42ff562bf",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.6.3",
+              "text": "Recognizing the differences in Amazon S3 storage classes",
+              "kind": "skill",
+              "fingerprint": "7280db2f85d4",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.6.4",
+              "text": "Identifying block storage solutions (for example, Amazon Elastic Block Store [Amazon EBS], instance store)",
+              "kind": "skill",
+              "fingerprint": "d9172c12d0d9",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.6.5",
+              "text": "Identifying file services (for example, Amazon Elastic File System [Amazon EFS], Amazon FSx)",
+              "kind": "skill",
+              "fingerprint": "6d9db73bcbee",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.6.6",
+              "text": "Identifying cached file systems (for example, AWS Storage Gateway)",
+              "kind": "skill",
+              "fingerprint": "3aa5382afd16",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.6.7",
+              "text": "Understanding use cases for lifecycle policies",
+              "kind": "skill",
+              "fingerprint": "2ea1b0fb341f",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.6.8",
+              "text": "Understanding use cases for AWS Backup",
+              "kind": "skill",
+              "fingerprint": "8e7d8cd7f6d8",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-3.7",
+          "name": "Identify AWS artificial intelligence and machine learning (AI/ML) services and analytics services.",
+          "objectives": [
+            {
+              "id": "CLFC02-3.7.1",
+              "text": "AWS AI/ML services",
+              "kind": "knowledge",
+              "fingerprint": "1b819b3640a5",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.7.2",
+              "text": "AWS analytics services",
+              "kind": "knowledge",
+              "fingerprint": "e9e24c25d054",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.7.3",
+              "text": "Understanding AI/ML services and the tasks that they accomplish (for example, Amazon SageMaker AI, Amazon Lex)",
+              "kind": "skill",
+              "fingerprint": "3702ea5bfd34",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.7.4",
+              "text": "Identifying the services for data analytics (for example, Amazon Athena, Amazon Kinesis, AWS Glue, Amazon Quick)",
+              "kind": "skill",
+              "fingerprint": "ed7ac566de57",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-3.8",
+          "name": "Identify services from other in-scope AWS service categories.",
+          "objectives": [
+            {
+              "id": "CLFC02-3.8.1",
+              "text": "Application integration services of Amazon EventBridge, Amazon Simple Notification Service (Amazon SNS), and Amazon Simple Queue Service (Amazon SQS)",
+              "kind": "knowledge",
+              "fingerprint": "349c6eb2017d",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.2",
+              "text": "Business application services of Amazon Connect and Amazon Simple Email Service (Amazon SES)",
+              "kind": "knowledge",
+              "fingerprint": "6e3a5bff3c7f",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.3",
+              "text": "Customer enablement services (for example, AWS Support)",
+              "kind": "knowledge",
+              "fingerprint": "1d6878833653",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.4",
+              "text": "Developer tool services and capabilities (for example, AWS CodeBuild, AWS CodePipeline, and AWS X-Ray)",
+              "kind": "knowledge",
+              "fingerprint": "b1761dc72542",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.5",
+              "text": "End-user computing services of Amazon AppStream 2.0, Amazon WorkSpaces, and Amazon WorkSpaces Secure Browser",
+              "kind": "knowledge",
+              "fingerprint": "7d134265ff8a",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.6",
+              "text": "Frontend web and mobile services of AWS Amplify",
+              "kind": "knowledge",
+              "fingerprint": "1b144ea356f3",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.7",
+              "text": "IoT services (for example, AWS IoT Core)",
+              "kind": "knowledge",
+              "fingerprint": "ca86b203edca",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.8",
+              "text": "Choosing the appropriate service to deliver messages and to send alerts and notifications",
+              "kind": "skill",
+              "fingerprint": "f16e11c166b1",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.9",
+              "text": "Choosing the appropriate service to meet business application needs",
+              "kind": "skill",
+              "fingerprint": "435c8cdcba95",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.10",
+              "text": "Choosing the appropriate option for business support assistance",
+              "kind": "skill",
+              "fingerprint": "27e827880b47",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.11",
+              "text": "Identifying the tools to develop, deploy, and troubleshoot applications",
+              "kind": "skill",
+              "fingerprint": "111f7dfb5359",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.12",
+              "text": "Identifying the services that can present the output of virtual machines (VMs) on end-user machines",
+              "kind": "skill",
+              "fingerprint": "062a10b10f29",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.13",
+              "text": "Identifying the services that can create and deploy frontend and mobile services",
+              "kind": "skill",
+              "fingerprint": "7605790dc1b9",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-3.8.14",
+              "text": "Identifying the services that manage IoT devices",
+              "kind": "skill",
+              "fingerprint": "a13e1e62f4fc",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CLFC02-4",
+      "name": "Billing, Pricing, and Support",
+      "weight": "12%",
+      "skills": [
+        {
+          "id": "CLFC02-4.1",
+          "name": "Compare AWS pricing models.",
+          "objectives": [
+            {
+              "id": "CLFC02-4.1.1",
+              "text": "Compute purchasing options (for example, On-Demand Instances, Reserved Instances, Spot Instances, Savings Plans, Dedicated Hosts, Dedicated Instances, Capacity Reservations)",
+              "kind": "knowledge",
+              "fingerprint": "dfb91fe9098d",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.1.2",
+              "text": "Storage options and tiers",
+              "kind": "knowledge",
+              "fingerprint": "e1244b77151d",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.1.3",
+              "text": "Identifying when to use various compute purchasing options",
+              "kind": "skill",
+              "fingerprint": "2e2d0be22480",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.1.4",
+              "text": "Describing Reserved Instance flexibility",
+              "kind": "skill",
+              "fingerprint": "92df4417f72e",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.1.5",
+              "text": "Describing Reserved Instance behavior in AWS Organizations",
+              "kind": "skill",
+              "fingerprint": "32a941ad4128",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.1.6",
+              "text": "Understanding incoming data transfer costs and outgoing data transfer costs (for example, from one Region to another Region, within the same Region)",
+              "kind": "skill",
+              "fingerprint": "6bbd7da2d5d0",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.1.7",
+              "text": "Understanding pricing options for various storage options and tiers",
+              "kind": "skill",
+              "fingerprint": "afeccdeb23d3",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-4.2",
+          "name": "Understand resources for billing, budget, and cost management.",
+          "objectives": [
+            {
+              "id": "CLFC02-4.2.1",
+              "text": "Billing support and information",
+              "kind": "knowledge",
+              "fingerprint": "93b08d7468c5",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.2.2",
+              "text": "Pricing information for AWS services",
+              "kind": "knowledge",
+              "fingerprint": "1a8a3c0bc2c7",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.2.3",
+              "text": "AWS Organizations",
+              "kind": "knowledge",
+              "fingerprint": "500ee4c204cb",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.2.4",
+              "text": "AWS cost allocation tags",
+              "kind": "knowledge",
+              "fingerprint": "fb4749c463c3",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.2.5",
+              "text": "Understanding the appropriate uses and capabilities of AWS Budgets and AWS Cost Explorer",
+              "kind": "skill",
+              "fingerprint": "0b1bb781f84e",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.2.6",
+              "text": "Understanding the appropriate uses and capabilities of AWS Pricing Calculator",
+              "kind": "skill",
+              "fingerprint": "5452be9f85d4",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.2.7",
+              "text": "Understanding AWS Organizations consolidated billing and allocation of costs",
+              "kind": "skill",
+              "fingerprint": "5b49f77abe79",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.2.8",
+              "text": "Understanding various types of cost allocation tags and their relation to billing reports (for example, AWS Cost and Usage Report)",
+              "kind": "skill",
+              "fingerprint": "0c3080473e83",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "CLFC02-4.3",
+          "name": "Identify AWS technical resources and AWS Support options.",
+          "objectives": [
+            {
+              "id": "CLFC02-4.3.1",
+              "text": "Resources and documentation available on official AWS websites",
+              "kind": "knowledge",
+              "fingerprint": "fac9976097e2",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.2",
+              "text": "AWS Support plans",
+              "kind": "knowledge",
+              "fingerprint": "4b7bbaeaab39",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.3",
+              "text": "Role of the AWS Partner Network, including independent software vendors and system integrators",
+              "kind": "knowledge",
+              "fingerprint": "c438aff076f5",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.4",
+              "text": "AWS Support Center",
+              "kind": "knowledge",
+              "fingerprint": "595870410478",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.5",
+              "text": "Locating AWS whitepapers, blogs, and documentation on official AWS websites",
+              "kind": "skill",
+              "fingerprint": "07ea702db096",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.6",
+              "text": "Identifying and locating AWS technical resources (for example, AWS Prescriptive Guidance, AWS Knowledge Center, AWS re:Post)",
+              "kind": "skill",
+              "fingerprint": "2f4d180599c5",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.7",
+              "text": "Identifying AWS Support options for AWS customers (for example, customer service and communities, Basic Support, AWS Business Support+, AWS Enterprise Support, AWS Unified Operations)",
+              "kind": "skill",
+              "fingerprint": "ae0fbc22f131",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.8",
+              "text": "Identifying the role of Trusted Advisor, AWS Health Dashboard, and the AWS Health API to help manage and monitor environments for cost optimization",
+              "kind": "skill",
+              "fingerprint": "5371613d3c51",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.9",
+              "text": "Identifying the role of the AWS Trust and Safety team to report abuse of AWS resources",
+              "kind": "skill",
+              "fingerprint": "209cf1b80153",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.10",
+              "text": "Understanding the role of AWS Partners (for example, AWS Marketplace, independent software vendors, system integrators)",
+              "kind": "skill",
+              "fingerprint": "a7d4ad4d8c20",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.11",
+              "text": "Identifying the benefits of being an AWS Partner (for example, partner training and certification, partner events, partner volume discounts)",
+              "kind": "skill",
+              "fingerprint": "53a42a6251b5",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.12",
+              "text": "Identifying the key services that AWS Marketplace offers (for example, cost management, governance and entitlement)",
+              "kind": "skill",
+              "fingerprint": "d34d0898140b",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "CLFC02-4.3.13",
+              "text": "Identifying technical assistance options available at AWS (for example, AWS Professional Services, AWS solutions architects)",
+              "kind": "skill",
+              "fingerprint": "5c6d17f26edd",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "retrievedAt": "2026-11-18T20:22:08+00:00",
+  "objectiveCount": 135
+}

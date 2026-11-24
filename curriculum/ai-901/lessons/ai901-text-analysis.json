@@ -1,0 +1,242 @@
+{
+  "id": "ai901-text-analysis",
+  "exam": "ai-901",
+  "title": "Text analysis techniques",
+  "objectiveIds": [
+    "AI901-1.3.2"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Describe keyword (key phrase) extraction, entity detection, sentiment analysis and summarization, and related techniques such as PII detection and language detection.",
+  "prerequisites": [
+    {
+      "text": "AI workloads",
+      "objectiveId": "AI901-1.3.1",
+      "lessonId": "ai901-ai-workloads"
+    }
+  ],
+  "foundation": [
+    "Key phrase (keyword) extraction lists the main topics in a text: 'battery life', 'screen'.",
+    "Entity detection (named entity recognition, NER) finds and categorises things: people, places, organisations, products, dates, quantities.",
+    "Sentiment analysis says whether text is positive, negative, neutral or mixed, with confidence scores. Opinion mining links feelings to specific things: 'battery: positive, screen: negative'.",
+    "Summarization shortens text. Extractive summarization picks the most important sentences; abstractive summarization writes new sentences."
+  ],
+  "engineer": [
+    "Azure Language in Foundry Tools provides prebuilt features: key phrase extraction, named entity recognition (categories and subcategories), entity linking (to Wikipedia entries), sentiment analysis with opinion mining (document- and sentence-level scores for positive, neutral, negative; label mixed), PII detection and redaction (text and conversations), language detection, extractive and abstractive summarization (documents and conversations), plus custom features (custom classification, custom NER, conversational language understanding).",
+    "Outputs include confidence scores you can threshold. Inputs are sent as documents in batches with IDs and optional language hints.",
+    "Alternatively, prompt a generative model to perform the same tasks with structured (JSON) output. Models are flexible (custom definitions, any wording) but less consistent and usually more expensive per item than prebuilt features.",
+    "Common pipeline: detect language → redact PII → sentiment and key phrases → store results for dashboards."
+  ],
+  "animation": {
+    "id": "ai901-text-sim",
+    "caption": "Run each technique on sample texts and see the kind of output it returns."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "doc",
+        "label": "Text document",
+        "x": 0,
+        "y": 120,
+        "kind": "user"
+      },
+      {
+        "id": "kp",
+        "label": "Key phrases",
+        "x": 260,
+        "y": 0,
+        "kind": "ai"
+      },
+      {
+        "id": "ner",
+        "label": "Entities (NER)",
+        "x": 260,
+        "y": 80,
+        "kind": "ai"
+      },
+      {
+        "id": "sent",
+        "label": "Sentiment + opinions",
+        "x": 260,
+        "y": 160,
+        "kind": "ai"
+      },
+      {
+        "id": "sum",
+        "label": "Summary",
+        "x": 260,
+        "y": 240,
+        "kind": "ai"
+      },
+      {
+        "id": "out",
+        "label": "Structured results with confidence",
+        "x": 520,
+        "y": 120,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "doc",
+        "to": "kp"
+      },
+      {
+        "from": "doc",
+        "to": "ner"
+      },
+      {
+        "from": "doc",
+        "to": "sent"
+      },
+      {
+        "from": "doc",
+        "to": "sum"
+      },
+      {
+        "from": "kp",
+        "to": "out"
+      },
+      {
+        "from": "ner",
+        "to": "out"
+      },
+      {
+        "from": "sent",
+        "to": "out"
+      },
+      {
+        "from": "sum",
+        "to": "out"
+      }
+    ]
+  },
+  "example": {
+    "title": "Understanding 50,000 reviews",
+    "body": [
+      "A phone maker runs reviews through Azure Language: key phrases show 'battery life' and 'screen' dominate; opinion mining shows battery is positive and screen negative.",
+      "NER pulls out model names and store locations; abstractive summarization gives product managers a one-paragraph digest per model each week."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User or Cognitive Services User"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Foundry portal > Language playground: paste text and try sentiment, NER, key phrases, PII and summarization.",
+      "Note the confidence scores and categories in the JSON output."
+    ],
+    "cli": "# One Foundry (AIServices) resource exposes Language, Speech, Vision and Content Understanding\naz cognitiveservices account show --name contoso-ai --resource-group rg-ai901 --query properties.endpoints",
+    "powershell": "(Get-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai).Properties.Endpoints"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-text-sim",
+    "objective": "Recognise what each technique returns.",
+    "duration": 15,
+    "steps": [
+      "Run text analysis tab: try each sample with each technique; meet each need.",
+      "Text analysis techniques tab: answer every task."
+    ],
+    "expected": [
+      "Opinion mining links sentiment to features",
+      "PII detection redacts personal data"
+    ],
+    "validation": [
+      {
+        "id": "ai-textrun-correct",
+        "text": "Matched a technique to a need"
+      },
+      {
+        "id": "ai-textrun-wrong",
+        "text": "Saw a mismatched technique"
+      },
+      {
+        "id": "ai-text-correct",
+        "text": "Chose the right technique"
+      },
+      {
+        "id": "ai-text-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Using key phrases to measure feelings",
+      "Expecting extractive summaries to contain new sentences"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Sentiment is 'mixed' for most reviews.",
+      "cause": "Reviews praise and criticise different features.",
+      "fix": "Use opinion mining for aspect-level sentiment."
+    },
+    {
+      "symptom": "Entities are missed in short texts.",
+      "cause": "Wrong language or too little context.",
+      "fix": "Pass the correct language hint; check confidence scores."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Key phrases vs entities",
+      "difference": "Key phrases are main talking points; entities are categorised items (Person, Location)."
+    },
+    {
+      "service": "Extractive vs abstractive summarization",
+      "difference": "Extractive selects existing sentences; abstractive writes new ones."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Sentiment analysis only returns positive or negative.",
+      "reality": "Also neutral and mixed, with scores."
+    },
+    {
+      "myth": "NER and PII detection are the same.",
+      "reality": "PII detection focuses on personal data and can redact it."
+    },
+    {
+      "myth": "Summaries are always shorter extracts.",
+      "reality": "Abstractive summaries rewrite."
+    }
+  ],
+  "architectureDecisions": [
+    "Use prebuilt Azure Language features for consistent, scored results.",
+    "Use a model with JSON output for custom definitions.",
+    "Redact PII before storing text."
+  ],
+  "docs": [
+    {
+      "title": "Azure Language overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/language-service/overview"
+    },
+    {
+      "title": "Sentiment analysis and opinion mining",
+      "url": "https://learn.microsoft.com/azure/ai-services/language-service/sentiment-opinion-mining/overview"
+    },
+    {
+      "title": "Named entity recognition",
+      "url": "https://learn.microsoft.com/azure/ai-services/language-service/named-entity-recognition/overview"
+    },
+    {
+      "title": "Summarization overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/language-service/summarization/overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

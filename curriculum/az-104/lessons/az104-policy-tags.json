@@ -1,0 +1,714 @@
+{
+  "id": "az104-policy-tags",
+  "exam": "az-104",
+  "title": "Azure Policy and tags: enforce standards, audit compliance, govern metadata",
+  "objectiveIds": [
+    "AZ104-1.3.1",
+    "AZ104-1.3.3"
+  ],
+  "estimatedMinutes": 75,
+  "learningObjective": "Assign built-in policies at the right scope, predict the effect on new requests and existing resources, use exclusions, exemptions and enforcement mode, and apply and govern tags at scale.",
+  "prerequisites": [
+    {
+      "text": "Scope hierarchy and RBAC",
+      "lessonId": "az104-rbac",
+      "objectiveId": "AZ104-1.2.2"
+    },
+    {
+      "text": "Purpose of Azure Policy (AZ-900)",
+      "objectiveId": "AZ900-3.2.2"
+    },
+    {
+      "text": "Purpose of tags (AZ-900)",
+      "objectiveId": "AZ900-3.1.4"
+    }
+  ],
+  "foundation": [
+    "Azure Policy is a set of rules about what your resources may look like: which regions are allowed, which VM sizes, which tags must be present.",
+    "A policy definition describes the rule and what to do when it is broken (its effect). An assignment applies that definition to a scope, such as a management group, subscription or resource group, and everything under it inherits it.",
+    "The common effects are Deny (block the request), Audit (allow it but flag it as non-compliant) and Modify (fix the request, for example by adding a missing tag).",
+    "Policy does not delete or change resources that already exist when you assign it. It marks them non-compliant so you can see them, and some effects can fix them later through a remediation task.",
+    "Tags are name/value labels such as costCenter=CC-100 or environment=prod. They help you group costs, automate and find resources. Tags are not inherited automatically; Azure Policy is how you require or copy them."
+  ],
+  "engineer": [
+    "Building blocks: a definition (JSON policyRule with if/then and parameters), an initiative (policy set) that groups definitions, an assignment (definition or initiative + scope + parameters + notScopes + enforcementMode), and an exemption (assignment + scope + category Waiver or Mitigated, with an optional expiry).",
+    "Effect evaluation order for a create/update request: Disabled is checked first, then Append and Modify (which can change the request), then Deny, then Audit. After the resource provider succeeds, AuditIfNotExists and DeployIfNotExists evaluate related resources. Because Modify runs before Deny, 'inherit tag from resource group' can satisfy 'require tag' in the same request.",
+    "Effects: Append, Audit, AuditIfNotExists, Deny, DenyAction, DeployIfNotExists, Disabled, Manual and Modify. Many built-in definitions expose the effect as a parameter so one definition can audit in dev and deny in prod.",
+    "enforcementMode DoNotEnforce (portal: Policy enforcement Disabled) stops the effect from being applied, so there are no denies and no modifications, but compliance is still evaluated and reported. Use it to test the impact of a new Deny before you enforce it.",
+    "Existing resources are evaluated in compliance scans. A scan starts shortly after a new assignment takes effect, runs every 24 hours, and can be triggered on demand (az policy state trigger-scan). Modify and DeployIfNotExists can fix existing resources only through a remediation task, which uses the assignment's managed identity. That identity needs the roles listed in the definition's roleDefinitionIds.",
+    "Policy applies to Resource Manager (control-plane) requests. Delete requests are not evaluated by Deny; the DenyAction effect exists for blocking delete actions. Resource actions such as start/stop (POST) are not evaluated by Deny.",
+    "Tags: up to 50 tag name/value pairs per resource, resource group and subscription. Tag names are limited to 512 characters (128 for storage accounts) and values to 256. Not every resource type supports tags. Tags on a resource group are not inherited by its resources. Tag values are stored as plain text, so never put secrets in them. The Tag Contributor role lets someone manage tags without access to the resources themselves.",
+    "Assigning policy requires Microsoft.Authorization/policyAssignments/write, which Owner and Resource Policy Contributor have. Contributor does not, because Microsoft.Authorization writes are in its NotActions."
+  ],
+  "animation": {
+    "id": "governance-sim",
+    "caption": "Send create/update requests through Azure Policy effects, try exclusions and enforcement mode, then scan existing resources."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "def",
+        "label": "Policy definition (rule + effect)",
+        "x": 0,
+        "y": 0,
+        "kind": "scope"
+      },
+      {
+        "id": "ini",
+        "label": "Initiative (optional set)",
+        "x": 0,
+        "y": 110,
+        "kind": "scope"
+      },
+      {
+        "id": "asg",
+        "label": "Assignment @ subscription (params, notScopes, enforcement)",
+        "x": 280,
+        "y": 55,
+        "kind": "security"
+      },
+      {
+        "id": "rg1",
+        "label": "rg-prod: inherits",
+        "x": 580,
+        "y": 0,
+        "kind": "scope"
+      },
+      {
+        "id": "rg2",
+        "label": "rg-sandbox: excluded or exempted",
+        "x": 580,
+        "y": 110,
+        "kind": "scope"
+      },
+      {
+        "id": "comp",
+        "label": "Compliance state + remediation tasks",
+        "x": 280,
+        "y": 200,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "def",
+        "to": "asg",
+        "label": "assigned"
+      },
+      {
+        "from": "ini",
+        "to": "asg",
+        "label": "or"
+      },
+      {
+        "from": "asg",
+        "to": "rg1",
+        "label": "applies"
+      },
+      {
+        "from": "asg",
+        "to": "rg2",
+        "label": "notScopes / exemption"
+      },
+      {
+        "from": "asg",
+        "to": "comp",
+        "label": "evaluates"
+      }
+    ]
+  },
+  "example": {
+    "title": "Location, tag and cost governance for a new subscription",
+    "body": [
+      "Contoso assigns 'Allowed locations' (West Europe, North Europe) at the Contoso management group so every subscription inherits it. A data-residency exception for one sandbox RG is handled with an exemption (Waiver, expiring in 90 days) rather than by removing the assignment.",
+      "Finance needs costCenter on every resource. The platform team assigns 'Require a tag on resource groups' (so every RG carries costCenter) and 'Inherit a tag from the resource group if missing' (Modify) with a system-assigned managed identity. New resources pick up the RG's value automatically; a remediation task back-fills existing resources.",
+      "Before switching a new Deny on in production they assign it with DoNotEnforce for a week and review the compliance report, so they know which pipelines would break."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Target scope ID (management group, subscription or resource group)",
+      "For Modify/DeployIfNotExists: a managed identity on the assignment and a location for it"
+    ],
+    "permissions": [
+      "Microsoft.Authorization/policyAssignments/write (Owner or Resource Policy Contributor)",
+      "Microsoft.Authorization/policyDefinitions/write for custom definitions",
+      "Tag changes: write on the resource, or Tag Contributor"
+    ],
+    "limits": [
+      "Up to 200 policy or initiative assignments per scope",
+      "50 tags per resource, resource group or subscription; tag name 512 chars (128 for storage accounts), value 256 chars",
+      "Tags are not inherited by default"
+    ],
+    "portal": [
+      "Policy > Definitions: filter by category, open a built-in such as 'Allowed locations' and review its JSON and parameters.",
+      "Assign policy: choose Scope (and Exclusions), set Parameters, set Policy enforcement (Enabled/Disabled), and on the Remediation tab create a managed identity for Modify/DeployIfNotExists.",
+      "Policy > Compliance: drill into an assignment to see non-compliant resources and the reason for each.",
+      "Policy > Remediation: create a remediation task for non-compliant resources under a Modify or DeployIfNotExists assignment.",
+      "Policy > Exemptions: create a Waiver or Mitigated exemption for a scope, optionally with an expiration date.",
+      "Any resource or resource group > Tags: add, edit or delete tags. Resource groups > Edit columns > Tags to view them at scale."
+    ],
+    "cli": "# Find the built-in definition by display name instead of hard-coding its ID\ndefId=$(az policy definition list --query \"[?displayName=='Allowed locations'].name\" -o tsv)\naz policy assignment create --name allowed-locations --scope /subscriptions/<sub-id> \\\n  --policy \"$defId\" --params '{\"listOfAllowedLocations\":{\"value\":[\"westeurope\",\"northeurope\"]}}' \\\n  --not-scopes /subscriptions/<sub-id>/resourceGroups/rg-sandbox\naz policy assignment update --name allowed-locations --scope /subscriptions/<sub-id> --enforcement-mode DoNotEnforce\naz policy state trigger-scan --resource-group rg-prod\naz policy state summarize --resource-group rg-prod\naz policy remediation create --name backfill-costcenter --policy-assignment inherit-costcenter --resource-group rg-prod\n# Tags\naz tag update --resource-id <resource-id> --operation Merge --tags costCenter=CC-100 environment=prod\naz resource list --tag costCenter=CC-100 -o table",
+    "powershell": "$def = Get-AzPolicyDefinition -Builtin | Where-Object DisplayName -eq 'Allowed locations'\nNew-AzPolicyAssignment -Name 'allowed-locations' -Scope '/subscriptions/<sub-id>' -PolicyDefinition $def `\n  -PolicyParameterObject @{ listOfAllowedLocations = @('westeurope','northeurope') } `\n  -NotScope '/subscriptions/<sub-id>/resourceGroups/rg-sandbox'\nStart-AzPolicyComplianceScan -ResourceGroupName rg-prod\nGet-AzPolicyState -ResourceGroupName rg-prod -Filter \"ComplianceState eq 'NonCompliant'\"\n# Tags\nUpdate-AzTag -ResourceId <resource-id> -Tag @{ costCenter = 'CC-100' } -Operation Merge\nGet-AzResource -TagName costCenter -TagValue CC-100",
+    "bicep": "targetScope = 'subscription'\n\n@description('Resource ID of the built-in Allowed locations definition')\nparam allowedLocationsDefinitionId string\n\nresource allowedLocations 'Microsoft.Authorization/policyAssignments@2022-06-01' = {\n  name: 'allowed-locations'\n  properties: {\n    policyDefinitionId: allowedLocationsDefinitionId\n    enforcementMode: 'Default'\n    notScopes: [ '${subscription().id}/resourceGroups/rg-sandbox' ]\n    parameters: {\n      listOfAllowedLocations: { value: [ 'westeurope', 'northeurope' ] }\n    }\n  }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "governance-sim",
+    "objective": "Predict and prove how Deny, Modify, Audit, exclusions and DoNotEnforce affect new and existing resources.",
+    "duration": 25,
+    "steps": [
+      "Assign 'Allowed locations' at the management group. Create VM vm2 in eastus and watch Policy deny it.",
+      "Assign again with 'Exclude rg-sandbox', then create the eastus VM in rg-sandbox. The request succeeds because of the exclusion.",
+      "Use the scenario 'Require + inherit costCenter tag'. Create a VM in rg-prod without tags: Modify adds costCenter=CC-100 before Deny is evaluated, so the request succeeds. Repeat in rg-sandbox, which has no tag to inherit: Deny fires.",
+      "Run a compliance scan. Existing st1 (eastus, no tags) is reported non-compliant but is not deleted or changed.",
+      "Change an assignment to DoNotEnforce and resend a non-compliant request. It succeeds, but the outcome says it would be non-compliant."
+    ],
+    "expected": [
+      "RequestDisallowedByPolicy for eastus in an in-scope RG.",
+      "Final tags on the vm2 request include costCenter from rg-prod.",
+      "The compliance scan lists non-compliant existing resources without modifying them."
+    ],
+    "validation": [
+      {
+        "id": "policy-deny",
+        "text": "A request was denied by a policy"
+      },
+      {
+        "id": "modify-tag",
+        "text": "Modify added an inherited tag to a request"
+      },
+      {
+        "id": "exclusion",
+        "text": "A request succeeded because of an exclusion or exemption"
+      },
+      {
+        "id": "compliance-scan",
+        "text": "A compliance scan found a non-compliant existing resource"
+      }
+    ],
+    "failureScenarios": [
+      "Assigning a Deny at a child scope and expecting it to apply to the parent",
+      "Expecting a new Deny to remove existing non-compliant resources",
+      "Using Modify without a managed identity, then wondering why remediation fails"
+    ],
+    "cleanup": [
+      "Simulation only: remove assignments with ✕, or reload the page."
+    ],
+    "cost": "None. Azure Policy itself has no charge for Azure resources; the simulation runs in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Deployment fails with RequestDisallowedByPolicy.",
+      "cause": "A Deny assignment at this scope or a parent matched the request.",
+      "fix": "Read the error's policyAssignmentId/policyDefinitionId, then fix the template, or request an exemption if the exception is justified."
+    },
+    {
+      "symptom": "A new policy shows 'Not started' or no results.",
+      "cause": "The compliance evaluation has not run yet.",
+      "fix": "Wait for the evaluation cycle or run az policy state trigger-scan / Start-AzPolicyComplianceScan."
+    },
+    {
+      "symptom": "Non-compliant resources stay non-compliant under a Modify policy.",
+      "cause": "Modify only alters new create/update requests; existing resources need a remediation task.",
+      "fix": "Create a remediation task, and make sure the assignment's managed identity has the required roles."
+    },
+    {
+      "symptom": "Contributor cannot assign a policy.",
+      "cause": "policyAssignments/write is excluded by Contributor's NotActions.",
+      "fix": "Use Resource Policy Contributor or Owner at that scope."
+    },
+    {
+      "symptom": "Resources in a tagged resource group show no tags in cost analysis.",
+      "cause": "Resource group tags are not inherited by resources.",
+      "fix": "Use an 'Inherit a tag from the resource group' Modify policy plus remediation, or enable tag inheritance in Cost Management."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure RBAC",
+      "difference": "RBAC decides who may perform an operation; Policy decides whether the resulting resource configuration is allowed. A request needs both."
+    },
+    {
+      "service": "Resource locks",
+      "difference": "Locks stop delete/modify operations on specific scopes for everyone; Policy evaluates the properties of what is being created or updated."
+    },
+    {
+      "service": "AWS Organizations SCPs and AWS Config rules",
+      "difference": "SCPs limit which API actions accounts can call; Config rules evaluate resource compliance. Azure Policy combines preventive (Deny) and detective (Audit) controls in one service."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Assigning a Deny policy deletes existing non-compliant resources.",
+      "reality": "Existing resources are only reported as non-compliant; nothing is deleted."
+    },
+    {
+      "myth": "Tags on a resource group apply to the resources inside it.",
+      "reality": "Tags are not inherited; use Policy (Modify) to copy them."
+    },
+    {
+      "myth": "DoNotEnforce turns off compliance reporting.",
+      "reality": "It stops enforcement but still evaluates and reports compliance."
+    },
+    {
+      "myth": "An exclusion and an exemption are the same thing.",
+      "reality": "Exclusions (notScopes) are set on the assignment; exemptions are separate resources with a category, an optional expiry and their own audit trail."
+    }
+  ],
+  "architectureDecisions": [
+    "Assign guardrails at management groups so new subscriptions are governed from day one.",
+    "Group related definitions into initiatives (for example a tagging initiative) to manage them as one assignment.",
+    "Prefer exemptions with expiry dates over permanent exclusions for one-off exceptions.",
+    "Roll out new Deny assignments with DoNotEnforce first, and review compliance before enforcing."
+  ],
+  "docs": [
+    {
+      "title": "What is Azure Policy?",
+      "url": "https://learn.microsoft.com/azure/governance/policy/overview"
+    },
+    {
+      "title": "Azure Policy assignment structure",
+      "url": "https://learn.microsoft.com/azure/governance/policy/concepts/assignment-structure"
+    },
+    {
+      "title": "Azure Policy definitions effect basics (order of evaluation)",
+      "url": "https://learn.microsoft.com/azure/governance/policy/concepts/effect-basics"
+    },
+    {
+      "title": "Azure Policy exemption structure",
+      "url": "https://learn.microsoft.com/azure/governance/policy/concepts/exemption-structure"
+    },
+    {
+      "title": "Get compliance data of Azure resources (evaluation triggers)",
+      "url": "https://learn.microsoft.com/azure/governance/policy/how-to/get-compliance-data"
+    },
+    {
+      "title": "Remediate non-compliant resources",
+      "url": "https://learn.microsoft.com/azure/governance/policy/how-to/remediate-resources"
+    },
+    {
+      "title": "Use tags to organize your Azure resources",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/tag-resources"
+    },
+    {
+      "title": "Assign policy definitions for tag compliance",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/tag-policies"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert. The simulator does not model AuditIfNotExists, DeployIfNotExists or DenyAction."
+  },
+  "walkthrough": {
+    "subtitle": "Make rules that Azure enforces for you, and label resources so you can find and charge them.",
+    "learn": [
+      "Policy vs RBAC",
+      "Definitions, initiatives and assignments",
+      "Effects: deny, audit, modify",
+      "Tags and their limits",
+      "Inheriting tags with policy"
+    ],
+    "nodes": [
+      {
+        "id": "dev",
+        "label": "Developer",
+        "x": 110,
+        "y": 220,
+        "kind": "user"
+      },
+      {
+        "id": "arm",
+        "label": "Azure Resource Manager",
+        "x": 370,
+        "y": 220,
+        "kind": "service"
+      },
+      {
+        "id": "rbac",
+        "label": "RBAC",
+        "x": 370,
+        "y": 80,
+        "kind": "security",
+        "sub": "may you?"
+      },
+      {
+        "id": "pol",
+        "label": "Azure Policy",
+        "x": 370,
+        "y": 370,
+        "kind": "security",
+        "sub": "is it allowed?"
+      },
+      {
+        "id": "res",
+        "label": "New resource",
+        "x": 640,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "tag",
+        "label": "Tags",
+        "x": 640,
+        "y": 370,
+        "kind": "cost",
+        "sub": "env=prod, cost=IT"
+      },
+      {
+        "id": "comp",
+        "label": "Compliance view",
+        "x": 640,
+        "y": 80,
+        "kind": "service"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Wild west",
+        "title": "Resources appear everywhere, unlabelled",
+        "body": [
+          "People create VMs in random regions, with no labels. Nobody knows who owns what, and the bill is a mystery."
+        ],
+        "show": [
+          "dev",
+          "arm",
+          "res"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "dev",
+            "to": "arm",
+            "label": "create",
+            "fresh": true
+          },
+          {
+            "from": "arm",
+            "to": "res",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Policy vs RBAC",
+        "title": "Two different questions",
+        "body": [
+          "RBAC asks: is this person allowed to act? Azure Policy asks: is this resource, as configured, allowed to exist?",
+          "A Contributor may create a VM (RBAC), but policy can still block it because it is in the wrong region."
+        ],
+        "show": [
+          "dev",
+          "arm",
+          "res",
+          "rbac",
+          "pol"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "dev",
+            "to": "arm",
+            "label": "create"
+          },
+          {
+            "from": "arm",
+            "to": "res"
+          },
+          {
+            "from": "arm",
+            "to": "rbac",
+            "fresh": true
+          },
+          {
+            "from": "arm",
+            "to": "pol",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Building blocks",
+        "title": "Definition, initiative, assignment",
+        "body": [
+          "A policy definition is one rule, such as 'Allowed locations'. An initiative groups several definitions. An assignment applies a definition or initiative at a scope (management group, subscription or resource group), with parameters such as the list of regions.",
+          "You can exclude child scopes from an assignment."
+        ],
+        "show": [
+          "dev",
+          "arm",
+          "res",
+          "rbac",
+          "pol"
+        ],
+        "focus": [
+          "pol"
+        ],
+        "edges": [
+          {
+            "from": "dev",
+            "to": "arm",
+            "label": "create"
+          },
+          {
+            "from": "arm",
+            "to": "res"
+          },
+          {
+            "from": "arm",
+            "to": "rbac"
+          },
+          {
+            "from": "arm",
+            "to": "pol"
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Effects",
+        "title": "What happens when a rule is broken",
+        "body": [
+          "Deny blocks the request. Audit allows it but marks it non-compliant. Modify and Append change the request, for example adding a tag. DeployIfNotExists deploys something missing, such as a diagnostic setting.",
+          "Existing resources are evaluated too and shown in the compliance view; fixing them needs a remediation task."
+        ],
+        "show": [
+          "dev",
+          "arm",
+          "res",
+          "rbac",
+          "pol",
+          "comp"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "dev",
+            "to": "arm",
+            "label": "create"
+          },
+          {
+            "from": "arm",
+            "to": "res"
+          },
+          {
+            "from": "arm",
+            "to": "rbac"
+          },
+          {
+            "from": "arm",
+            "to": "pol"
+          },
+          {
+            "from": "pol",
+            "to": "comp",
+            "label": "results",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Deny stops new requests; it does not delete resources that already exist."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Tags",
+        "title": "Tags: labels for finding and charging",
+        "body": [
+          "A tag is a name-value pair such as env = prod. Use tags to filter cost reports and find owners. Resources do not inherit tags from their resource group automatically.",
+          "Use the built-in policy 'Inherit a tag from the resource group if missing' (Modify effect) to copy them down."
+        ],
+        "show": [
+          "dev",
+          "arm",
+          "res",
+          "rbac",
+          "pol",
+          "comp",
+          "tag"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "dev",
+            "to": "arm",
+            "label": "create"
+          },
+          {
+            "from": "arm",
+            "to": "res"
+          },
+          {
+            "from": "arm",
+            "to": "rbac"
+          },
+          {
+            "from": "arm",
+            "to": "pol"
+          },
+          {
+            "from": "pol",
+            "to": "comp",
+            "label": "results"
+          },
+          {
+            "from": "res",
+            "to": "tag",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Up to 50 tags per resource. Not every resource type supports tags."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Policy and tags",
+        "body": [
+          "RBAC controls people; policy controls resources; tags label them."
+        ],
+        "show": [
+          "dev",
+          "arm",
+          "res",
+          "rbac",
+          "pol",
+          "comp",
+          "tag"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "dev",
+            "to": "arm",
+            "label": "create"
+          },
+          {
+            "from": "arm",
+            "to": "res"
+          },
+          {
+            "from": "arm",
+            "to": "rbac"
+          },
+          {
+            "from": "arm",
+            "to": "pol"
+          },
+          {
+            "from": "pol",
+            "to": "comp",
+            "label": "results"
+          },
+          {
+            "from": "res",
+            "to": "tag"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "RBAC = may you act? Policy = is the resource allowed?",
+          "Definition > initiative > assignment at a scope",
+          "Deny, Audit, Modify/Append, DeployIfNotExists",
+          "Tags are not inherited by default",
+          "Use a Modify policy to inherit tags"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Block a region with policy and copy tags from the resource group",
+    "minutes": 30,
+    "costLevel": "free",
+    "cost": "Free. Azure Policy and tags cost nothing; the storage account you try to create is blocked.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Open rg-az104-lab > Tags. Add env = lab and owner = your name. Apply.",
+        "see": "The two tags on the resource group's Overview."
+      },
+      {
+        "do": "Search 'Policy' > Assignments > Assign policy. Scope: your subscription and resource group rg-az104-lab. Policy definition: search 'Allowed locations' and select it.",
+        "see": "The Basics tab with your scope and the policy name."
+      },
+      {
+        "do": "Parameters tab: Allowed locations = UAE North only. Review + create > Create.",
+        "see": "A new assignment listed. Wait about 5–10 minutes for it to take effect."
+      },
+      {
+        "do": "Try to create a storage account in rg-az104-lab with region East US.",
+        "see": "Validation fails: 'Resource was disallowed by policy', naming the Allowed locations assignment."
+      },
+      {
+        "do": "Policy > Assignments > Assign policy again, same scope. Definition: 'Inherit a tag from the resource group if missing'. Parameter tag name: env. On the Remediation tab tick 'Create a remediation task'. Create.",
+        "see": "A second assignment. Policies that change resources need a managed identity, which the wizard creates."
+      },
+      {
+        "do": "Create a small storage account in rg-az104-lab in your allowed region (Standard, LRS). Do not add tags yourself.",
+        "see": "Once deployed, its Tags page shows env = lab, copied from the resource group."
+      },
+      {
+        "do": "Open Policy > Compliance.",
+        "see": "Your assignments with a compliance state. New results can take up to 30 minutes."
+      }
+    ],
+    "check": [
+      "Creating in East US was denied.",
+      "The new storage account has the env tag without you adding it."
+    ],
+    "cleanup": [
+      "Policy > Assignments: delete both lab assignments.",
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: create a policy assignment in the portal",
+        "url": "https://learn.microsoft.com/azure/governance/policy/assign-policy-portal"
+      },
+      {
+        "title": "Tutorial: manage tag governance with Azure Policy",
+        "url": "https://learn.microsoft.com/azure/governance/policy/tutorials/govern-tags"
+      },
+      {
+        "title": "Use tags to organise your Azure resources",
+        "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/tag-resources"
+      }
+    ]
+  }
+}

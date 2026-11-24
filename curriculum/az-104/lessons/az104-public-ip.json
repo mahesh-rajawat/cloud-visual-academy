@@ -1,0 +1,486 @@
+{
+  "id": "az104-public-ip",
+  "exam": "az-104",
+  "title": "Public IP addresses",
+  "objectiveIds": [
+    "AZ104-4.1.3"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Create and configure public IP addresses and prefixes, choosing SKU, assignment, tier and zone settings, and associate them with resources.",
+  "prerequisites": [
+    {
+      "text": "Virtual networks and subnets",
+      "objectiveId": "AZ104-4.1.1",
+      "lessonId": "az104-vnet-subnets"
+    }
+  ],
+  "foundation": [
+    "A public IP address lets internet clients reach an Azure resource (or lets it be identified on the internet).",
+    "You can attach public IPs to VM NICs, load balancers, application gateways, VPN gateways, NAT gateways, Azure Firewall and Bastion."
+  ],
+  "engineer": [
+    "SKU: Standard is the only SKU for new deployments (Basic public IPs were retired on 30 September 2025). Standard IPs use static assignment, are secure by default (closed to inbound until an NSG allows traffic) and support availability zones.",
+    "Zones: zone-redundant (survives zone failure), zonal (pinned to one zone) or no zone. The zone setting can't be changed after creation.",
+    "Tier: Regional or Global (Global is used with the cross-region load balancer). Routing preference: Microsoft network (default) or Internet (cheaper, uses ISP networks).",
+    "Public IP prefixes reserve a contiguous range (for example /28) of static addresses for allow-listing. IP addresses are billed per hour, whether or not they're associated.",
+    "Associate or dissociate a public IP on a NIC's IP configuration. A VM can have a public IP per IP configuration; for outbound-only internet access prefer a NAT gateway."
+  ],
+  "animation": {
+    "id": "network-routing-sim",
+    "caption": "Public IP addresses tab: SKU, assignment, zones and inbound access."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "pip",
+        "label": "pip-web (Standard, static, zone-redundant)",
+        "x": 60,
+        "y": 120,
+        "kind": "globe"
+      },
+      {
+        "id": "nic",
+        "label": "NIC ipconfig1",
+        "x": 330,
+        "y": 120,
+        "kind": "network"
+      },
+      {
+        "id": "nsg",
+        "label": "NSG allow 443",
+        "x": 330,
+        "y": 20,
+        "kind": "security"
+      },
+      {
+        "id": "vm",
+        "label": "vm-web",
+        "x": 560,
+        "y": 120,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "pip",
+        "to": "nic"
+      },
+      {
+        "from": "nsg",
+        "to": "nic"
+      },
+      {
+        "from": "nic",
+        "to": "vm"
+      }
+    ]
+  },
+  "example": {
+    "title": "A partner allow-list",
+    "body": [
+      "A partner must allow-list Contoso's outbound addresses. Contoso creates a /30 public IP prefix and assigns its addresses to a NAT gateway, so all outbound traffic uses four known IPs."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription and a resource group (rg-net)"
+    ],
+    "permissions": [
+      "Network Contributor on the resource group"
+    ],
+    "limits": [
+      "Public IP quota per region (default varies by subscription)",
+      "Zone and SKU cannot be changed after creation"
+    ],
+    "portal": [
+      "Create a resource > Public IP address: choose SKU Standard, tier Regional, zone-redundant, IP version IPv4.",
+      "VM > Networking > NIC > IP configurations > ipconfig1 > associate the public IP.",
+      "Public IP prefixes > Create to reserve a range."
+    ],
+    "cli": "az network public-ip create -g rg-net -n pip-web --sku Standard --allocation-method Static --zone 1 2 3\naz network nic ip-config update -g rg-net --nic-name vm-web-nic -n ipconfig1 --public-ip-address pip-web\naz network public-ip prefix create -g rg-net -n ippre-out --length 30",
+    "powershell": "New-AzPublicIpAddress -ResourceGroupName rg-net -Name pip-web -Location eastus -Sku Standard -AllocationMethod Static -Zone 1,2,3\n$nic = Get-AzNetworkInterface -Name vm-web-nic -ResourceGroupName rg-net\n$nic.IpConfigurations[0].PublicIpAddress = Get-AzPublicIpAddress -Name pip-web -ResourceGroupName rg-net\n$nic | Set-AzNetworkInterface"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "network-routing-sim",
+    "objective": "Configure a Standard public IP correctly.",
+    "duration": 10,
+    "steps": [
+      "Run the default Basic/dynamic configuration.",
+      "Apply 'Standard without NSG' and read why inbound fails.",
+      "Apply 'Standard, static, zone-redundant + NSG'."
+    ],
+    "expected": [
+      "Standard is static and secure by default"
+    ],
+    "validation": [
+      {
+        "id": "pip-configured",
+        "text": "Configured a reachable Standard public IP"
+      },
+      {
+        "id": "pip-error",
+        "text": "Diagnosed a public IP misconfiguration"
+      }
+    ],
+    "failureScenarios": [
+      "Basic SKU",
+      "No NSG on a Standard IP",
+      "Dynamic assignment on Standard"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "VM with a Standard public IP is unreachable.",
+      "cause": "Standard is closed to inbound by default.",
+      "fix": "Add an NSG rule allowing the port."
+    },
+    {
+      "symptom": "Cannot attach the public IP to a Standard load balancer.",
+      "cause": "SKU mismatch.",
+      "fix": "Use Standard SKU for both."
+    },
+    {
+      "symptom": "Public IP changed after a deallocation.",
+      "cause": "It was dynamic (legacy Basic).",
+      "fix": "Use a static Standard IP."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "NAT gateway",
+      "difference": "Outbound-only internet access for a subnet with static public IPs; no inbound."
+    },
+    {
+      "service": "AWS Elastic IP",
+      "difference": "Static public IPv4 assigned to an instance or NAT gateway."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Public IPs are free when not attached.",
+      "reality": "Public IPv4 addresses are billed hourly."
+    },
+    {
+      "myth": "A Standard public IP is open to the internet.",
+      "reality": "Inbound is denied until an NSG allows it."
+    }
+  ],
+  "architectureDecisions": [
+    "Avoid public IPs on VMs; use Bastion for admin and load balancers or Application Gateway for apps.",
+    "Use zone-redundant Standard IPs for production.",
+    "Use a prefix for stable allow-listed ranges."
+  ],
+  "docs": [
+    {
+      "title": "Public IP addresses",
+      "url": "https://learn.microsoft.com/azure/virtual-network/ip-services/public-ip-addresses"
+    },
+    {
+      "title": "Public IP address prefix",
+      "url": "https://learn.microsoft.com/azure/virtual-network/ip-services/public-ip-address-prefix"
+    },
+    {
+      "title": "Upgrade Basic public IPs",
+      "url": "https://learn.microsoft.com/azure/virtual-network/ip-services/public-ip-basic-upgrade-guidance"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Give a resource a public address on the internet, with the right type and settings.",
+    "learn": [
+      "Standard SKU only",
+      "Static allocation and zones",
+      "Secure by default",
+      "Where public IPs attach, and IP prefixes"
+    ],
+    "nodes": [
+      {
+        "id": "net",
+        "label": "Internet",
+        "x": 120,
+        "y": 220,
+        "kind": "globe"
+      },
+      {
+        "id": "pip",
+        "label": "Public IP",
+        "x": 380,
+        "y": 220,
+        "kind": "network",
+        "sub": "Standard, static"
+      },
+      {
+        "id": "vm",
+        "label": "VM NIC",
+        "x": 640,
+        "y": 90,
+        "kind": "compute"
+      },
+      {
+        "id": "lb",
+        "label": "Load balancer",
+        "x": 640,
+        "y": 220,
+        "kind": "network"
+      },
+      {
+        "id": "nat",
+        "label": "NAT gateway",
+        "x": 640,
+        "y": 350,
+        "kind": "network"
+      },
+      {
+        "id": "nsg",
+        "label": "NSG",
+        "x": 380,
+        "y": 380,
+        "kind": "security",
+        "sub": "must allow inbound"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Reachable",
+        "title": "A server must be reachable from the internet",
+        "body": [
+          "Customers need a fixed address that does not change, and you want nothing else exposed."
+        ],
+        "show": [
+          "net"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "SKU",
+        "title": "Standard public IPs",
+        "body": [
+          "Basic public IPs were retired in September 2025, so new ones are Standard. Standard IPs are static (the address never changes), and can be zone-redundant, zonal or non-zonal. Tier is regional, or global for cross-region load balancers."
+        ],
+        "show": [
+          "net",
+          "pip"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "pip",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Secure",
+        "title": "Closed until you open it",
+        "body": [
+          "A Standard public IP is secure by default: inbound traffic is blocked unless a network security group allows it."
+        ],
+        "show": [
+          "net",
+          "pip",
+          "nsg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "pip"
+          },
+          {
+            "from": "nsg",
+            "to": "pip",
+            "label": "allow 443",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "VM has a public IP but nobody can connect? Check the NSG on its NIC and subnet."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Attach",
+        "title": "What uses public IPs",
+        "body": [
+          "Attach to a VM's network interface, a load balancer frontend, a NAT gateway, a VPN gateway, Application Gateway, Azure Firewall or Bastion. A public IP prefix reserves a contiguous block of addresses, handy for allow-lists."
+        ],
+        "show": [
+          "net",
+          "pip",
+          "nsg",
+          "vm",
+          "lb",
+          "nat"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "pip"
+          },
+          {
+            "from": "nsg",
+            "to": "pip",
+            "label": "allow 443"
+          },
+          {
+            "from": "pip",
+            "to": "vm",
+            "fresh": true
+          },
+          {
+            "from": "pip",
+            "to": "lb",
+            "fresh": true
+          },
+          {
+            "from": "pip",
+            "to": "nat",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Public IPs",
+        "body": [
+          "Standard, static, closed by default."
+        ],
+        "show": [
+          "net",
+          "pip",
+          "nsg",
+          "vm",
+          "lb",
+          "nat"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "pip"
+          },
+          {
+            "from": "nsg",
+            "to": "pip",
+            "label": "allow 443"
+          },
+          {
+            "from": "pip",
+            "to": "vm"
+          },
+          {
+            "from": "pip",
+            "to": "lb"
+          },
+          {
+            "from": "pip",
+            "to": "nat"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Standard SKU only (Basic retired)",
+          "Static; zone-redundant, zonal or no zone",
+          "Secure by default: NSG must allow",
+          "Attach to NIC, LB, NAT gateway, gateways, Bastion",
+          "Public IP prefix = block of addresses"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a static public IP and attach it to a VM",
+    "minutes": 20,
+    "costLevel": "low",
+    "cost": "Low. One B1s VM costs about US$0.01 per hour. Delete the same day. A Standard public IP adds about US$0.005 per hour.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A virtual network vnet-lab (10.10.0.0/16) in rg-az104-lab with a subnet snet-app (10.10.1.0/24): Virtual networks > + Create > IP addresses tab. For these labs, untick 'Enable private subnet' on snet-app so lab VMs can reach the internet (in production use a NAT gateway instead).",
+      "A small Linux VM vm-lab in snet-app of vnet-lab: Virtual machines > + Create. Image Ubuntu 24.04, size Standard_B1s, password authentication, Networking tab: vnet-lab / snet-app, public IP: None, NIC network security group: Basic, public inbound ports: None. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Public IP addresses' > + Create. Group rg-az104-lab, name pip-lab, region UAE North (or any region near you), SKU Standard, tier Regional, availability zone: Zone-redundant.",
+        "see": "Assignment is Static (no other choice for Standard)."
+      },
+      {
+        "do": "Create, then open pip-lab.",
+        "see": "The IP address, already allocated, and 'Associated to: -'."
+      },
+      {
+        "do": "Open vm-lab > Networking > the network interface > IP configurations > ipconfig1. Associate public IP address: pip-lab. Save."
+      },
+      {
+        "do": "Open pip-lab again.",
+        "see": "Associated to: the VM's network interface."
+      },
+      {
+        "do": "From Cloud Shell try: curl --max-time 5 http://<the IP>",
+        "see": "It times out: nothing allows inbound traffic. Standard IPs are closed by default."
+      },
+      {
+        "do": "Dissociate the public IP from the NIC (IP configuration > public IP: Disassociate). Save.",
+        "see": "The VM has no public IP again."
+      }
+    ],
+    "check": [
+      "You saw a Standard public IP stay closed until an NSG allows traffic."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Create a public IP address in the portal",
+        "url": "https://learn.microsoft.com/azure/virtual-network/ip-services/create-public-ip-portal"
+      },
+      {
+        "title": "Public IP addresses in Azure",
+        "url": "https://learn.microsoft.com/azure/virtual-network/ip-services/public-ip-addresses"
+      },
+      {
+        "title": "Associate a public IP address to a VM",
+        "url": "https://learn.microsoft.com/azure/virtual-network/ip-services/associate-public-ip-address-vm"
+      }
+    ]
+  }
+}

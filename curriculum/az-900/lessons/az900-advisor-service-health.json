@@ -1,0 +1,217 @@
+{
+  "id": "az900-advisor-service-health",
+  "exam": "az-900",
+  "title": "Azure Advisor and Azure Service Health",
+  "objectiveIds": [
+    "AZ900-3.4.1",
+    "AZ900-3.4.2"
+  ],
+  "estimatedMinutes": 25,
+  "learningObjective": "Describe Azure Advisor recommendations and how Azure Service Health (Azure status, Service Health, Resource Health) keeps you informed.",
+  "prerequisites": [
+    {
+      "text": "Defender for Cloud",
+      "objectiveId": "AZ900-2.4.8",
+      "lessonId": "az900-zero-trust-defender"
+    }
+  ],
+  "foundation": [
+    "Azure Advisor looks at how your resources are configured and used, and gives personalised recommendations to make them more reliable, secure, fast and cheap.",
+    "Azure Service Health tells you about problems in Azure itself. It has three views: Azure status (public, worldwide), Service Health (only what affects your services and regions) and Resource Health (your individual resources)."
+  ],
+  "engineer": [
+    "Advisor categories: Reliability (formerly High Availability: continuity of business-critical apps), Security (threats and vulnerabilities, from Defender for Cloud), Performance (speed), Cost (reduce spend), Operational excellence (process and workflow efficiency, manageability, deployment best practices). Each recommendation has an impact level and suggested actions, often one-click.",
+    "Advisor features: Advisor score, recommendations dashboard, filter by subscription/resource group, alerts when new recommendations appear, export to PDF/CSV, postpone or dismiss recommendations.",
+    "Azure status: a global public page of Azure service health across all regions; useful for wide outages; no sign-in needed.",
+    "Service Health: personalised view in the portal of four event types: service issues (problems affecting you now), planned maintenance, health advisories (changes needing action, such as feature retirements) and security advisories. Set up Service Health alerts with action groups to notify teams.",
+    "Resource Health: current and past health of each of your resources (available, unavailable, degraded, unknown) and whether a platform issue caused downtime; useful for support cases and SLA claims."
+  ],
+  "animation": {
+    "id": "az900-health-sim",
+    "caption": "Match recommendations to Advisor categories, then choose Azure status, Service Health or Resource Health."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "adv",
+        "label": "Azure Advisor: 5 categories of recommendations",
+        "x": 0,
+        "y": 0,
+        "kind": "scope"
+      },
+      {
+        "id": "status",
+        "label": "Azure status: global, public",
+        "x": 300,
+        "y": -40,
+        "kind": "globe"
+      },
+      {
+        "id": "sh",
+        "label": "Service Health: your services and regions",
+        "x": 300,
+        "y": 70,
+        "kind": "security"
+      },
+      {
+        "id": "rh",
+        "label": "Resource Health: each resource",
+        "x": 300,
+        "y": 180,
+        "kind": "compute"
+      },
+      {
+        "id": "alert",
+        "label": "Service Health alert → action group",
+        "x": 600,
+        "y": 70,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "status",
+        "to": "sh",
+        "label": "narrows to you"
+      },
+      {
+        "from": "sh",
+        "to": "rh",
+        "label": "narrows to a resource"
+      },
+      {
+        "from": "sh",
+        "to": "alert"
+      }
+    ]
+  },
+  "example": {
+    "title": "Monday morning ops review",
+    "body": [
+      "Advisor shows 12 recommendations: resize 4 idle VMs (Cost), add zones to the order database (Reliability), enable MFA for 3 admins (Security).",
+      "Service Health shows planned maintenance in West Europe next week and a health advisory about a retiring VM series. A Service Health alert already emailed the on-call channel. Resource Health confirms last night's VM outage was a platform issue."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Advisor > Recommendations; Advisor > Alerts.",
+      "Service Health > Service issues / Planned maintenance / Health advisories > Create service health alert.",
+      "Any resource > Help > Resource health."
+    ],
+    "cli": "az advisor recommendation list --category Cost -o table\naz monitor activity-log list --offset 7d --query \"[?category.value=='ServiceHealth']\" -o table",
+    "powershell": "Get-AzAdvisorRecommendation -Category Cost"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-health-sim",
+    "objective": "Match Advisor categories and pick the right health view.",
+    "duration": 15,
+    "steps": [
+      "Azure Advisor categories tab: answer every recommendation.",
+      "Azure status, Service Health, Resource Health tab: answer every question."
+    ],
+    "expected": [
+      "Advisor has five categories",
+      "Service Health is personalised; Azure status is global"
+    ],
+    "validation": [
+      {
+        "id": "advisor-category-correct",
+        "text": "Chose the right Advisor category"
+      },
+      {
+        "id": "advisor-category-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "health-scope-correct",
+        "text": "Chose the right health view"
+      },
+      {
+        "id": "health-scope-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Checking Azure status for an issue only affecting your region",
+      "Ignoring health advisories about retirements"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Team wasn't told about planned maintenance.",
+      "cause": "No Service Health alert configured.",
+      "fix": "Create a Service Health alert with an action group."
+    },
+    {
+      "symptom": "Advisor shows no recommendations for a new subscription.",
+      "cause": "Advisor needs time and resources to analyse.",
+      "fix": "Check again later; refresh recommendations."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Advisor vs Defender for Cloud",
+      "difference": "Advisor covers five categories; its security recommendations come from Defender for Cloud."
+    },
+    {
+      "service": "Service Health vs Azure Monitor",
+      "difference": "Service Health reports Azure platform health; Azure Monitor reports your resources' own telemetry."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Azure status shows everything affecting you.",
+      "reality": "It shows widespread issues; Service Health is personalised."
+    },
+    {
+      "myth": "Advisor changes resources automatically.",
+      "reality": "It recommends; you act (some quick fixes are one click)."
+    }
+  ],
+  "architectureDecisions": [
+    "Review Advisor weekly; track Advisor score.",
+    "Create Service Health alerts for all production subscriptions.",
+    "Use Resource Health when investigating downtime."
+  ],
+  "docs": [
+    {
+      "title": "Describe monitoring tools in Azure (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-monitoring-tools-azure/"
+    },
+    {
+      "title": "Azure Advisor overview",
+      "url": "https://learn.microsoft.com/azure/advisor/advisor-overview"
+    },
+    {
+      "title": "Azure Service Health overview",
+      "url": "https://learn.microsoft.com/azure/service-health/overview"
+    },
+    {
+      "title": "Resource Health overview",
+      "url": "https://learn.microsoft.com/azure/service-health/resource-health-overview"
+    },
+    {
+      "title": "Azure status overview",
+      "url": "https://learn.microsoft.com/azure/service-health/azure-status-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

@@ -1,0 +1,599 @@
+{
+  "id": "az104-backup-policy-restore",
+  "exam": "az-104",
+  "title": "Backup policies, backup and restore",
+  "objectiveIds": [
+    "AZ104-5.2.3",
+    "AZ104-5.2.4"
+  ],
+  "estimatedMinutes": 50,
+  "learningObjective": "Create and configure backup policies (Standard and Enhanced), run on-demand backups, and choose and perform the right restore operation.",
+  "prerequisites": [
+    {
+      "text": "Recovery Services vaults and Backup vaults",
+      "objectiveId": "AZ104-5.2.1",
+      "lessonId": "az104-backup-vaults"
+    }
+  ],
+  "foundation": [
+    "A backup policy says when backups run and how long each recovery point is kept.",
+    "Restores range from a single file to a whole VM, in place or as a new VM, or in another region."
+  ],
+  "engineer": [
+    "VM policies: Standard (one backup a day, instant restore snapshots kept 1–5 days, default 2) or Enhanced (multiple backups a day every 4, 6, 8 or 12 hours, snapshots 1–30 days, required for Trusted Launch VMs and some disk types). Retention ranges: daily, weekly, monthly, yearly (daily 7–9999 days).",
+    "Backups use the VM agent and a snapshot (application-consistent with VSS on Windows / pre-post scripts on Linux when possible), stored first as instant restore snapshots then transferred to the vault.",
+    "Backup now creates an on-demand recovery point with its own retention.",
+    "Restore options: Create new VM, Restore disks (to a staging storage account and resource group; then attach or use the generated template), Replace existing (swap disks in place, VM must exist), Cross Region Restore (from GRS+CRR vaults), and File Recovery (mount a recovery point with a script and copy files).",
+    "Azure Files: snapshot-based or vaulted backup with share- or file-level restore. SQL in VM: log backups every 15 minutes for point-in-time restore."
+  ],
+  "animation": {
+    "id": "backup-dr-sim",
+    "caption": "Backup policy, and Back up and restore tabs."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "Azure VM (VM agent)",
+        "x": 20,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "snap",
+        "label": "Instant restore snapshots (1–5 / 1–30 days)",
+        "x": 250,
+        "y": 40,
+        "kind": "storage"
+      },
+      {
+        "id": "vault",
+        "label": "Vault tier: daily/weekly/monthly/yearly",
+        "x": 250,
+        "y": 200,
+        "kind": "storage"
+      },
+      {
+        "id": "r",
+        "label": "Restore: file / new VM / disks / replace / CRR",
+        "x": 560,
+        "y": 120,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "vm",
+        "to": "snap",
+        "label": "snapshot"
+      },
+      {
+        "from": "snap",
+        "to": "vault",
+        "label": "transfer"
+      },
+      {
+        "from": "snap",
+        "to": "r",
+        "label": "fast"
+      },
+      {
+        "from": "vault",
+        "to": "r"
+      }
+    ]
+  },
+  "example": {
+    "title": "A tiered policy",
+    "body": [
+      "Production SQL VMs (Trusted Launch) use an Enhanced policy every 4 hours with 7-day snapshots, 30 daily, 12 monthly and 7 yearly points. When a developer deletes a config file, the admin uses File Recovery from this morning's point in minutes."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with VMs to monitor or protect"
+    ],
+    "permissions": [
+      "Monitoring Contributor (alerts, diagnostic settings) or Backup Contributor (vaults, policies)"
+    ],
+    "limits": [
+      "Standard policy: 1 backup/day, instant restore 1–5 days",
+      "Enhanced policy: every 4–12 hours, instant restore 1–30 days"
+    ],
+    "portal": [
+      "Vault > Backup policies > + Add: Azure Virtual Machine, Standard or Enhanced, schedule and retention.",
+      "Vault > Backup > Azure Virtual Machine: choose policy and VMs. Or VM > Backup.",
+      "Backup items > VM > Backup now; Restore VM; File Recovery."
+    ],
+    "cli": "az backup protection enable-for-vm -g rg-bkp -v rsv-prod-eus --vm vm-app --policy-name EnhancedPolicy\naz backup protection backup-now -g rg-bkp -v rsv-prod-eus -c vm-app -i vm-app --backup-management-type AzureIaasVM --retain-until 30-12-2026\naz backup recoverypoint list -g rg-bkp -v rsv-prod-eus -c vm-app -i vm-app --backup-management-type AzureIaasVM -o table\naz backup restore restore-disks -g rg-bkp -v rsv-prod-eus -c vm-app -i vm-app -r <rp-name> --storage-account stagingsa --target-resource-group rg-restore",
+    "powershell": "$v = Get-AzRecoveryServicesVault -ResourceGroupName rg-bkp -Name rsv-prod-eus\n$pol = Get-AzRecoveryServicesBackupProtectionPolicy -Name EnhancedPolicy -VaultId $v.ID\nEnable-AzRecoveryServicesBackupProtection -Policy $pol -Name vm-app -ResourceGroupName rg-app -VaultId $v.ID\n$item = Get-AzRecoveryServicesBackupItem -BackupManagementType AzureVM -WorkloadType AzureVM -VaultId $v.ID -Name vm-app\nBackup-AzRecoveryServicesBackupItem -Item $item -VaultId $v.ID\n$rp = Get-AzRecoveryServicesBackupRecoveryPoint -Item $item -VaultId $v.ID | Select-Object -First 1\nRestore-AzRecoveryServicesBackupItem -RecoveryPoint $rp -StorageAccountName stagingsa -StorageAccountResourceGroupName rg-restore -VaultId $v.ID"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "backup-dr-sim",
+    "objective": "Design a valid policy and pick the right restore for each incident.",
+    "duration": 20,
+    "steps": [
+      "Backup policy: run the default (Standard + hourly + Trusted Launch) and read the errors.",
+      "Apply 'Enhanced, every 4 hours, 12 months'.",
+      "Back up and restore: run the default, then 'File recovery' and 'Replace corrupted OS'.",
+      "Apply 'Region outage without CRR' and 'Region outage with CRR'."
+    ],
+    "expected": [
+      "Enhanced for hourly and Trusted Launch",
+      "Restore option fits the incident",
+      "CRR needs GRS + CRR"
+    ],
+    "validation": [
+      {
+        "id": "policy-valid",
+        "text": "Created a valid policy that meets the requirement"
+      },
+      {
+        "id": "policy-invalid",
+        "text": "Diagnosed an invalid policy"
+      },
+      {
+        "id": "restore-file",
+        "text": "Restored a single file"
+      },
+      {
+        "id": "restore-vm",
+        "text": "Restored a VM"
+      },
+      {
+        "id": "restore-wrong",
+        "text": "Saw a poor or unavailable restore choice"
+      }
+    ],
+    "failureScenarios": [
+      "Standard policy for hourly backups",
+      "Cross Region Restore without CRR"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Backup fails: VM agent unresponsive.",
+      "cause": "Agent not running or blocked outbound.",
+      "fix": "Restart/update the agent; allow required endpoints."
+    },
+    {
+      "symptom": "Can't choose Standard policy for a Trusted Launch VM.",
+      "cause": "Trusted Launch requires Enhanced.",
+      "fix": "Use an Enhanced policy."
+    },
+    {
+      "symptom": "Replace existing is greyed out.",
+      "cause": "Original VM deleted.",
+      "fix": "Create new VM or restore disks."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Site Recovery",
+      "difference": "Replicates continuously for fast failover (RPO in minutes); backup keeps long-term point-in-time copies."
+    },
+    {
+      "service": "Managed disk snapshots",
+      "difference": "Manual point-in-time copies without policy or vault retention."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Backups protect against regional outages by default.",
+      "reality": "Only with GRS + Cross Region Restore."
+    },
+    {
+      "myth": "File recovery restores the whole VM.",
+      "reality": "It mounts a recovery point so you copy specific files."
+    }
+  ],
+  "architectureDecisions": [
+    "Use Enhanced policies for critical VMs.",
+    "Keep instant restore days long enough for most restores to be fast.",
+    "Test restores regularly."
+  ],
+  "docs": [
+    {
+      "title": "Enhanced policy for Azure VM backup",
+      "url": "https://learn.microsoft.com/azure/backup/backup-azure-vms-enhanced-policy"
+    },
+    {
+      "title": "Back up an Azure VM",
+      "url": "https://learn.microsoft.com/azure/backup/backup-azure-arm-vms-prepare"
+    },
+    {
+      "title": "Restore Azure VMs",
+      "url": "https://learn.microsoft.com/azure/backup/backup-azure-arm-restore-vms"
+    },
+    {
+      "title": "Recover files from Azure VM backup",
+      "url": "https://learn.microsoft.com/azure/backup/backup-azure-restore-files-from-vm"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Decide how often to back up and how long to keep it, then practise getting data back.",
+    "learn": [
+      "Backup policy: schedule and retention",
+      "Standard vs Enhanced policy",
+      "Instant restore snapshots",
+      "Restore options",
+      "On-demand backup"
+    ],
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "Azure VM",
+        "x": 110,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "pol",
+        "label": "Backup policy",
+        "x": 330,
+        "y": 90,
+        "kind": "service",
+        "sub": "daily 2am, keep 30 days"
+      },
+      {
+        "id": "snap",
+        "label": "Snapshot tier",
+        "x": 330,
+        "y": 250,
+        "kind": "storage",
+        "sub": "instant restore 1–5 days"
+      },
+      {
+        "id": "vault",
+        "label": "Vault tier",
+        "x": 560,
+        "y": 250,
+        "kind": "security",
+        "sub": "long-term"
+      },
+      {
+        "id": "new",
+        "label": "New VM",
+        "x": 690,
+        "y": 100,
+        "kind": "compute",
+        "sub": "restore"
+      },
+      {
+        "id": "file",
+        "label": "Single files",
+        "x": 690,
+        "y": 380,
+        "kind": "storage",
+        "sub": "file recovery"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Bad update",
+        "title": "An update broke the VM yesterday",
+        "body": [
+          "You need yesterday's VM back, or just one deleted config file, quickly."
+        ],
+        "show": [
+          "vm"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Policy",
+        "title": "A policy sets when and how long",
+        "body": [
+          "Schedule: when backups run. Retention: how long daily, weekly, monthly and yearly recovery points are kept. One policy can protect many VMs."
+        ],
+        "show": [
+          "vm",
+          "pol"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "pol",
+            "to": "vm",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Standard vs Enhanced",
+        "title": "Two VM policy types",
+        "body": [
+          "Standard: one backup per day. Enhanced: several per day (as often as every 4 hours), required for Trusted Launch VMs and some disk types."
+        ],
+        "show": [
+          "vm",
+          "pol"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "pol",
+            "to": "vm"
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Tiers",
+        "title": "Snapshots first, then the vault",
+        "body": [
+          "Each backup first takes a snapshot kept with the VM's disks for 1–5 days (Standard) for fast 'instant restore'. The data is then copied to the vault for long-term retention."
+        ],
+        "show": [
+          "vm",
+          "pol",
+          "snap",
+          "vault"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "pol",
+            "to": "vm"
+          },
+          {
+            "from": "vm",
+            "to": "snap",
+            "fresh": true
+          },
+          {
+            "from": "snap",
+            "to": "vault",
+            "label": "copy",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Restore",
+        "title": "Ways to restore a VM",
+        "body": [
+          "Create a new VM; restore disks (then build a VM from them yourself); replace existing disks on the VM; or file recovery: download a script that mounts the recovery point so you copy single files. Cross-region restore restores in the paired region if enabled."
+        ],
+        "show": [
+          "vm",
+          "pol",
+          "snap",
+          "vault",
+          "new",
+          "file"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "pol",
+            "to": "vm"
+          },
+          {
+            "from": "vm",
+            "to": "snap"
+          },
+          {
+            "from": "snap",
+            "to": "vault",
+            "label": "copy"
+          },
+          {
+            "from": "vault",
+            "to": "new",
+            "fresh": true
+          },
+          {
+            "from": "vault",
+            "to": "file",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Backup now",
+        "title": "On-demand backups",
+        "body": [
+          "Backup now creates a recovery point immediately, with its own retention date, for example before a risky change. The first backup of a VM takes longer than later ones."
+        ],
+        "show": [
+          "vm",
+          "pol",
+          "snap",
+          "vault",
+          "new",
+          "file"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "pol",
+            "to": "vm"
+          },
+          {
+            "from": "vm",
+            "to": "snap"
+          },
+          {
+            "from": "snap",
+            "to": "vault",
+            "label": "copy"
+          },
+          {
+            "from": "vault",
+            "to": "new"
+          },
+          {
+            "from": "vault",
+            "to": "file"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "'Replace existing' needs the original VM to still exist; if it was deleted, use Create new VM or Restore disks."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Policy and restore",
+        "body": [
+          "Schedule + retention; many ways back."
+        ],
+        "show": [
+          "vm",
+          "pol",
+          "snap",
+          "vault",
+          "new",
+          "file"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "pol",
+            "to": "vm"
+          },
+          {
+            "from": "vm",
+            "to": "snap"
+          },
+          {
+            "from": "snap",
+            "to": "vault",
+            "label": "copy"
+          },
+          {
+            "from": "vault",
+            "to": "new"
+          },
+          {
+            "from": "vault",
+            "to": "file"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Policy = schedule + daily/weekly/monthly/yearly retention",
+          "Standard (daily) vs Enhanced (every 4 hours)",
+          "Instant restore snapshots, then vault tier",
+          "Restore: new VM, disks, replace, file recovery",
+          "Backup now before risky changes"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Back up a VM and restore a single file",
+    "minutes": 60,
+    "costLevel": "low",
+    "cost": "Low. One B1s VM costs about US$0.01 per hour. Delete the same day. Backup adds a small protected-instance fee and storage for the day. The first backup can take 30–60 minutes.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A small Linux VM vm-lab in rg-az104-lab: Virtual machines > + Create, Ubuntu 24.04, Standard_B1s, password authentication, public inbound ports None. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead. Monitoring agents, Azure Backup and Site Recovery all need to reach Azure services.",
+      "rsv-lab from the vaults lab (same region as the VM)."
+    ],
+    "steps": [
+      {
+        "do": "Open vm-lab > Operations > Backup. Vault: rsv-lab. Policy: create a new Standard policy pol-daily, backup daily at a time soon, instant restore 2 days, daily retention 7 days. Enable backup.",
+        "see": "Backup is configured; status 'Initial backup pending'."
+      },
+      {
+        "do": "Select Backup now, keep the default retention date. OK.",
+        "see": "A backup job starts. Open rsv-lab > Monitoring > Backup jobs to watch it."
+      },
+      {
+        "do": "While you wait, open rsv-lab > Manage > Backup policies > pol-daily.",
+        "see": "The schedule and retention you set."
+      },
+      {
+        "do": "When the job shows Completed (30–60 min), open vm-lab > Backup > File Recovery. Choose the recovery point and download the script.",
+        "see": "A Python script for Linux and a password.",
+        "tip": "You can run the script on the VM through Bastion or any Linux machine with Python; it mounts the recovery point as a folder."
+      },
+      {
+        "do": "Open vm-lab > Backup > Restore VM.",
+        "see": "Restore type options: Create new virtual machine, Restore disks, Replace existing. Read them; restoring a new VM is optional."
+      },
+      {
+        "do": "Open rsv-lab > Protected items > Backup items > Azure Virtual Machine.",
+        "see": "vm-lab with its latest recovery point."
+      }
+    ],
+    "check": [
+      "vm-lab has at least one recovery point.",
+      "You found file recovery and the restore options."
+    ],
+    "cleanup": [
+      "Stop protection: vm-lab > Backup > Stop backup > Delete backup data (type the name). Soft delete keeps it for 14 days; that is expected.",
+      "To delete the vault afterwards, the soft-deleted item must be undeleted and deleted again, or wait 14 days. Delete the VM's resources now: delete vm-lab, its disk and NIC."
+    ],
+    "screens": [
+      {
+        "title": "Back up an Azure VM from the VM settings",
+        "url": "https://learn.microsoft.com/azure/backup/backup-azure-vms-first-look-arm"
+      },
+      {
+        "title": "Restore Azure VMs in the portal",
+        "url": "https://learn.microsoft.com/azure/backup/backup-azure-arm-restore-vms"
+      },
+      {
+        "title": "Recover files from Azure VM backup",
+        "url": "https://learn.microsoft.com/azure/backup/backup-azure-restore-files-from-vm"
+      },
+      {
+        "title": "Enhanced policy for Azure VMs",
+        "url": "https://learn.microsoft.com/azure/backup/backup-azure-vms-enhanced-policy"
+      }
+    ]
+  }
+}

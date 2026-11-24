@@ -1,0 +1,222 @@
+{
+  "id": "ai901-vision-apps",
+  "exam": "ai-901",
+  "title": "Visual input in prompts, and apps with vision capabilities",
+  "objectiveIds": [
+    "AI901-2.3.1",
+    "AI901-2.3.3"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Interpret visual input in prompts with a deployed multimodal model, and build a lightweight application that includes vision capabilities.",
+  "prerequisites": [
+    {
+      "text": "Vision concepts",
+      "objectiveId": "AI901-1.3.4",
+      "lessonId": "ai901-vision-extraction"
+    },
+    {
+      "text": "Chat client with the SDK",
+      "objectiveId": "AI901-2.1.3",
+      "lessonId": "ai901-sdk-chat-client"
+    }
+  ],
+  "foundation": [
+    "A multimodal (vision-capable) model can look at an image you include in the prompt and answer questions about it: describe it, read text, spot problems, compare it with rules.",
+    "In an app, you send the image (as a URL or encoded data) together with your question, and ask for a structured answer your code can use."
+  ],
+  "engineer": [
+    "Responses API: input=[{'role':'user','content':[{'type':'input_text','text':'...'},{'type':'input_image','image_url':'https://...'}]}]. For local files, encode as a base64 data URI (data:image/jpeg;base64,...); the service can't read paths on your machine.",
+    "Ask for structured output (JSON with fields such as damage_type and severity) and validate it. Use a detail level setting where available to trade cost for precision; large images consume more tokens.",
+    "When you need fixed, consistent outputs (OCR text with positions, tags, captions) use Azure Vision in Foundry Tools; for schema-based extraction from many images use Content Understanding.",
+    "App design: resize images before upload, handle content filter results, keep a human reviewer for high-impact decisions, and never send images users haven't consented to share.",
+    "Errors: unsupported or too-large images, private URLs the service can't reach (use data URIs or SAS URLs), non-vision deployments (the model ignores or rejects images)."
+  ],
+  "animation": {
+    "id": "ai901-visionapp-sim",
+    "caption": "Send images to a multimodal model, handle errors, and choose a vision approach."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "img",
+        "label": "Photo (URL or base64)",
+        "x": 0,
+        "y": 100,
+        "kind": "user"
+      },
+      {
+        "id": "app",
+        "label": "App: input_text + input_image",
+        "x": 220,
+        "y": 100,
+        "kind": "service"
+      },
+      {
+        "id": "mm",
+        "label": "Vision-capable model",
+        "x": 460,
+        "y": 30,
+        "kind": "ai"
+      },
+      {
+        "id": "vis",
+        "label": "Azure Vision: OCR, tags",
+        "x": 460,
+        "y": 170,
+        "kind": "ai"
+      },
+      {
+        "id": "json",
+        "label": "JSON: damage_type, severity",
+        "x": 700,
+        "y": 100,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "img",
+        "to": "app"
+      },
+      {
+        "from": "app",
+        "to": "mm"
+      },
+      {
+        "from": "app",
+        "to": "vis"
+      },
+      {
+        "from": "mm",
+        "to": "json"
+      },
+      {
+        "from": "vis",
+        "to": "json"
+      }
+    ]
+  },
+  "example": {
+    "title": "Car damage pre-assessment",
+    "body": [
+      "An insurer's app sends a customer's car photo with the prompt 'List damaged parts and rate severity as JSON'. The model returns {front_bumper: medium, headlight: high}.",
+      "A first attempt failed because the app sent a local file path; encoding the photo as a base64 data URI fixed it. Claims over a threshold go to a human adjuster."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Deploy a vision-capable chat model and gpt-image-1 from the model catalog.",
+      "Chat playground: attach an image and ask about it."
+    ],
+    "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name chat-model --model-name gpt-5-mini --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50",
+    "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI",
+    "python": "# pip install \"azure-ai-projects>=2.3.0\" azure-identity\nimport os\nfrom azure.identity import DefaultAzureCredential\nfrom azure.ai.projects import AIProjectClient\n\nproject = AIProjectClient(endpoint=os.environ[\"FOUNDRY_PROJECT_ENDPOINT\"], credential=DefaultAzureCredential())\nopenai = project.get_openai_client()\n\nimport base64\n# Describe an image (openai = project.get_openai_client())\nwith open(\"car.jpg\", \"rb\") as f:\n    data_uri = \"data:image/jpeg;base64,\" + base64.b64encode(f.read()).decode()\nresponse = openai.responses.create(\n    model=\"chat-model\",  # a vision-capable deployment\n    input=[{\"role\": \"user\", \"content\": [\n        {\"type\": \"input_text\", \"text\": \"List the damaged parts and rate severity low/medium/high as JSON.\"},\n        {\"type\": \"input_image\", \"image_url\": data_uri},\n    ]}],\n)\nprint(response.output_text)\n"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-visionapp-sim",
+    "objective": "Get a vision model to describe an image.",
+    "duration": 15,
+    "steps": [
+      "Vision in and images out tab: run image understanding, fix errors, try each preset.",
+      "Which vision approach? tab: answer every task."
+    ],
+    "expected": [
+      "Images go in the prompt as URLs or data URIs",
+      "Prebuilt services suit fixed outputs"
+    ],
+    "validation": [
+      {
+        "id": "ai-image-described",
+        "text": "Model described an image"
+      },
+      {
+        "id": "ai-vision-error",
+        "text": "Diagnosed a vision error"
+      },
+      {
+        "id": "vision-approach-correct",
+        "text": "Chose the right approach"
+      },
+      {
+        "id": "vision-approach-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Sending a local file path",
+      "Using a non-vision deployment"
+    ],
+    "cleanup": [
+      "Simulation: use Reset.",
+      "If you ran it in Azure: az group delete --name rg-ai901 --yes (deletes the Foundry resource, projects and deployments)."
+    ],
+    "cost": "Simulation: free. Optional real run: model tokens and Foundry Tools transactions are billed per use; delete the resource group afterwards."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Model says it can't see an image.",
+      "cause": "Deployment isn't vision-capable, or the image wasn't sent as input_image.",
+      "fix": "Use a vision-capable model and the correct content type."
+    },
+    {
+      "symptom": "Error fetching the image URL.",
+      "cause": "URL is private or behind a firewall.",
+      "fix": "Use a base64 data URI or a SAS URL."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Multimodal model vs Azure Vision",
+      "difference": "Model: flexible reasoning in natural language. Azure Vision: consistent prebuilt outputs with coordinates."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Vision models can read files on your PC.",
+      "reality": "Send the image data or a reachable URL."
+    },
+    {
+      "myth": "Vision answers are always correct.",
+      "reality": "Validate and add human review for important decisions."
+    }
+  ],
+  "architectureDecisions": [
+    "Use structured output for vision answers.",
+    "Resize images to control cost.",
+    "Use prebuilt OCR for high-volume text reading."
+  ],
+  "docs": [
+    {
+      "title": "Use vision-enabled chat models",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/how-to/gpt-with-vision"
+    },
+    {
+      "title": "Azure Vision overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/computer-vision/overview"
+    },
+    {
+      "title": "Structured outputs",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/how-to/structured-outputs"
+    },
+    {
+      "title": "Azure AI Projects client library for Python",
+      "url": "https://learn.microsoft.com/python/api/overview/azure/ai-projects-readme"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

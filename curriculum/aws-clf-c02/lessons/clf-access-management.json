@@ -1,0 +1,680 @@
+{
+  "id": "clf-access-management",
+  "exam": "aws-clf-c02",
+  "title": "AWS access management: IAM, root user, Identity Center and credentials",
+  "objectiveIds": [
+    "CLFC02-2.3.1",
+    "CLFC02-2.3.2",
+    "CLFC02-2.3.3",
+    "CLFC02-2.3.4",
+    "CLFC02-2.3.5",
+    "CLFC02-2.3.6",
+    "CLFC02-2.3.7",
+    "CLFC02-2.3.8",
+    "CLFC02-2.3.9",
+    "CLFC02-2.3.10"
+  ],
+  "estimatedMinutes": 50,
+  "learningObjective": "Explain IAM users, groups, roles and policies, least privilege, root user protection and root-only tasks, IAM Identity Center and federation, MFA, access keys, password policies and credential storage.",
+  "prerequisites": [
+    {
+      "text": "Shared responsibility",
+      "objectiveId": "CLFC02-2.1.3",
+      "lessonId": "clf-shared-responsibility"
+    }
+  ],
+  "foundation": [
+    "AWS Identity and Access Management (IAM) controls who can sign in (authentication) and what they can do (authorization) in your AWS account.",
+    "The root user is the email account that created the AWS account. It has full power, so protect it with MFA and use it only for the few tasks that require it.",
+    "Give people only the permissions they need (least privilege), preferably through groups and roles, and sign in through IAM Identity Center."
+  ],
+  "engineer": [
+    "IAM entities: users (long-term credentials; minimise), groups (collections of users; attach policies), roles (temporary credentials assumed by users, services or other accounts), policies (JSON: Effect, Action, Resource, Condition). AWS managed policies vs customer managed policies vs inline policies.",
+    "Evaluation: explicit Deny wins; otherwise an explicit Allow is needed; everything else is implicitly denied. SCPs in AWS Organizations set the maximum permissions for member accounts (including their root user).",
+    "Root user: enable MFA, do not create root access keys, use for root-only tasks such as changing account settings (name, email, root password), closing the account, restoring IAM permissions when locked out, configuring S3 MFA delete, and registering as a seller in the Reserved Instance Marketplace.",
+    "Authentication: passwords with an IAM password policy, MFA (virtual authenticator, FIDO security keys, hardware TOTP), access keys for programmatic access (rotate, avoid on root), temporary credentials via roles (STS).",
+    "IAM Identity Center: central workforce access to multiple accounts and apps with permission sets, using its own directory or an external identity provider (federation with SAML/OIDC, for example Microsoft Entra ID or Okta). Cross-account roles grant access between accounts.",
+    "Credential storage: AWS Secrets Manager (secrets with automatic rotation) and AWS Systems Manager Parameter Store (configuration and SecureString parameters)."
+  ],
+  "animation": {
+    "id": "aws-security-sim",
+    "caption": "Open 'IAM policy evaluation' and 'Root user tasks'."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "idp",
+        "label": "Identity provider (Entra ID / Okta)",
+        "x": 0,
+        "y": 0,
+        "kind": "identity"
+      },
+      {
+        "id": "ic",
+        "label": "IAM Identity Center (permission sets)",
+        "x": 250,
+        "y": 0,
+        "kind": "identity"
+      },
+      {
+        "id": "role",
+        "label": "IAM role in account",
+        "x": 500,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "grp",
+        "label": "IAM group → managed policy",
+        "x": 250,
+        "y": 140,
+        "kind": "security"
+      },
+      {
+        "id": "res",
+        "label": "AWS resources",
+        "x": 750,
+        "y": 60,
+        "kind": "storage"
+      },
+      {
+        "id": "root",
+        "label": "Root user (MFA, rarely used)",
+        "x": 500,
+        "y": 180,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "idp",
+        "to": "ic",
+        "label": "federation"
+      },
+      {
+        "from": "ic",
+        "to": "role",
+        "label": "temporary credentials"
+      },
+      {
+        "from": "role",
+        "to": "res"
+      },
+      {
+        "from": "grp",
+        "to": "res"
+      }
+    ]
+  },
+  "example": {
+    "title": "Hardening a new account",
+    "body": [
+      "The founder enables MFA on the root user and stores its credentials securely. Staff sign in through IAM Identity Center federated with the company's identity provider, receiving permission sets such as ReadOnlyAccess or a custom least-privilege set. Apps on EC2 use IAM roles and read database passwords from Secrets Manager."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "IAM > Dashboard: security recommendations (root MFA).",
+      "IAM > Account settings: password policy.",
+      "IAM Identity Center > Permission sets.",
+      "Secrets Manager > Store a new secret."
+    ],
+    "cli": "aws iam get-account-summary\naws iam update-account-password-policy --minimum-password-length 14 --require-symbols\naws iam create-group --group-name Developers && aws iam attach-group-policy --group-name Developers --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess\naws secretsmanager create-secret --name prod/db --secret-string '{\"password\":\"...\"}'",
+    "powershell": "Get-IAMAccountSummary\nNew-IAMGroup -GroupName Developers\nRegister-IAMGroupPolicy -GroupName Developers -PolicyArn arn:aws:iam::aws:policy/ReadOnlyAccess"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-security-sim",
+    "objective": "Predict IAM decisions and identify root-only tasks.",
+    "duration": 15,
+    "steps": [
+      "IAM policy evaluation: apply each preset.",
+      "Root user tasks: answer every task."
+    ],
+    "expected": [
+      "Explicit deny wins; SCP limits even root"
+    ],
+    "validation": [
+      {
+        "id": "aws-iam-denied",
+        "text": "Saw a request denied"
+      },
+      {
+        "id": "aws-iam-allowed",
+        "text": "Saw a request allowed"
+      },
+      {
+        "id": "aws-root-correct",
+        "text": "Identified a root-only task"
+      }
+    ],
+    "failureScenarios": [
+      "Using root for daily work"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "AccessDenied despite an Allow policy.",
+      "cause": "An explicit Deny or SCP applies.",
+      "fix": "Check SCPs and all attached policies."
+    },
+    {
+      "symptom": "Leaked access keys in a public repo.",
+      "cause": "Long-term credentials exposed.",
+      "fix": "Deactivate and rotate keys; prefer roles and temporary credentials."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Microsoft Entra ID + Azure RBAC",
+      "difference": "Azure separates directory (Entra ID) from resource authorization (RBAC); AWS IAM covers both within an account."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "The root user should be used for administration.",
+      "reality": "Use IAM Identity Center or IAM roles; root only for root tasks."
+    },
+    {
+      "myth": "IAM roles have passwords.",
+      "reality": "Roles provide temporary credentials."
+    }
+  ],
+  "architectureDecisions": [
+    "Federate workforce access through IAM Identity Center; use roles for workloads; enforce MFA."
+  ],
+  "docs": [
+    {
+      "title": "What is IAM?",
+      "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html"
+    },
+    {
+      "title": "Tasks that require root user credentials",
+      "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/root-user-tasks.html"
+    },
+    {
+      "title": "IAM best practices",
+      "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+    },
+    {
+      "title": "Policy evaluation logic",
+      "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html"
+    },
+    {
+      "title": "IAM Identity Center",
+      "url": "https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html"
+    },
+    {
+      "title": "AWS Secrets Manager",
+      "url": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Fix a startup where everyone shares the root password, one step at a time.",
+    "learn": [
+      "Protect the root user and know the root-only tasks",
+      "IAM users, groups, roles and policies",
+      "Least privilege with managed and custom policies",
+      "IAM Identity Center and federation",
+      "Credentials: MFA, access keys, password policy, Secrets Manager"
+    ],
+    "nodes": [
+      {
+        "id": "root",
+        "label": "Root user",
+        "x": 120,
+        "y": 60,
+        "kind": "identity",
+        "sub": "email + password"
+      },
+      {
+        "id": "mfa",
+        "label": "MFA",
+        "x": 120,
+        "y": 190,
+        "kind": "security",
+        "sub": "second factor"
+      },
+      {
+        "id": "idc",
+        "label": "IAM Identity Center",
+        "x": 400,
+        "y": 60,
+        "kind": "identity",
+        "sub": "one sign-in"
+      },
+      {
+        "id": "idp",
+        "label": "Company directory",
+        "x": 680,
+        "y": 60,
+        "kind": "user",
+        "sub": "Entra ID, Okta..."
+      },
+      {
+        "id": "grp",
+        "label": "IAM group: Developers",
+        "x": 400,
+        "y": 200,
+        "kind": "identity",
+        "sub": "users in a group"
+      },
+      {
+        "id": "pol",
+        "label": "Policy",
+        "x": 680,
+        "y": 200,
+        "kind": "security",
+        "sub": "JSON allow / deny"
+      },
+      {
+        "id": "role",
+        "label": "IAM role",
+        "x": 400,
+        "y": 340,
+        "kind": "identity",
+        "sub": "temporary credentials"
+      },
+      {
+        "id": "acct",
+        "label": "Other AWS account",
+        "x": 680,
+        "y": 340,
+        "kind": "globe"
+      },
+      {
+        "id": "sec",
+        "label": "Secrets Manager",
+        "x": 120,
+        "y": 340,
+        "kind": "security",
+        "sub": "rotated secrets"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Shared root",
+        "title": "Everyone signs in as root",
+        "body": [
+          "A startup's five engineers all use the root user: the email and password that created the AWS account. Root can do everything, including closing the account.",
+          "One leaked password could lose the whole company."
+        ],
+        "show": [
+          "root"
+        ],
+        "focus": [
+          "root"
+        ],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Lock root",
+        "title": "Lock away the root user",
+        "body": [
+          "Turn on MFA for root, don't create root access keys, and store the credentials safely. Use root only for the few tasks that need it.",
+          "Root-only tasks include changing the account name, email or root password, closing the account, restoring IAM permissions when you are locked out, configuring S3 MFA Delete, and registering as a seller in the Reserved Instance Marketplace."
+        ],
+        "show": [
+          "root",
+          "mfa"
+        ],
+        "focus": [
+          "root",
+          "mfa"
+        ],
+        "edges": [
+          {
+            "from": "root",
+            "to": "mfa",
+            "label": "required",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          4
+        ],
+        "callout": {
+          "type": "key",
+          "text": "Protect root with MFA and don't use it for daily work."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Groups + policies",
+        "title": "Give people their own identities",
+        "body": [
+          "Each engineer gets their own identity. Put users with the same job in an IAM group and attach a policy to the group. A policy is a JSON document that allows or denies actions on resources.",
+          "When someone changes job, move them to another group."
+        ],
+        "show": [
+          "root",
+          "mfa",
+          "grp",
+          "pol"
+        ],
+        "focus": [
+          "grp",
+          "pol"
+        ],
+        "edges": [
+          {
+            "from": "root",
+            "to": "mfa",
+            "label": "required"
+          },
+          {
+            "from": "pol",
+            "to": "grp",
+            "label": "attached",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          4
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Least privilege",
+        "title": "Grant only what's needed",
+        "body": [
+          "Least privilege means each identity gets only the permissions its task needs, nothing more. Start with AWS managed policies, which AWS writes and maintains. Write customer managed policies when you need something narrower.",
+          "In IAM an explicit Deny always wins, and anything not allowed is denied."
+        ],
+        "show": [
+          "root",
+          "mfa",
+          "grp",
+          "pol"
+        ],
+        "focus": [
+          "pol"
+        ],
+        "edges": [
+          {
+            "from": "root",
+            "to": "mfa",
+            "label": "required"
+          },
+          {
+            "from": "pol",
+            "to": "grp",
+            "label": "attached"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          4
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "AWS managed policies are convenient but often broad. Custom policies let you be exact."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Identity Center",
+        "title": "One sign-in for every account",
+        "body": [
+          "IAM Identity Center gives your workforce a single sign-in to all your AWS accounts and business apps. Identities can live in Identity Center itself or in your existing company directory. Using an existing directory is called federation.",
+          "People use their normal work login, and leavers lose access in one place."
+        ],
+        "show": [
+          "root",
+          "mfa",
+          "grp",
+          "pol",
+          "idc",
+          "idp"
+        ],
+        "focus": [
+          "idc",
+          "idp"
+        ],
+        "edges": [
+          {
+            "from": "root",
+            "to": "mfa",
+            "label": "required"
+          },
+          {
+            "from": "pol",
+            "to": "grp",
+            "label": "attached"
+          },
+          {
+            "from": "idp",
+            "to": "idc",
+            "label": "federation",
+            "fresh": true
+          },
+          {
+            "from": "idc",
+            "to": "grp",
+            "label": "permission sets",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Roles",
+        "title": "Use roles for temporary access",
+        "body": [
+          "An IAM role has permissions but no password. A user, an AWS service such as EC2, or another account assumes the role and gets temporary credentials.",
+          "Cross-account roles let your auditors' account read your logs without sharing any keys."
+        ],
+        "show": [
+          "root",
+          "mfa",
+          "grp",
+          "pol",
+          "idc",
+          "idp",
+          "role",
+          "acct"
+        ],
+        "focus": [
+          "role"
+        ],
+        "edges": [
+          {
+            "from": "root",
+            "to": "mfa",
+            "label": "required"
+          },
+          {
+            "from": "pol",
+            "to": "grp",
+            "label": "attached"
+          },
+          {
+            "from": "idp",
+            "to": "idc",
+            "label": "federation"
+          },
+          {
+            "from": "idc",
+            "to": "grp",
+            "label": "permission sets"
+          },
+          {
+            "from": "acct",
+            "to": "role",
+            "label": "assume role",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Credentials",
+        "title": "Handle credentials safely",
+        "body": [
+          "Set a password policy (length, complexity) and require MFA. Access keys are for programs, not people: rotate them and never put them in code.",
+          "Store database passwords and API keys in AWS Secrets Manager, which can rotate them automatically, or in Systems Manager Parameter Store."
+        ],
+        "show": [
+          "root",
+          "mfa",
+          "grp",
+          "pol",
+          "idc",
+          "idp",
+          "role",
+          "acct",
+          "sec"
+        ],
+        "focus": [
+          "sec"
+        ],
+        "edges": [
+          {
+            "from": "root",
+            "to": "mfa",
+            "label": "required"
+          },
+          {
+            "from": "pol",
+            "to": "grp",
+            "label": "attached"
+          },
+          {
+            "from": "idp",
+            "to": "idc",
+            "label": "federation"
+          },
+          {
+            "from": "idc",
+            "to": "grp",
+            "label": "permission sets"
+          },
+          {
+            "from": "acct",
+            "to": "role",
+            "label": "assume role"
+          },
+          {
+            "from": "role",
+            "to": "sec",
+            "label": "reads secret",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "From one shared password to proper access",
+        "body": [
+          "Each person and program now has the access it needs, and no more."
+        ],
+        "show": [
+          "root",
+          "mfa",
+          "grp",
+          "pol",
+          "idc",
+          "idp",
+          "role",
+          "acct",
+          "sec"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "root",
+            "to": "mfa",
+            "label": "required"
+          },
+          {
+            "from": "pol",
+            "to": "grp",
+            "label": "attached"
+          },
+          {
+            "from": "idp",
+            "to": "idc",
+            "label": "federation"
+          },
+          {
+            "from": "idc",
+            "to": "grp",
+            "label": "permission sets"
+          },
+          {
+            "from": "acct",
+            "to": "role",
+            "label": "assume role"
+          },
+          {
+            "from": "role",
+            "to": "sec",
+            "label": "reads secret"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Root: MFA, no access keys, only root-only tasks",
+          "Users in groups; policies attached to groups; roles for temporary access",
+          "Least privilege; explicit Deny wins",
+          "Identity Center + federation for workforce sign-in",
+          "MFA, password policy, rotated keys, Secrets Manager"
+        ]
+      }
+    ]
+  }
+}

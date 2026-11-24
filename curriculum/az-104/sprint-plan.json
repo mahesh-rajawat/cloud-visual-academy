@@ -1,0 +1,463 @@
+{
+ "exam": "az-104",
+ "weeks": 7,
+ "activityMinutes": {
+  "diagnostic": 20,
+  "weekly-assessment": 40,
+  "mock-exam": 100,
+  "weak-revision": 45,
+  "readiness-report": 15,
+  "exam-day-prep": 30
+ },
+ "objectiveMinutes": {
+  "handsOn": 40,
+  "conceptual": 25
+ },
+ "struggleMultiplier": 1.5,
+ "dailyRecallMinutes": 10,
+ "days": [
+  {
+   "day": 1,
+   "title": "Microsoft Entra users and groups",
+   "skills": [
+    "AZ104-1.1.1",
+    "AZ104-1.1.2"
+   ],
+   "activities": [
+    "diagnostic"
+   ]
+  },
+  {
+   "day": 2,
+   "title": "Licences and guest users",
+   "skills": [
+    "AZ104-1.1.3",
+    "AZ104-1.1.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 3,
+   "title": "Self-service password reset and built-in roles",
+   "skills": [
+    "AZ104-1.1.5",
+    "AZ104-1.2.1"
+   ],
+   "activities": []
+  },
+  {
+   "day": 4,
+   "title": "RBAC scopes and reading access",
+   "skills": [
+    "AZ104-1.2.2",
+    "AZ104-1.2.3"
+   ],
+   "activities": []
+  },
+  {
+   "day": 5,
+   "title": "Azure Policy and tags",
+   "skills": [
+    "AZ104-1.3.1",
+    "AZ104-1.3.3"
+   ],
+   "activities": []
+  },
+  {
+   "day": 6,
+   "title": "Locks, resource groups and subscriptions",
+   "skills": [
+    "AZ104-1.3.2",
+    "AZ104-1.3.4",
+    "AZ104-1.3.5"
+   ],
+   "activities": []
+  },
+  {
+   "day": 7,
+   "title": "Costs, management groups, week 1 check",
+   "skills": [
+    "AZ104-1.3.6",
+    "AZ104-1.3.7"
+   ],
+   "activities": [
+    "weekly-assessment"
+   ]
+  },
+  {
+   "day": 8,
+   "title": "Storage accounts and encryption",
+   "skills": [
+    "AZ104-2.2.1",
+    "AZ104-2.2.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 9,
+   "title": "Redundancy and object replication",
+   "skills": [
+    "AZ104-2.2.2",
+    "AZ104-2.2.3"
+   ],
+   "activities": []
+  },
+  {
+   "day": 10,
+   "title": "Storage firewalls and access keys",
+   "skills": [
+    "AZ104-2.1.1",
+    "AZ104-2.1.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 11,
+   "title": "SAS tokens and stored access policies",
+   "skills": [
+    "AZ104-2.1.2",
+    "AZ104-2.1.3"
+   ],
+   "activities": []
+  },
+  {
+   "day": 12,
+   "title": "Azure Files and identity-based access",
+   "skills": [
+    "AZ104-2.1.5",
+    "AZ104-2.3.1"
+   ],
+   "activities": []
+  },
+  {
+   "day": 13,
+   "title": "Blob containers, tiers and lifecycle",
+   "skills": [
+    "AZ104-2.3.2",
+    "AZ104-2.3.3",
+    "AZ104-2.3.5"
+   ],
+   "activities": []
+  },
+  {
+   "day": 14,
+   "title": "Data protection, AzCopy, week 2 check",
+   "skills": [
+    "AZ104-2.3.4",
+    "AZ104-2.3.6",
+    "AZ104-2.2.5"
+   ],
+   "activities": [
+    "weekly-assessment"
+   ]
+  },
+  {
+   "day": 15,
+   "title": "Read and edit ARM templates",
+   "skills": [
+    "AZ104-3.1.1",
+    "AZ104-3.1.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 16,
+   "title": "Bicep: edit, deploy, export",
+   "skills": [
+    "AZ104-3.1.3",
+    "AZ104-3.1.4",
+    "AZ104-3.1.5"
+   ],
+   "activities": []
+  },
+  {
+   "day": 17,
+   "title": "Create and size virtual machines",
+   "skills": [
+    "AZ104-3.2.1",
+    "AZ104-3.2.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 18,
+   "title": "Move VMs and manage disks",
+   "skills": [
+    "AZ104-3.2.3",
+    "AZ104-3.2.5"
+   ],
+   "activities": []
+  },
+  {
+   "day": 19,
+   "title": "Disk encryption, and catch up on labs",
+   "skills": [
+    "AZ104-3.2.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 20,
+   "title": "Availability sets, zones and scale sets",
+   "skills": [
+    "AZ104-3.2.6",
+    "AZ104-3.2.7"
+   ],
+   "activities": []
+  },
+  {
+   "day": 21,
+   "title": "Week 3 check: templates and VMs",
+   "skills": [],
+   "activities": [
+    "weekly-assessment"
+   ]
+  },
+  {
+   "day": 22,
+   "title": "Container registry and Container Instances",
+   "skills": [
+    "AZ104-3.3.1",
+    "AZ104-3.3.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 23,
+   "title": "Container Apps and container scaling",
+   "skills": [
+    "AZ104-3.3.3",
+    "AZ104-3.3.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 24,
+   "title": "App Service plans, scaling and web apps",
+   "skills": [
+    "AZ104-3.4.1",
+    "AZ104-3.4.2",
+    "AZ104-3.4.3"
+   ],
+   "activities": []
+  },
+  {
+   "day": 25,
+   "title": "Custom domains and TLS",
+   "skills": [
+    "AZ104-3.4.4",
+    "AZ104-3.4.5"
+   ],
+   "activities": []
+  },
+  {
+   "day": 26,
+   "title": "App Service backup and networking",
+   "skills": [
+    "AZ104-3.4.6",
+    "AZ104-3.4.7"
+   ],
+   "activities": []
+  },
+  {
+   "day": 27,
+   "title": "Deployment slots",
+   "skills": [
+    "AZ104-3.4.8"
+   ],
+   "activities": []
+  },
+  {
+   "day": 28,
+   "title": "Week 4 check: containers and App Service",
+   "skills": [],
+   "activities": [
+    "weekly-assessment"
+   ]
+  },
+  {
+   "day": 29,
+   "title": "Virtual networks, subnets and IP maths",
+   "skills": [
+    "AZ104-4.1.1"
+   ],
+   "activities": []
+  },
+  {
+   "day": 30,
+   "title": "Peering and public IP addresses",
+   "skills": [
+    "AZ104-4.1.2",
+    "AZ104-4.1.3"
+   ],
+   "activities": []
+  },
+  {
+   "day": 31,
+   "title": "User-defined routes",
+   "skills": [
+    "AZ104-4.1.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 32,
+   "title": "NSGs, ASGs and effective rules",
+   "skills": [
+    "AZ104-4.2.1",
+    "AZ104-4.2.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 33,
+   "title": "Bastion and network troubleshooting",
+   "skills": [
+    "AZ104-4.2.3",
+    "AZ104-4.1.5"
+   ],
+   "activities": []
+  },
+  {
+   "day": 34,
+   "title": "Service endpoints and private endpoints",
+   "skills": [
+    "AZ104-4.2.4",
+    "AZ104-4.2.5"
+   ],
+   "activities": []
+  },
+  {
+   "day": 35,
+   "title": "Week 5 check: networking",
+   "skills": [],
+   "activities": [
+    "weekly-assessment"
+   ]
+  },
+  {
+   "day": 36,
+   "title": "Azure DNS",
+   "skills": [
+    "AZ104-4.3.1"
+   ],
+   "activities": []
+  },
+  {
+   "day": 37,
+   "title": "Load balancing and troubleshooting it",
+   "skills": [
+    "AZ104-4.3.2",
+    "AZ104-4.3.3"
+   ],
+   "activities": []
+  },
+  {
+   "day": 38,
+   "title": "Metrics and log settings",
+   "skills": [
+    "AZ104-5.1.1",
+    "AZ104-5.1.2"
+   ],
+   "activities": []
+  },
+  {
+   "day": 39,
+   "title": "KQL and alerts",
+   "skills": [
+    "AZ104-5.1.3",
+    "AZ104-5.1.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 40,
+   "title": "Insights, Network Watcher and Connection monitor",
+   "skills": [
+    "AZ104-5.1.5",
+    "AZ104-5.1.6"
+   ],
+   "activities": []
+  },
+  {
+   "day": 41,
+   "title": "Vaults, backup policies, backup and restore",
+   "skills": [
+    "AZ104-5.2.1",
+    "AZ104-5.2.2",
+    "AZ104-5.2.3",
+    "AZ104-5.2.4"
+   ],
+   "activities": []
+  },
+  {
+   "day": 42,
+   "title": "Site Recovery, backup reports, week 6 check",
+   "skills": [
+    "AZ104-5.2.5",
+    "AZ104-5.2.6",
+    "AZ104-5.2.7"
+   ],
+   "activities": [
+    "weekly-assessment"
+   ]
+  },
+  {
+   "day": 43,
+   "title": "Mock exam 1 and review every mistake",
+   "skills": [],
+   "activities": [
+    "mock-exam"
+   ]
+  },
+  {
+   "day": 44,
+   "title": "Weak areas: redo their labs",
+   "skills": [],
+   "activities": [
+    "weak-revision"
+   ]
+  },
+  {
+   "day": 45,
+   "title": "Weak areas: practise by domain",
+   "skills": [],
+   "activities": [
+    "weak-revision"
+   ]
+  },
+  {
+   "day": 46,
+   "title": "Mock exam 2 and review",
+   "skills": [],
+   "activities": [
+    "mock-exam"
+   ]
+  },
+  {
+   "day": 47,
+   "title": "Weak areas: final pass",
+   "skills": [],
+   "activities": [
+    "weak-revision"
+   ]
+  },
+  {
+   "day": 48,
+   "title": "Mock exam 3 and review",
+   "skills": [],
+   "activities": [
+    "mock-exam"
+   ]
+  },
+  {
+   "day": 49,
+   "title": "Readiness check, exam-day guide, light review",
+   "skills": [],
+   "activities": [
+    "readiness-report",
+    "exam-day-prep"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,226 @@
+{
+  "id": "az900-iaas-paas-saas",
+  "exam": "az-900",
+  "title": "IaaS, PaaS and SaaS",
+  "objectiveIds": [
+    "AZ900-1.3.1",
+    "AZ900-1.3.2",
+    "AZ900-1.3.3",
+    "AZ900-1.3.4"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Describe infrastructure, platform and software as a service, what you manage in each, and choose the right one for a use case.",
+  "prerequisites": [
+    {
+      "text": "Shared responsibility",
+      "objectiveId": "AZ900-1.1.2",
+      "lessonId": "az900-cloud-basics"
+    }
+  ],
+  "foundation": [
+    "IaaS (infrastructure as a service): you rent the raw building blocks (virtual machines, storage, networks) and manage the operating system and everything on it. Most control, most work.",
+    "PaaS (platform as a service): you bring your application and data; Azure runs the platform (OS, runtime, patching, scaling). Less control, much less maintenance.",
+    "SaaS (software as a service): you use a finished application over the internet (email, CRM). You manage your data, users and settings only.",
+    "Pizza analogy: IaaS is buying ingredients and cooking in a rented kitchen, PaaS is take-and-bake, SaaS is eating at the restaurant."
+  ],
+  "engineer": [
+    "IaaS: Azure Virtual Machines, Virtual Network, managed disks. You handle OS updates, middleware, runtime, security configuration and backups. Use cases: lift-and-shift migration, test and development, custom software needing OS access, storage and backup infrastructure.",
+    "PaaS: Azure App Service, Azure SQL Database, Azure Functions, Azure Kubernetes Service (managed control plane), Azure Cosmos DB. Microsoft handles OS, patching, runtime and often high availability. Use cases: development frameworks (build apps without managing infrastructure), analytics and business intelligence, APIs.",
+    "SaaS: Microsoft 365, Dynamics 365, Microsoft Teams. The provider manages the application. Use cases: email and messaging, business productivity, finance and expense tracking.",
+    "Shared responsibility by type: IaaS customer manages OS, network controls, applications, identity infrastructure, data; PaaS shares applications, network controls and identity infrastructure; SaaS customer keeps data, devices, accounts, identities.",
+    "Trade-offs: IaaS offers maximum flexibility and control but requires the most management. PaaS speeds development but limits OS-level customisation. SaaS has the least effort but the least customisation.",
+    "Choosing: needs OS control or installed agents → IaaS. Want to deploy code without servers → PaaS. Need a ready-made business application → SaaS."
+  ],
+  "animation": {
+    "id": "az900-service-types-sim",
+    "caption": "Pick a service type for each workload, then classify Azure and Microsoft products."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "iaas",
+        "label": "IaaS: VMs, networks, disks",
+        "x": 0,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "paas",
+        "label": "PaaS: App Service, Azure SQL, Functions",
+        "x": 260,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "saas",
+        "label": "SaaS: Microsoft 365, Dynamics 365",
+        "x": 520,
+        "y": 60,
+        "kind": "user"
+      },
+      {
+        "id": "you1",
+        "label": "You: OS, runtime, apps, data",
+        "x": 0,
+        "y": 190,
+        "kind": "user"
+      },
+      {
+        "id": "you2",
+        "label": "You: apps and data",
+        "x": 260,
+        "y": 190,
+        "kind": "user"
+      },
+      {
+        "id": "you3",
+        "label": "You: data, users, settings",
+        "x": 520,
+        "y": 190,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "iaas",
+        "to": "you1"
+      },
+      {
+        "from": "paas",
+        "to": "you2"
+      },
+      {
+        "from": "saas",
+        "to": "you3"
+      }
+    ]
+  },
+  "example": {
+    "title": "One company, three service types",
+    "body": [
+      "Contoso migrates a legacy inventory app that needs a specific Windows agent to Azure VMs (IaaS).",
+      "Its new customer portal runs on App Service with Azure SQL Database (PaaS), and staff use Microsoft 365 for email and Teams (SaaS)."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Create a resource > Virtual machine (IaaS).",
+      "Create a resource > Web App (PaaS).",
+      "admin.microsoft.com: Microsoft 365 admin center (SaaS settings)."
+    ],
+    "cli": "az vm image list -o table\naz webapp list-runtimes -o table",
+    "powershell": "Get-AzVMImageOffer -Location westeurope -PublisherName MicrosoftWindowsServer"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-service-types-sim",
+    "objective": "Choose service types and classify products.",
+    "duration": 15,
+    "steps": [
+      "IaaS, PaaS, SaaS tab: answer every workload.",
+      "Azure services by type tab: classify every product."
+    ],
+    "expected": [
+      "OS control means IaaS",
+      "Deploying only code means PaaS"
+    ],
+    "validation": [
+      {
+        "id": "service-type-correct",
+        "text": "Chose the right service type"
+      },
+      {
+        "id": "service-type-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "service-examples-correct",
+        "text": "Chose the right classification"
+      },
+      {
+        "id": "service-examples-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Calling Azure SQL Database IaaS",
+      "Choosing IaaS when no OS control is needed"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "A PaaS app needs a custom OS driver.",
+      "cause": "PaaS doesn't allow OS-level changes.",
+      "fix": "Use containers or IaaS VMs."
+    },
+    {
+      "symptom": "Too much time spent patching VMs that host a simple website.",
+      "cause": "IaaS chosen where PaaS fits.",
+      "fix": "Move the site to App Service."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Containers",
+      "difference": "Often treated as a middle ground: package the app with dependencies; run on PaaS services such as Container Apps or AKS."
+    },
+    {
+      "service": "Serverless vs PaaS",
+      "difference": "Serverless is commonly grouped with PaaS; it adds per-execution billing and scale to zero."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "SaaS means the provider owns your data.",
+      "reality": "You always own and are responsible for your data."
+    },
+    {
+      "myth": "PaaS gives no control at all.",
+      "reality": "You control the application, its settings and scaling."
+    },
+    {
+      "myth": "IaaS is always cheapest.",
+      "reality": "Management effort is a cost too."
+    }
+  ],
+  "architectureDecisions": [
+    "Prefer SaaS, then PaaS, then IaaS, unless requirements need more control.",
+    "Use IaaS for lift-and-shift, then modernise to PaaS."
+  ],
+  "docs": [
+    {
+      "title": "Describe cloud service types (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-cloud-service-types/"
+    },
+    {
+      "title": "What is IaaS?",
+      "url": "https://azure.microsoft.com/resources/cloud-computing-dictionary/what-is-iaas"
+    },
+    {
+      "title": "What is PaaS?",
+      "url": "https://azure.microsoft.com/resources/cloud-computing-dictionary/what-is-paas"
+    },
+    {
+      "title": "What is SaaS?",
+      "url": "https://azure.microsoft.com/resources/cloud-computing-dictionary/what-is-saas"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

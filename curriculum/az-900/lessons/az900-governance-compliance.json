@@ -1,0 +1,242 @@
+{
+  "id": "az900-governance-compliance",
+  "exam": "az-900",
+  "title": "Microsoft Purview, Azure Policy and resource locks",
+  "objectiveIds": [
+    "AZ900-3.2.1",
+    "AZ900-3.2.2",
+    "AZ900-3.2.3"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Describe the purpose of Microsoft Purview, Azure Policy and resource locks, and how they work together with RBAC.",
+  "prerequisites": [
+    {
+      "text": "RBAC",
+      "objectiveId": "AZ900-2.4.5",
+      "lessonId": "az900-conditional-access-rbac"
+    },
+    {
+      "text": "Resource hierarchy",
+      "objectiveId": "AZ900-2.1.7",
+      "lessonId": "az900-resource-hierarchy"
+    }
+  ],
+  "foundation": [
+    "Microsoft Purview is a family of data governance, risk and compliance tools: it helps you find, classify and protect your data wherever it is (Azure, on-premises, Microsoft 365, other clouds).",
+    "Azure Policy enforces rules on your Azure resources, such as 'only these regions' or 'storage must use HTTPS'. It can block non-compliant deployments, flag them, or fix them.",
+    "Resource locks stop accidental deletion or change. CanNotDelete (shown as Delete) allows changes but not deletion; ReadOnly allows neither. Locks apply to everyone, even Owners."
+  ],
+  "engineer": [
+    "Microsoft Purview: two main areas: risk and compliance (Microsoft 365 data: protect sensitive data in Teams, OneDrive, Exchange; manage data lifecycle; insider risk; compliance requirements) and unified data governance (data map that discovers and classifies data across sources such as Azure SQL, Azure Data Lake, on-premises SQL Server, Amazon S3, Power BI; data catalog; data lineage).",
+    "Azure Policy: definitions (rules in JSON), initiatives (groups of policies, for example a regulatory standard), and assignments at a scope (management group, subscription, resource group, resource), inherited downward. Effects include Deny, Audit, Append, Modify, DeployIfNotExists and AuditIfNotExists.",
+    "Policy evaluates resources when they're created or updated and periodically; the Compliance view lists non-compliant resources. Remediation tasks fix existing resources for Modify/DeployIfNotExists policies. Hundreds of built-in definitions exist; Defender for Cloud and regulatory compliance build on Policy.",
+    "Resource locks: applied at subscription, resource group or resource; inherited by child resources. Order of checks: a request passes RBAC (are you allowed?), then Azure Policy (is it compliant?), then locks (is it locked?). To delete a locked resource, an Owner or User Access Administrator must remove the lock first.",
+    "ReadOnly can have side effects: for example on a storage account it blocks listing keys, and on a VM it blocks start/restart because those are POST operations."
+  ],
+  "animation": {
+    "id": "az900-governance-sim",
+    "caption": "Send requests through RBAC, Azure Policy and locks, then pick the right governance tool."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "req",
+        "label": "Request (create / change / delete)",
+        "x": 0,
+        "y": 80,
+        "kind": "user"
+      },
+      {
+        "id": "rbac",
+        "label": "1. RBAC: allowed?",
+        "x": 230,
+        "y": 80,
+        "kind": "identity"
+      },
+      {
+        "id": "pol",
+        "label": "2. Azure Policy: compliant?",
+        "x": 460,
+        "y": 80,
+        "kind": "security"
+      },
+      {
+        "id": "lock",
+        "label": "3. Lock: CanNotDelete / ReadOnly",
+        "x": 690,
+        "y": 80,
+        "kind": "security"
+      },
+      {
+        "id": "res",
+        "label": "Resource",
+        "x": 920,
+        "y": 80,
+        "kind": "compute"
+      },
+      {
+        "id": "pv",
+        "label": "Microsoft Purview: data map and classification",
+        "x": 460,
+        "y": 230,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "req",
+        "to": "rbac"
+      },
+      {
+        "from": "rbac",
+        "to": "pol"
+      },
+      {
+        "from": "pol",
+        "to": "lock"
+      },
+      {
+        "from": "lock",
+        "to": "res"
+      },
+      {
+        "from": "pv",
+        "to": "res",
+        "label": "scans data"
+      }
+    ]
+  },
+  "example": {
+    "title": "Keeping production safe",
+    "body": [
+      "A retailer assigns 'Allowed locations' (Deny) and 'Require a tag' at its production management group. Developers who try to create resources in another region are blocked even with Contributor.",
+      "The production database has a CanNotDelete lock, so even an Owner must remove it before deleting. Microsoft Purview scans the database and labels columns containing card numbers as sensitive."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Resource Policy Contributor to assign policies; Owner or User Access Administrator to create or delete locks"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Policy > Assignments > Assign policy; Policy > Compliance.",
+      "Resource / resource group > Settings > Locks > Add.",
+      "Microsoft Purview portal (purview.microsoft.com): Data Map, sources, scans."
+    ],
+    "cli": "az policy assignment create --name allowed-locations --policy e56962a6-4747-49cd-b67b-bf8b01975c4c --params \"{\\\"listOfAllowedLocations\\\":{\\\"value\\\":[\\\"westeurope\\\",\\\"northeurope\\\"]}}\" --scope /subscriptions/<sub>\naz lock create --name keep --lock-type CanNotDelete -g rg-prod",
+    "powershell": "New-AzResourceLock -LockName keep -LockLevel CanNotDelete -ResourceGroupName rg-prod"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-governance-sim",
+    "objective": "See RBAC, Policy and locks act on requests, and choose governance tools.",
+    "duration": 15,
+    "steps": [
+      "RBAC, Policy and locks together tab: run the default, then each preset.",
+      "Governance tools tab: answer every need."
+    ],
+    "expected": [
+      "Locks block even Owners",
+      "Policy denies regardless of role"
+    ],
+    "validation": [
+      {
+        "id": "gov-allowed",
+        "text": "Saw an allowed request"
+      },
+      {
+        "id": "gov-policy-denied",
+        "text": "Policy denied a request"
+      },
+      {
+        "id": "gov-lock-blocked",
+        "text": "A lock blocked a request"
+      },
+      {
+        "id": "governance-correct",
+        "text": "Chose the right governance tool"
+      },
+      {
+        "id": "governance-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Using RBAC to restrict regions",
+      "Expecting Owner to bypass a lock"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Deployment fails with 'RequestDisallowedByPolicy'.",
+      "cause": "A Deny policy blocks the configuration.",
+      "fix": "Change the deployment to comply, or request an exemption."
+    },
+    {
+      "symptom": "Can't restart a VM in a resource group.",
+      "cause": "A ReadOnly lock blocks POST operations.",
+      "fix": "Use CanNotDelete instead, or remove the lock temporarily."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Policy vs RBAC",
+      "difference": "RBAC controls what users can do; Policy controls what resources can look like, for everyone."
+    },
+    {
+      "service": "CanNotDelete vs ReadOnly",
+      "difference": "CanNotDelete allows changes; ReadOnly blocks changes too."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Owners can delete locked resources.",
+      "reality": "The lock must be removed first."
+    },
+    {
+      "myth": "Azure Policy only reports.",
+      "reality": "Deny blocks, Modify and DeployIfNotExists change resources."
+    },
+    {
+      "myth": "Purview is only for Azure data.",
+      "reality": "It covers on-premises, Microsoft 365 and other clouds."
+    }
+  ],
+  "architectureDecisions": [
+    "Assign policies at management groups.",
+    "Lock critical production resources with CanNotDelete.",
+    "Use Purview to discover and classify sensitive data."
+  ],
+  "docs": [
+    {
+      "title": "Describe features and tools in Azure for governance and compliance (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-features-tools-azure-for-governance-compliance/"
+    },
+    {
+      "title": "What is Azure Policy?",
+      "url": "https://learn.microsoft.com/azure/governance/policy/overview"
+    },
+    {
+      "title": "Lock your resources",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources"
+    },
+    {
+      "title": "Learn about Microsoft Purview",
+      "url": "https://learn.microsoft.com/purview/purview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

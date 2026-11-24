@@ -1,0 +1,546 @@
+{
+  "id": "az104-app-service-plans",
+  "exam": "az-104",
+  "title": "App Service plans, scaling and creating web apps",
+  "objectiveIds": [
+    "AZ104-3.4.1",
+    "AZ104-3.4.2",
+    "AZ104-3.4.3"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Choose an App Service plan tier, scale up and out (manually and with autoscale), and create web apps with the right runtime and settings.",
+  "prerequisites": [
+    {
+      "text": "Application hosting options (AZ-900)",
+      "objectiveId": "AZ900-2.2.4"
+    },
+    {
+      "text": "Autoscale",
+      "objectiveId": "AZ104-3.2.7",
+      "lessonId": "az104-vmss"
+    }
+  ],
+  "foundation": [
+    "Azure App Service hosts web apps and APIs without managing servers. The App Service plan is the set of VMs underneath, and its tier decides features and price.",
+    "Scaling up means a bigger tier (more power and features); scaling out means more instances of the plan.",
+    "Several apps can share one plan, and they then share its instances."
+  ],
+  "engineer": [
+    "Tiers: Free and Shared run on shared infrastructure (Free: no custom domains; Shared: custom domains without TLS bindings). Basic: dedicated, custom domains and TLS, manual scale up to 3 instances. Standard: autoscale up to 10 instances, 5 deployment slots, backups. Premium v3: up to 30 instances, 20 slots, faster hardware, zone redundancy. Isolated v2 (App Service Environment): up to 100 instances, network isolation.",
+    "A plan belongs to one region and OS (Windows or Linux). All apps on a plan run on every instance; one noisy app affects the rest, so split heavy apps into their own plans.",
+    "Scale out manually (instance count) or with rule-based autoscale (Standard and above, the same Azure Monitor autoscale engine as VMSS: metrics such as CPU, memory or HTTP queue length, and schedules). Premium plans also offer automatic scaling (platform-managed).",
+    "Creating an app: name (forms <name>.azurewebsites.net, globally unique), publish model (code or container), runtime stack and version, OS, region, plan. Configure app settings and connection strings (environment variables), general settings (Always On, HTTP version, ARR affinity), and deployment (ZIP deploy, GitHub Actions, Azure DevOps, container image).",
+    "Moving an app to a different plan is possible within the same resource group and region (webspace)."
+  ],
+  "animation": {
+    "id": "appservice-sim",
+    "caption": "Open 'Plan and scale': compare tiers and scale up/out."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "plan",
+        "label": "asp-web (Standard S1, 3 instances)",
+        "x": 200,
+        "y": 0,
+        "kind": "compute"
+      },
+      {
+        "id": "a1",
+        "label": "app-shop",
+        "x": 0,
+        "y": 130,
+        "kind": "globe"
+      },
+      {
+        "id": "a2",
+        "label": "app-api",
+        "x": 200,
+        "y": 130,
+        "kind": "globe"
+      },
+      {
+        "id": "a3",
+        "label": "app-admin",
+        "x": 400,
+        "y": 130,
+        "kind": "globe"
+      },
+      {
+        "id": "as",
+        "label": "Autoscale 2–10",
+        "x": 460,
+        "y": 0,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "plan",
+        "to": "a1"
+      },
+      {
+        "from": "plan",
+        "to": "a2"
+      },
+      {
+        "from": "plan",
+        "to": "a3"
+      },
+      {
+        "from": "as",
+        "to": "plan",
+        "label": "instances"
+      }
+    ]
+  },
+  "example": {
+    "title": "Consolidating small sites",
+    "body": [
+      "Five low-traffic marketing sites share one Standard S1 plan (cheaper than five plans). The busy checkout API gets its own Premium v3 plan with autoscale 3–20 and zone redundancy."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Resource group and region",
+      "Runtime stack chosen"
+    ],
+    "permissions": [
+      "Website Contributor / Web Plan Contributor or Contributor"
+    ],
+    "limits": [
+      "Instances: Basic 3, Standard 10, Premium v3 30, Isolated v2 100",
+      "Autoscale: Standard and above",
+      "App name is global (*.azurewebsites.net)"
+    ],
+    "portal": [
+      "App Service plans > Create: OS, region, pricing tier.",
+      "Plan > Scale up (App Service plan) / Scale out (manual or custom autoscale).",
+      "App Services > Create > Web App: name, publish, runtime, OS, region, plan.",
+      "Web app > Configuration (Environment variables): app settings, connection strings, general settings."
+    ],
+    "cli": "az appservice plan create -g rg-web -n asp-web --sku S1 --is-linux\naz webapp create -g rg-web -p asp-web -n app-contoso-shop --runtime \"NODE:20-lts\"\naz webapp config appsettings set -g rg-web -n app-contoso-shop --settings API_URL=https://api.contoso.com\naz appservice plan update -g rg-web -n asp-web --sku P1V3\naz appservice plan update -g rg-web -n asp-web --number-of-workers 3\naz monitor autoscale create -g rg-web --resource asp-web --resource-type Microsoft.Web/serverfarms --name as-asp --min-count 2 --max-count 10 --count 2\naz monitor autoscale rule create -g rg-web --autoscale-name as-asp --condition \"CpuPercentage > 70 avg 10m\" --scale out 1",
+    "powershell": "New-AzAppServicePlan -ResourceGroupName rg-web -Name asp-web -Location westeurope -Tier Standard -NumberofWorkers 2 -WorkerSize Small -Linux\nNew-AzWebApp -ResourceGroupName rg-web -Name app-contoso-shop -AppServicePlan asp-web\nSet-AzAppServicePlan -ResourceGroupName rg-web -Name asp-web -Tier PremiumV3 -NumberofWorkers 3",
+    "bicep": "resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {\n  name: 'asp-web'\n  location: resourceGroup().location\n  kind: 'linux'\n  sku: { name: 'S1', capacity: 2 }\n  properties: { reserved: true }\n}\nresource app 'Microsoft.Web/sites@2023-12-01' = {\n  name: 'app-contoso-shop'\n  location: resourceGroup().location\n  properties: {\n    serverFarmId: plan.id\n    httpsOnly: true\n    siteConfig: { linuxFxVersion: 'NODE|20-lts', minTlsVersion: '1.2', alwaysOn: true }\n  }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "appservice-sim",
+    "objective": "Pick a tier that supports the required instances and autoscale.",
+    "duration": 10,
+    "steps": [
+      "Run the default (Basic with autoscale) and read the failure.",
+      "Apply 'Free tier, 2 instances'.",
+      "Apply 'Standard with autoscale'."
+    ],
+    "expected": [
+      "Basic has no rule-based autoscale",
+      "Free is limited to 1 shared instance"
+    ],
+    "validation": [
+      {
+        "id": "plan-limit",
+        "text": "Hit a tier limit"
+      },
+      {
+        "id": "plan-configured",
+        "text": "Configured a valid plan"
+      },
+      {
+        "id": "plan-autoscale",
+        "text": "Enabled autoscale on a supported tier"
+      }
+    ],
+    "failureScenarios": [
+      "Autoscale on Basic",
+      "More instances than the tier allows"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Scale out option greyed out.",
+      "cause": "Free/Shared tier.",
+      "fix": "Scale up to Basic or higher."
+    },
+    {
+      "symptom": "Custom autoscale not available.",
+      "cause": "Basic tier.",
+      "fix": "Scale up to Standard."
+    },
+    {
+      "symptom": "One app slows down every app on the plan.",
+      "cause": "Apps share plan instances.",
+      "fix": "Move heavy apps to their own plan."
+    },
+    {
+      "symptom": "Name not available.",
+      "cause": "Global *.azurewebsites.net namespace.",
+      "fix": "Choose another name."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Functions (Premium/Dedicated)",
+      "difference": "Can run on App Service plans; event-driven model."
+    },
+    {
+      "service": "AWS Elastic Beanstalk / App Runner",
+      "difference": "Managed app hosting; App Service plans are explicit VM pools."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Each app has its own instances.",
+      "reality": "Apps share the plan's instances."
+    },
+    {
+      "myth": "Scaling up adds instances.",
+      "reality": "Scaling up changes the tier; scaling out adds instances."
+    }
+  ],
+  "architectureDecisions": [
+    "Group apps by load and lifecycle into plans.",
+    "Use Premium v3 with zone redundancy for production.",
+    "Turn on Always On for apps that must stay warm."
+  ],
+  "docs": [
+    {
+      "title": "App Service plans overview",
+      "url": "https://learn.microsoft.com/azure/app-service/overview-hosting-plans"
+    },
+    {
+      "title": "Scale up an app",
+      "url": "https://learn.microsoft.com/azure/app-service/manage-scale-up"
+    },
+    {
+      "title": "Get started with autoscale",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/autoscale/autoscale-get-started"
+    },
+    {
+      "title": "App Service limits",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/azure-subscription-service-limits#app-service-limits"
+    },
+    {
+      "title": "Create a web app (quickstart)",
+      "url": "https://learn.microsoft.com/azure/app-service/quickstart-nodejs"
+    },
+    {
+      "title": "Configure an App Service app",
+      "url": "https://learn.microsoft.com/azure/app-service/configure-common"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Host web apps without managing servers, and pay for the right amount of capacity.",
+    "learn": [
+      "What an App Service plan is",
+      "Pricing tiers and what they unlock",
+      "Scale up vs scale out",
+      "Autoscale"
+    ],
+    "nodes": [
+      {
+        "id": "plan",
+        "label": "App Service plan",
+        "x": 400,
+        "y": 90,
+        "kind": "cost",
+        "sub": "region + tier + size"
+      },
+      {
+        "id": "app1",
+        "label": "Web app 1",
+        "x": 220,
+        "y": 230,
+        "kind": "compute"
+      },
+      {
+        "id": "app2",
+        "label": "Web app 2",
+        "x": 580,
+        "y": 230,
+        "kind": "compute"
+      },
+      {
+        "id": "inst1",
+        "label": "Instance",
+        "x": 220,
+        "y": 380,
+        "kind": "compute"
+      },
+      {
+        "id": "inst2",
+        "label": "Instance",
+        "x": 400,
+        "y": 380,
+        "kind": "compute"
+      },
+      {
+        "id": "inst3",
+        "label": "Instance",
+        "x": 580,
+        "y": 380,
+        "kind": "compute"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Hosting",
+        "title": "A website without looking after servers",
+        "body": [
+          "You want to deploy code, not patch operating systems. App Service runs the web server for you."
+        ],
+        "show": [
+          "app1"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Plan",
+        "title": "The plan is the server farm you pay for",
+        "body": [
+          "An App Service plan sets the region, the tier and the instance size. Every app on the plan runs on the same instances and shares them. You pay for the plan, not per app."
+        ],
+        "show": [
+          "app1",
+          "plan",
+          "app2",
+          "inst1"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "plan",
+            "to": "app1",
+            "fresh": true
+          },
+          {
+            "from": "plan",
+            "to": "app2",
+            "fresh": true
+          },
+          {
+            "from": "plan",
+            "to": "inst1",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "A busy app slows down every other app on the same plan."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Tiers",
+        "title": "Tiers unlock features",
+        "body": [
+          "Free and Shared: testing only. Basic: dedicated instances, custom domains and TLS, backups, manual scale. Standard: autoscale and deployment slots. Premium v3: faster hardware, more slots and instances. Isolated v2: a private App Service Environment."
+        ],
+        "show": [
+          "app1",
+          "plan",
+          "app2",
+          "inst1"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "plan",
+            "to": "app1"
+          },
+          {
+            "from": "plan",
+            "to": "app2"
+          },
+          {
+            "from": "plan",
+            "to": "inst1"
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Slots and autoscale start at Standard. Custom domains with TLS start at Basic."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Scale",
+        "title": "Up or out",
+        "body": [
+          "Scale up = a bigger tier or size (more CPU, memory, features). Scale out = more instances running the same apps.",
+          "Autoscale (Standard and above) adds instances by rules on metrics such as CPU, or on a schedule. Premium plans also offer automatic scaling based on HTTP traffic."
+        ],
+        "show": [
+          "app1",
+          "plan",
+          "app2",
+          "inst1",
+          "inst2",
+          "inst3"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "plan",
+            "to": "app1"
+          },
+          {
+            "from": "plan",
+            "to": "app2"
+          },
+          {
+            "from": "plan",
+            "to": "inst1"
+          },
+          {
+            "from": "plan",
+            "to": "inst2",
+            "fresh": true
+          },
+          {
+            "from": "plan",
+            "to": "inst3",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "App Service plans",
+        "body": [
+          "Pay for the plan; apps share it."
+        ],
+        "show": [
+          "app1",
+          "plan",
+          "app2",
+          "inst1",
+          "inst2",
+          "inst3"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "plan",
+            "to": "app1"
+          },
+          {
+            "from": "plan",
+            "to": "app2"
+          },
+          {
+            "from": "plan",
+            "to": "inst1"
+          },
+          {
+            "from": "plan",
+            "to": "inst2"
+          },
+          {
+            "from": "plan",
+            "to": "inst3"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Plan = region + tier + size",
+          "Apps on a plan share its instances",
+          "Free/Shared → Basic → Standard → Premium v3 → Isolated v2",
+          "Scale up = bigger; scale out = more",
+          "Autoscale and slots from Standard"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a web app on a Free plan and see the scale options",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Free on the F1 tier. Do not leave a Standard plan running: it is billed by the hour.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Search 'App Services' > + Create > Web App. Group rg-az104-lab, name app-lab-<yourinitials> (globally unique), publish: Code, runtime stack: .NET 8 or Node 20, OS: Linux, region: your region."
+      },
+      {
+        "do": "Pricing plan: create new plan plan-lab, choose Free F1. Review + create > Create.",
+        "see": "Deployment completes in a minute."
+      },
+      {
+        "do": "Open the app > Overview > Default domain.",
+        "see": "The default 'Your web app is running' page."
+      },
+      {
+        "do": "Open the plan (plan-lab) > Settings > Scale up (App Service plan).",
+        "see": "Tiers with their features. Compare Basic, Standard and Premium v3; do not change the tier."
+      },
+      {
+        "do": "Open plan-lab > Scale out (App Service plan).",
+        "see": "On Free, scale out is not available. On Standard and higher you would see manual and rule-based autoscale."
+      },
+      {
+        "do": "Open plan-lab > Apps.",
+        "see": "The web app listed. More apps can share this plan."
+      }
+    ],
+    "check": [
+      "You found the scale up and scale out pages and the tier features."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: deploy an ASP.NET web app",
+        "url": "https://learn.microsoft.com/azure/app-service/quickstart-dotnetcore"
+      },
+      {
+        "title": "App Service plan overview",
+        "url": "https://learn.microsoft.com/azure/app-service/overview-hosting-plans"
+      },
+      {
+        "title": "Scale up an app in App Service",
+        "url": "https://learn.microsoft.com/azure/app-service/manage-scale-up"
+      },
+      {
+        "title": "Get started with autoscale",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/autoscale/autoscale-get-started"
+      }
+    ]
+  }
+}

@@ -1,0 +1,606 @@
+{
+  "id": "az104-resource-groups-subscriptions",
+  "exam": "az-104",
+  "title": "Resource groups and subscriptions: lifecycle, moves, quotas and directories",
+  "objectiveIds": [
+    "AZ104-1.3.4",
+    "AZ104-1.3.5"
+  ],
+  "estimatedMinutes": 50,
+  "learningObjective": "Create, organise, move and delete resources across resource groups and subscriptions safely, and manage subscription settings: providers, quotas, directory and billing ownership.",
+  "prerequisites": [
+    {
+      "text": "Resources, resource groups and subscriptions (AZ-900)",
+      "objectiveId": "AZ900-2.1.4"
+    },
+    {
+      "text": "Subscriptions (AZ-900)",
+      "objectiveId": "AZ900-2.1.5"
+    },
+    {
+      "text": "Resource locks",
+      "lessonId": "az104-resource-locks",
+      "objectiveId": "AZ104-1.3.2"
+    }
+  ],
+  "foundation": [
+    "A resource group is a container for related resources that share a lifecycle, such as everything for one application. Delete the group and everything inside it is deleted.",
+    "Every resource belongs to exactly one resource group, and resource groups cannot be nested. Resources in one group can live in different regions.",
+    "A subscription is the billing and management boundary above resource groups. It trusts one Microsoft Entra tenant for sign-in and has its own limits (quotas).",
+    "You can move resources to another resource group or subscription. They keep running and stay in the same region, but their resource IDs change."
+  ],
+  "engineer": [
+    "A resource group has a location, which only stores its metadata. If that region is unavailable you cannot update the group's metadata, but resources in other regions keep running. Resource groups cannot be renamed; create a new one and move resources instead.",
+    "Moving resources: validate first (the portal does this automatically). Dependent resources must move together (for example a VM with its managed disks and NIC). Some types cannot be moved (check the move-support table; for example AKS clusters). Source and target resource groups are locked for write and delete during the move. Role assignments made directly on a moved resource are not moved. Moving between regions is a different operation (Azure Resource Mover or redeployment).",
+    "Cross-subscription moves need both subscriptions in the same Microsoft Entra tenant, and the required resource providers registered in the target.",
+    "Deleting a resource group deletes all its resources in dependency order. A lock on any resource inside it blocks the deletion. az group delete --no-wait returns immediately, but deletion can take minutes.",
+    "Subscription management: register resource providers (Microsoft.ContainerInstance, Microsoft.Insights, …) before using a service, view and increase quotas (for example regional vCPUs per VM family) under Usage + quotas, rename the subscription, and apply tags, budgets, policies and RBAC at subscription scope.",
+    "Changing a subscription's directory (moving it to another Entra tenant) permanently deletes all its Azure role assignments, breaks managed identities, and requires Key Vault tenant updates. Transferring billing ownership is a separate operation that does not change the directory.",
+    "Cancelling a subscription stops billing and disables it; resources become inaccessible, and the subscription and its data are deleted after a retention period (up to 90 days) during which it can be reactivated."
+  ],
+  "animation": {
+    "id": "hierarchy-sim",
+    "caption": "Validate resource moves between resource groups and subscriptions, and see what changing a subscription's directory does."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "sub1",
+        "label": "sub-app1 (tenant: contoso)",
+        "x": 0,
+        "y": 0,
+        "kind": "scope"
+      },
+      {
+        "id": "rga",
+        "label": "rg-app (westeurope metadata)",
+        "x": 0,
+        "y": 120,
+        "kind": "scope"
+      },
+      {
+        "id": "vm",
+        "label": "vm-web + disk + NIC",
+        "x": -120,
+        "y": 240,
+        "kind": "compute"
+      },
+      {
+        "id": "st",
+        "label": "stappdata (northeurope)",
+        "x": 140,
+        "y": 240,
+        "kind": "storage"
+      },
+      {
+        "id": "rgb",
+        "label": "rg-app-prod (target)",
+        "x": 380,
+        "y": 120,
+        "kind": "scope"
+      }
+    ],
+    "edges": [
+      {
+        "from": "sub1",
+        "to": "rga"
+      },
+      {
+        "from": "rga",
+        "to": "vm"
+      },
+      {
+        "from": "rga",
+        "to": "st"
+      },
+      {
+        "from": "vm",
+        "to": "rgb",
+        "label": "move together; IDs change"
+      }
+    ]
+  },
+  "example": {
+    "title": "Splitting a shared resource group",
+    "body": [
+      "rg-shared holds both the web app and a shared storage account with different owners and lifecycles. The team creates rg-web and moves the App Service plan and web app together (they depend on each other), then assigns roles at the new resource group.",
+      "Two role assignments that had been made directly on the web app did not move, so they are re-created. Scripts that hard-coded the old resource ID are updated."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Write permission on source and target resource groups",
+      "For cross-subscription moves: same tenant, providers registered in the target"
+    ],
+    "permissions": [
+      "Microsoft.Resources/subscriptions/resourceGroups/moveResources/action on the source resource group",
+      "Microsoft.Resources/subscriptions/resourceGroups/write on the target resource group",
+      "Owner on the subscription to change its directory"
+    ],
+    "limits": [
+      "Resource groups cannot be renamed or nested",
+      "Resources keep their region when moved",
+      "Quotas apply per subscription (and often per region)"
+    ],
+    "portal": [
+      "Resource groups > Create: subscription, name, region (metadata location), tags.",
+      "Resource group > select resources > Move > to another resource group / subscription / region (region launches Resource Mover). Review validation, then confirm that IDs will change.",
+      "Resource group > Delete resource group: type the name to confirm.",
+      "Subscriptions > choose one > Resource providers (register), Usage + quotas (request an increase), Overview > Rename / Change directory / Cancel subscription."
+    ],
+    "cli": "az group create --name rg-app-prod --location westeurope --tags costCenter=CC-100\nids=$(az resource list -g rg-app --query \"[?contains(name,'vm-web')].id\" -o tsv)\naz resource move --destination-group rg-app-prod --ids $ids\naz resource move --destination-group rg-app --destination-subscription-id <target-sub-id> --ids <storage-account-id>\naz group delete --name rg-old --yes --no-wait\naz account set --subscription sub-app1\naz provider register --namespace Microsoft.ContainerInstance\naz vm list-usage --location westeurope -o table",
+    "powershell": "New-AzResourceGroup -Name rg-app-prod -Location westeurope -Tag @{ costCenter = 'CC-100' }\n$ids = (Get-AzResource -ResourceGroupName rg-app | Where-Object Name -like 'vm-web*').ResourceId\nMove-AzResource -DestinationResourceGroupName rg-app-prod -ResourceId $ids\nRemove-AzResourceGroup -Name rg-old -Force\nSet-AzContext -Subscription 'sub-app1'\nRegister-AzResourceProvider -ProviderNamespace Microsoft.ContainerInstance\nGet-AzVMUsage -Location westeurope",
+    "bicep": "targetScope = 'subscription'\n\nresource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {\n  name: 'rg-app-prod'\n  location: 'westeurope'\n  tags: { costCenter: 'CC-100' }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "hierarchy-sim",
+    "objective": "Plan resource moves that pass validation, and explain the side effects of moves and directory changes.",
+    "duration": 15,
+    "steps": [
+      "Open the Move resources tab. Move only vm-web and read why validation fails.",
+      "Add its disk and NIC and move again. Note the changed IDs and the role assignment warning.",
+      "Try to move aks-app.",
+      "Open Subscription directory and simulate a directory change."
+    ],
+    "expected": [
+      "A VM without its dependents fails validation",
+      "Direct role assignments are reported as not moved",
+      "The directory change deletes role assignments"
+    ],
+    "validation": [
+      {
+        "id": "move-validation-failed",
+        "text": "Saw a move fail validation"
+      },
+      {
+        "id": "move-orphaned-roles",
+        "text": "Completed a move that reported orphaned role assignments"
+      },
+      {
+        "id": "directory-change",
+        "text": "Reviewed the consequences of changing a subscription's directory"
+      }
+    ],
+    "failureScenarios": [
+      "Moving a VM without its disks",
+      "Moving an unsupported type",
+      "Expecting a move to change region"
+    ],
+    "cleanup": [
+      "Simulation only."
+    ],
+    "cost": "None. Resource groups are free; the simulation runs in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Move validation fails with 'resources not in the same resource group' or missing dependency errors.",
+      "cause": "Dependent resources were not included, or resources come from several groups.",
+      "fix": "Include every dependent resource and move from one source group at a time."
+    },
+    {
+      "symptom": "MissingSubscriptionRegistration when deploying.",
+      "cause": "The resource provider is not registered in the subscription.",
+      "fix": "az provider register --namespace <provider>."
+    },
+    {
+      "symptom": "Deployment fails with a QuotaExceeded or OperationNotAllowed vCPU error.",
+      "cause": "Regional vCPU quota for that VM family is exhausted.",
+      "fix": "Request a quota increase in Usage + quotas, or choose another size or region."
+    },
+    {
+      "symptom": "Users lost access after a subscription moved tenants.",
+      "cause": "Changing directory deletes all role assignments.",
+      "fix": "Re-create assignments for identities in the new tenant."
+    },
+    {
+      "symptom": "Resource group deletion fails.",
+      "cause": "A resource inside it is locked, or another resource depends on one of its resources.",
+      "fix": "Remove the lock or the cross-group dependency first."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Management groups",
+      "difference": "Group subscriptions for governance; resource groups group resources for lifecycle and access within one subscription."
+    },
+    {
+      "service": "AWS accounts and tags / resource groups",
+      "difference": "An AWS account is closer to an Azure subscription; AWS Resource Groups are tag-based queries, not containers that own resources."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Resources must be in the same region as their resource group.",
+      "reality": "The resource group location only stores metadata; resources can be in any region."
+    },
+    {
+      "myth": "Moving a resource to another resource group moves it to another region.",
+      "reality": "Region is unchanged; resource IDs change."
+    },
+    {
+      "myth": "You can rename a resource group.",
+      "reality": "Resource groups cannot be renamed; create a new one and move resources."
+    },
+    {
+      "myth": "Changing a subscription's directory keeps RBAC.",
+      "reality": "All role assignments are deleted."
+    }
+  ],
+  "architectureDecisions": [
+    "Group resources by lifecycle and ownership, not by resource type.",
+    "Prefer separate subscriptions for strong isolation (billing, quotas, blast radius), and resource groups for application boundaries.",
+    "Assign roles at the resource group rather than on individual resources, so moves and redeployments do not orphan assignments."
+  ],
+  "docs": [
+    {
+      "title": "Manage Azure resource groups (portal)",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/manage-resource-groups-portal"
+    },
+    {
+      "title": "Move resources to a new resource group or subscription",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/move-resource-group-and-subscription"
+    },
+    {
+      "title": "Move operation support for resources",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/move-support-resources"
+    },
+    {
+      "title": "Azure resource providers and types",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/resource-providers-and-types"
+    },
+    {
+      "title": "Transfer an Azure subscription to a different Microsoft Entra directory",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/transfer-subscription"
+    },
+    {
+      "title": "Cancel and delete your Azure subscription",
+      "url": "https://learn.microsoft.com/azure/cost-management-billing/manage/cancel-azure-subscription"
+    },
+    {
+      "title": "Azure subscription and service limits, quotas, and constraints",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/azure-subscription-service-limits"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert. Move support per type changes over time; the simulator's support flags are illustrative."
+  },
+  "walkthrough": {
+    "subtitle": "Organise resources into folders, move them when plans change, and know your limits.",
+    "learn": [
+      "What a resource group is",
+      "Moving resources between groups and subscriptions",
+      "Subscriptions as billing and limit boundaries",
+      "Quotas and resource providers"
+    ],
+    "nodes": [
+      {
+        "id": "sub",
+        "label": "Subscription",
+        "x": 400,
+        "y": 60,
+        "kind": "cost",
+        "sub": "billing + limits"
+      },
+      {
+        "id": "rg1",
+        "label": "rg-web",
+        "x": 200,
+        "y": 200,
+        "kind": "identity"
+      },
+      {
+        "id": "rg2",
+        "label": "rg-data",
+        "x": 600,
+        "y": 200,
+        "kind": "identity"
+      },
+      {
+        "id": "app",
+        "label": "Web app",
+        "x": 200,
+        "y": 340,
+        "kind": "compute"
+      },
+      {
+        "id": "sa",
+        "label": "Storage account",
+        "x": 600,
+        "y": 340,
+        "kind": "storage"
+      },
+      {
+        "id": "quota",
+        "label": "Quotas",
+        "x": 400,
+        "y": 340,
+        "kind": "cost",
+        "sub": "e.g. vCPU per region"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Messy",
+        "title": "Hundreds of resources, no structure",
+        "body": [
+          "Without structure you cannot delete a whole project, give one team access, or see what one app costs."
+        ],
+        "show": [
+          "sub"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Resource groups",
+        "title": "A resource group is a folder with rules",
+        "body": [
+          "Every resource lives in exactly one resource group. Put things with the same lifecycle together, so you can manage access, tags, locks and deletion as one unit.",
+          "The group has a region (for its metadata), but the resources inside can be in any region."
+        ],
+        "show": [
+          "sub",
+          "rg1",
+          "rg2",
+          "app",
+          "sa"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sub",
+            "to": "rg1",
+            "fresh": true
+          },
+          {
+            "from": "sub",
+            "to": "rg2",
+            "fresh": true
+          },
+          {
+            "from": "rg1",
+            "to": "app",
+            "fresh": true
+          },
+          {
+            "from": "rg2",
+            "to": "sa",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Deleting a resource group deletes everything in it."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Move",
+        "title": "Moving resources",
+        "body": [
+          "You can move most resources to another resource group or subscription. The resource keeps its region; the move only changes its resource ID. Azure validates the move first, and both groups are locked for writes during it.",
+          "Some resources cannot move, or must move together with related ones (for example a VM with its disks and NIC)."
+        ],
+        "show": [
+          "sub",
+          "rg1",
+          "rg2",
+          "app",
+          "sa"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sub",
+            "to": "rg1"
+          },
+          {
+            "from": "sub",
+            "to": "rg2"
+          },
+          {
+            "from": "rg1",
+            "to": "app"
+          },
+          {
+            "from": "rg2",
+            "to": "sa"
+          },
+          {
+            "from": "rg1",
+            "to": "rg2",
+            "label": "move",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Moving to another region is different: use Azure Resource Mover or redeploy."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Subscriptions",
+        "title": "Subscriptions: billing, access and limits",
+        "body": [
+          "A subscription is a billing unit and a boundary for access and limits. It trusts exactly one Microsoft Entra tenant. Moving a subscription to another tenant removes all its role assignments.",
+          "Quotas limit things like vCPUs per region. View them in Usage + quotas and request an increase if needed. Resource providers (such as Microsoft.Compute) must be registered before you use a service, which usually happens automatically."
+        ],
+        "show": [
+          "sub",
+          "rg1",
+          "rg2",
+          "app",
+          "sa",
+          "quota"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sub",
+            "to": "rg1"
+          },
+          {
+            "from": "sub",
+            "to": "rg2"
+          },
+          {
+            "from": "rg1",
+            "to": "app"
+          },
+          {
+            "from": "rg2",
+            "to": "sa"
+          },
+          {
+            "from": "rg1",
+            "to": "rg2",
+            "label": "move"
+          },
+          {
+            "from": "sub",
+            "to": "quota",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Resource groups and subscriptions",
+        "body": [
+          "Group by lifecycle; know your limits."
+        ],
+        "show": [
+          "sub",
+          "rg1",
+          "rg2",
+          "app",
+          "sa",
+          "quota"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sub",
+            "to": "rg1"
+          },
+          {
+            "from": "sub",
+            "to": "rg2"
+          },
+          {
+            "from": "rg1",
+            "to": "app"
+          },
+          {
+            "from": "rg2",
+            "to": "sa"
+          },
+          {
+            "from": "rg1",
+            "to": "rg2",
+            "label": "move"
+          },
+          {
+            "from": "sub",
+            "to": "quota"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "One resource, one resource group",
+          "Resources can be in other regions than their group",
+          "Moves keep the region and change the ID",
+          "Subscriptions trust one tenant; moving tenants drops role assignments",
+          "Check Usage + quotas before big deployments"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Move a storage account between resource groups and read your quotas",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Free, apart from cents for an empty storage account.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Create a second resource group: rg-az104-lab-2 in the same region.",
+        "see": "Two lab resource groups."
+      },
+      {
+        "do": "Create a storage account in rg-az104-lab (Standard, LRS)."
+      },
+      {
+        "do": "Open the storage account > Overview > Move (next to 'Resource group') > Move to another resource group. Choose rg-az104-lab-2.",
+        "see": "Azure validates the move first. Wait for 'Validation succeeded'."
+      },
+      {
+        "do": "Tick the box that says tools and scripts must be updated, then Move.",
+        "see": "After a minute the storage account appears in rg-az104-lab-2. Its resource ID now contains rg-az104-lab-2."
+      },
+      {
+        "do": "Search 'Subscriptions' > your subscription > Settings > Usage + quotas. Filter Provider: Compute and region: your region.",
+        "see": "Your 'Total Regional vCPUs' limit and current usage."
+      },
+      {
+        "do": "In the same subscription open Settings > Resource providers and search for Microsoft.Compute.",
+        "see": "Status Registered."
+      },
+      {
+        "do": "Open the subscription Overview and note the Directory (tenant) it belongs to.",
+        "see": "Your subscription ID and parent tenant."
+      }
+    ],
+    "check": [
+      "The storage account moved and kept its region.",
+      "You found your regional vCPU quota."
+    ],
+    "cleanup": [
+      "Delete rg-az104-lab-2.",
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Move resources to a new resource group or subscription",
+        "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/move-resource-group-and-subscription"
+      },
+      {
+        "title": "View quotas",
+        "url": "https://learn.microsoft.com/azure/quotas/view-quotas"
+      },
+      {
+        "title": "Manage resource groups in the portal",
+        "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/manage-resource-groups-portal"
+      }
+    ]
+  }
+}

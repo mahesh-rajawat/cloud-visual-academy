@@ -1,0 +1,246 @@
+{
+  "id": "az900-iac-arm",
+  "exam": "az-900",
+  "title": "Infrastructure as code, Azure Resource Manager and ARM templates",
+  "objectiveIds": [
+    "AZ900-3.3.4",
+    "AZ900-3.3.5"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Describe infrastructure as code, Azure Resource Manager, and the benefits of ARM templates and Bicep.",
+  "prerequisites": [
+    {
+      "text": "Management tools",
+      "objectiveId": "AZ900-3.3.2",
+      "lessonId": "az900-management-tools"
+    }
+  ],
+  "foundation": [
+    "Infrastructure as code (IaC): describe your infrastructure in files (code) instead of clicking through the portal. Deploy the same file again and you get the same environment every time.",
+    "Azure Resource Manager (ARM) is the deployment and management service for Azure. Every request (from the portal, CLI, PowerShell, SDKs or templates) goes through it, which applies authentication, RBAC, Policy and locks.",
+    "ARM templates are JSON files that describe the resources you want. Bicep is a simpler language that compiles to ARM templates. Both are declarative: you say what you want, not how to build it."
+  ],
+  "engineer": [
+    "Resource Manager benefits: manage infrastructure through declarative templates; deploy, manage and monitor resources as a group; redeploy consistently; define dependencies so resources deploy in the right order; apply access control (RBAC) and tags; see costs grouped by tag.",
+    "ARM template benefits: declarative syntax; repeatable results (idempotent: deploy many times, same result); orchestration (Resource Manager orders dependent resources and deploys in parallel when possible); modular files (linked and nested templates); extensibility (deployment scripts); built-in validation before deployment; tracked deployments (history in the portal); what-if previews; export templates from existing resources.",
+    "Deployment modes: Incremental (default: add or update resources in the template, leave others alone) and Complete (also delete resources in the resource group that aren't in the template).",
+    "Bicep: concise syntax, type safety and modules; same capabilities as JSON ARM templates; deployed with the same commands (az deployment group create). Other IaC tools such as Terraform also work with Azure through Resource Manager.",
+    "IaC practice: store templates in source control, review changes in pull requests, deploy with pipelines (GitHub Actions, Azure Pipelines), and parameterise per environment (dev, test, prod)."
+  ],
+  "animation": {
+    "id": "az900-iac-sim",
+    "caption": "Compare manual steps with declarative templates, including re-runs and complete mode, and match ARM template benefits."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "file",
+        "label": "main.bicep / ARM template (source control)",
+        "x": 0,
+        "y": 80,
+        "kind": "user"
+      },
+      {
+        "id": "tools",
+        "label": "Portal, CLI, PowerShell, pipelines",
+        "x": 0,
+        "y": 220,
+        "kind": "user"
+      },
+      {
+        "id": "arm",
+        "label": "Azure Resource Manager: auth, RBAC, Policy, validation",
+        "x": 300,
+        "y": 150,
+        "kind": "security"
+      },
+      {
+        "id": "vnet",
+        "label": "VNet",
+        "x": 600,
+        "y": 60,
+        "kind": "network"
+      },
+      {
+        "id": "vm",
+        "label": "VM (depends on VNet)",
+        "x": 600,
+        "y": 160,
+        "kind": "compute"
+      },
+      {
+        "id": "st",
+        "label": "Storage",
+        "x": 600,
+        "y": 260,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "file",
+        "to": "arm",
+        "label": "deploy"
+      },
+      {
+        "from": "tools",
+        "to": "arm"
+      },
+      {
+        "from": "arm",
+        "to": "vnet"
+      },
+      {
+        "from": "arm",
+        "to": "vm"
+      },
+      {
+        "from": "arm",
+        "to": "st"
+      },
+      {
+        "from": "vnet",
+        "to": "vm",
+        "label": "dependency"
+      }
+    ]
+  },
+  "example": {
+    "title": "Three identical environments",
+    "body": [
+      "A team defines its app's VNet, App Service and SQL database in one Bicep file with parameters for size and name. A pipeline deploys it to dev, test and prod.",
+      "When a setting changes, they edit the file and redeploy: only the difference is applied. A what-if run before production shows exactly what will change."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Resource group > Deployments: history and templates.",
+      "Any resource group > Export template.",
+      "Create a resource > Template deployment (deploy using custom templates)."
+    ],
+    "cli": "az deployment group what-if -g rg-app --template-file main.bicep --parameters env=test\naz deployment group create -g rg-app --template-file main.bicep --parameters env=test",
+    "powershell": "New-AzResourceGroupDeployment -ResourceGroupName rg-app -TemplateFile main.bicep -env test -WhatIf",
+    "bicep": "param env string\nparam location string = resourceGroup().location\n\nresource st 'Microsoft.Storage/storageAccounts@2023-05-01' = {\n  name: 'st${env}${uniqueString(resourceGroup().id)}'\n  location: location\n  sku: { name: 'Standard_LRS' }\n  kind: 'StorageV2'\n  tags: { env: env }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-iac-sim",
+    "objective": "See why declarative templates are repeatable.",
+    "duration": 15,
+    "steps": [
+      "Manual steps vs ARM templates tab: run the default, then each preset.",
+      "Benefits of ARM templates tab: answer every statement."
+    ],
+    "expected": [
+      "Templates give the same result every time",
+      "Complete mode deletes resources not in the template"
+    ],
+    "validation": [
+      {
+        "id": "iac-repeatable",
+        "text": "Deployed consistently"
+      },
+      {
+        "id": "iac-drift",
+        "text": "Saw manual drift"
+      },
+      {
+        "id": "iac-complete-delete",
+        "text": "Saw complete mode delete a resource"
+      },
+      {
+        "id": "iac-benefit-correct",
+        "text": "Chose the right template benefit"
+      },
+      {
+        "id": "iac-benefit-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Using complete mode on a shared resource group",
+      "Rebuilding environments by hand"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "A resource disappeared after a template deployment.",
+      "cause": "Complete mode removed resources not in the template.",
+      "fix": "Use incremental mode, or add the resource to the template; run what-if first."
+    },
+    {
+      "symptom": "Deployment fails because the VM is created before its NIC.",
+      "cause": "Missing dependency.",
+      "fix": "Reference the NIC (Bicep infers dependencies) or add dependsOn."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Declarative vs imperative",
+      "difference": "Templates describe the end state; scripts list commands to run in order."
+    },
+    {
+      "service": "ARM JSON vs Bicep",
+      "difference": "Same engine; Bicep is shorter and easier to read and compiles to JSON."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Templates are only for creating resources once.",
+      "reality": "Redeploying updates resources to match the file."
+    },
+    {
+      "myth": "ARM is only used by templates.",
+      "reality": "Every Azure management request goes through Resource Manager."
+    },
+    {
+      "myth": "Bicep needs a separate deployment service.",
+      "reality": "It deploys through Resource Manager."
+    }
+  ],
+  "architectureDecisions": [
+    "Keep infrastructure in source control as Bicep.",
+    "Use incremental mode and what-if by default.",
+    "Deploy with pipelines, not by hand."
+  ],
+  "docs": [
+    {
+      "title": "Describe features and tools for managing and deploying Azure resources (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-features-tools-manage-deploy-azure-resources/"
+    },
+    {
+      "title": "Azure Resource Manager overview",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/overview"
+    },
+    {
+      "title": "ARM templates overview",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/templates/overview"
+    },
+    {
+      "title": "What is Bicep?",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview"
+    },
+    {
+      "title": "Deployment modes",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-modes"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

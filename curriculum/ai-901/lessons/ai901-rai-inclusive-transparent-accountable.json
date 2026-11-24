@@ -1,0 +1,219 @@
+{
+  "id": "ai901-rai-inclusive-transparent-accountable",
+  "exam": "ai-901",
+  "title": "Responsible AI: inclusiveness, transparency and accountability",
+  "objectiveIds": [
+    "AI901-1.1.4",
+    "AI901-1.1.5",
+    "AI901-1.1.6"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Describe considerations for inclusiveness, transparency and accountability in an AI solution.",
+  "prerequisites": [
+    {
+      "text": "Fairness, reliability, privacy",
+      "objectiveId": "AI901-1.1.1",
+      "lessonId": "ai901-rai-fairness-safety-privacy"
+    }
+  ],
+  "foundation": [
+    "Inclusiveness: design AI so that everyone can benefit and take part, including people with disabilities, different languages, and limited connectivity.",
+    "Transparency: people should know when they are dealing with AI, what it can and can't do, and, where possible, why it reached a result.",
+    "Accountability: people, not the AI, are responsible for AI systems. Someone owns the system, decisions are governed, and humans can step in."
+  ],
+  "engineer": [
+    "Inclusiveness practices: support assistive technologies (screen readers, captions, keyboard navigation), offer several input and output modes (speech, text, images), localise languages, design for low bandwidth, and test with diverse users including people with disabilities. Microsoft's inclusive design guidance applies.",
+    "Transparency practices: disclose AI-generated content and AI interactions; document intended uses, capabilities and limitations (Microsoft publishes Transparency Notes for its AI services); provide explanations or contributing factors for decisions (interpretability); cite sources for grounded answers; add content credentials (provenance) to generated images.",
+    "Accountability practices: name owners; set up governance (review boards, impact assessments, Microsoft's Responsible AI Standard as a model); keep audit logs; provide appeal or feedback channels; maintain human oversight with the ability to override or switch off; comply with laws and industry standards.",
+    "These principles work together: a transparent system makes accountability possible; inclusive testing reveals fairness problems."
+  ],
+  "animation": {
+    "id": "ai901-rai-people-sim",
+    "caption": "Match practices and concerns to inclusiveness, transparency and accountability."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "users",
+        "label": "Diverse users",
+        "x": 0,
+        "y": 80,
+        "kind": "user"
+      },
+      {
+        "id": "inc",
+        "label": "Inclusiveness: accessible, multi-modal, multilingual",
+        "x": 250,
+        "y": 0,
+        "kind": "user"
+      },
+      {
+        "id": "tr",
+        "label": "Transparency: disclose, document, explain",
+        "x": 250,
+        "y": 110,
+        "kind": "service"
+      },
+      {
+        "id": "acc",
+        "label": "Accountability: owners, governance, oversight",
+        "x": 250,
+        "y": 220,
+        "kind": "security"
+      },
+      {
+        "id": "sys",
+        "label": "AI system",
+        "x": 540,
+        "y": 110,
+        "kind": "ai"
+      }
+    ],
+    "edges": [
+      {
+        "from": "users",
+        "to": "inc"
+      },
+      {
+        "from": "inc",
+        "to": "sys"
+      },
+      {
+        "from": "tr",
+        "to": "users",
+        "label": "informs"
+      },
+      {
+        "from": "acc",
+        "to": "sys",
+        "label": "governs"
+      }
+    ]
+  },
+  "example": {
+    "title": "A city services chatbot",
+    "body": [
+      "The city's assistant accepts voice and text in five languages and works with screen readers (inclusiveness).",
+      "Every answer says it was AI-generated and links to its sources, and a published notice explains what it can't do (transparency). A named service owner reviews complaints monthly, and staff can disable it instantly (accountability)."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Foundry portal > model card: intended uses and limitations (transparency).",
+      "Foundry portal > Monitoring and tracing: keep records of agent runs for review (accountability).",
+      "Speech playground: test voice input and captions (inclusiveness)."
+    ],
+    "cli": "# Responsible AI is mostly design and process; content filters are set per deployment in the portal\naz cognitiveservices account deployment show --name contoso-ai --resource-group rg-ai901 --deployment-name chat-model",
+    "powershell": "Get-AzCognitiveServicesAccountDeployment -ResourceGroupName rg-ai901 -AccountName contoso-ai -Name chat-model"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-rai-people-sim",
+    "objective": "Recognise which principle each practice supports.",
+    "duration": 15,
+    "steps": [
+      "Inclusiveness, transparency, accountability tab: answer every practice.",
+      "Responsible AI tab: match each concern to a principle."
+    ],
+    "expected": [
+      "Disclosure and documented limits are transparency",
+      "Owners and the ability to override are accountability"
+    ],
+    "validation": [
+      {
+        "id": "rai-people-correct",
+        "text": "Chose the right principle"
+      },
+      {
+        "id": "rai-people-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "ai-principle-correct",
+        "text": "Matched a concern to its principle"
+      }
+    ],
+    "failureScenarios": [
+      "Hiding that answers are AI-generated",
+      "No owner for an AI system in production"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Users don't realise answers come from AI and trust them blindly.",
+      "cause": "No disclosure.",
+      "fix": "Label AI-generated content and explain limitations."
+    },
+    {
+      "symptom": "Nobody can say who approved an AI feature after an incident.",
+      "cause": "No accountability process.",
+      "fix": "Assign owners and require reviews for high-impact uses."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Transparency vs explainability",
+      "difference": "Transparency includes disclosure and documentation; explainability is one part: why a specific result was produced."
+    },
+    {
+      "service": "Accountability vs reliability",
+      "difference": "Accountability is about people and governance; reliability is about the system behaving correctly."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Transparency means publishing the model's source code.",
+      "reality": "It means people understand the system's use, limits and outputs."
+    },
+    {
+      "myth": "If the AI made the decision, nobody is accountable.",
+      "reality": "People and organisations remain accountable."
+    },
+    {
+      "myth": "Inclusiveness only concerns accessibility.",
+      "reality": "It also covers language, culture, connectivity and more."
+    }
+  ],
+  "architectureDecisions": [
+    "Always disclose AI interactions.",
+    "Publish what your system can and can't do.",
+    "Name an owner and keep a human able to override."
+  ],
+  "docs": [
+    {
+      "title": "What is Responsible AI?",
+      "url": "https://learn.microsoft.com/azure/machine-learning/concept-responsible-ai"
+    },
+    {
+      "title": "Microsoft responsible AI principles",
+      "url": "https://www.microsoft.com/ai/principles-and-approach"
+    },
+    {
+      "title": "Transparency Notes for Azure AI services",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/responsible-ai/openai/transparency-note"
+    },
+    {
+      "title": "AI-901 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/ai-901"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

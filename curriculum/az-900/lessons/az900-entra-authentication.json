@@ -1,0 +1,244 @@
+{
+  "id": "az900-entra-authentication",
+  "exam": "az-900",
+  "title": "Microsoft Entra ID, authentication methods and external identities",
+  "objectiveIds": [
+    "AZ900-2.4.1",
+    "AZ900-2.4.2",
+    "AZ900-2.4.3"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Describe Microsoft Entra ID and Microsoft Entra Domain Services, SSO, MFA and passwordless authentication, and external identities.",
+  "prerequisites": [
+    {
+      "text": "Shared responsibility: accounts and identities",
+      "objectiveId": "AZ900-1.1.2",
+      "lessonId": "az900-cloud-basics"
+    }
+  ],
+  "foundation": [
+    "Microsoft Entra ID is Microsoft's cloud identity service. It signs users in to Azure, Microsoft 365 and thousands of other apps, and protects those sign-ins.",
+    "Microsoft Entra Domain Services gives you an old-style Windows domain (domain join, Group Policy, LDAP, Kerberos) as a managed service, for legacy apps, without running domain controllers yourself.",
+    "Authentication proves who you are. SSO: sign in once, use many apps. MFA: a password plus something you have (phone) or are (fingerprint). Passwordless: no password at all.",
+    "External identities let people outside your organisation (partners, customers) sign in to your apps with their own accounts."
+  ],
+  "engineer": [
+    "Entra ID capabilities: authentication (verify identity, self-service password reset, MFA, banned password lists, smart lockout), single sign-on, application management, device management (register devices, Intune policies). Hybrid: Microsoft Entra Connect synchronises on-premises AD identities to Entra ID.",
+    "Entra Domain Services: managed domain with two domain controllers deployed and maintained by Microsoft; one-way sync from Entra ID; supports legacy protocols (Kerberos, NTLM, LDAP) and Group Policy for lift-and-shift apps. It's not a replacement for on-premises AD and doesn't sync back.",
+    "MFA factors: something you know (password), something you have (phone, hardware key), something you are (fingerprint, face). Microsoft Entra multifactor authentication supports Authenticator app notifications, codes, SMS and voice.",
+    "Passwordless options: Windows Hello for Business (biometric/PIN tied to a device), Microsoft Authenticator app, FIDO2 security keys, and passkeys. Phishing-resistant and convenient.",
+    "External identities (Microsoft Entra External ID): B2B collaboration (invite partners as guest users who use their own identity), B2B direct connect (mutual trust, for Teams shared channels), and External ID for customers (sign-up/sign-in for consumer and business customer apps, including social providers). Microsoft Entra ID P1/P2 add Conditional Access and identity protection for guests too."
+  ],
+  "animation": {
+    "id": "az900-entra-sim",
+    "caption": "Pick the identity service, match authentication methods, and sign in as an employee or a guest."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "ad",
+        "label": "On-premises AD",
+        "x": 0,
+        "y": 0,
+        "kind": "identity"
+      },
+      {
+        "id": "connect",
+        "label": "Entra Connect sync",
+        "x": 0,
+        "y": 140,
+        "kind": "network"
+      },
+      {
+        "id": "entra",
+        "label": "Microsoft Entra ID",
+        "x": 260,
+        "y": 70,
+        "kind": "identity"
+      },
+      {
+        "id": "ds",
+        "label": "Entra Domain Services (managed domain)",
+        "x": 520,
+        "y": 0,
+        "kind": "identity"
+      },
+      {
+        "id": "apps",
+        "label": "SaaS + Azure apps (SSO)",
+        "x": 520,
+        "y": 140,
+        "kind": "compute"
+      },
+      {
+        "id": "guest",
+        "label": "Partners and customers (External ID)",
+        "x": 260,
+        "y": 230,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "ad",
+        "to": "connect"
+      },
+      {
+        "from": "connect",
+        "to": "entra"
+      },
+      {
+        "from": "entra",
+        "to": "ds",
+        "label": "one-way sync"
+      },
+      {
+        "from": "entra",
+        "to": "apps",
+        "label": "SSO"
+      },
+      {
+        "from": "guest",
+        "to": "entra"
+      }
+    ]
+  },
+  "example": {
+    "title": "A consultancy",
+    "body": [
+      "Staff sign in once to Microsoft 365, the Azure portal and Salesforce (SSO) using Windows Hello (passwordless). Contractors must approve an Authenticator notification (MFA).",
+      "Client employees are invited as B2B guests to a project site using their own company accounts, and an old timesheet app moved to Azure joins a Microsoft Entra Domain Services managed domain."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "User Administrator or Global Administrator for identity settings"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Microsoft Entra admin center > Users / Groups / External Identities.",
+      "Protection > Authentication methods: enable passkeys, Authenticator, FIDO2.",
+      "Microsoft Entra Domain Services > Create."
+    ],
+    "cli": "az ad user list --query \"[].userPrincipalName\" -o tsv\naz ad user create --display-name \"Ana\" --user-principal-name ana@contoso.onmicrosoft.com --password <temp>",
+    "powershell": "Connect-MgGraph -Scopes User.Read.All\nGet-MgUser -Top 5"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-entra-sim",
+    "objective": "Choose identity services and authentication methods.",
+    "duration": 15,
+    "steps": [
+      "Directory and external identities tab: answer every need.",
+      "Authentication methods tab: answer every description.",
+      "Sign-in and access tab: sign in as a B2B guest and as an employee."
+    ],
+    "expected": [
+      "Domain Services is for legacy protocols",
+      "Passwordless removes the password"
+    ],
+    "validation": [
+      {
+        "id": "directory-correct",
+        "text": "Chose the right identity service"
+      },
+      {
+        "id": "directory-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "auth-methods-correct",
+        "text": "Chose the right authentication method"
+      },
+      {
+        "id": "auth-methods-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "signin-ok",
+        "text": "Completed a sign-in"
+      }
+    ],
+    "failureScenarios": [
+      "Using Domain Services instead of Entra ID for modern apps",
+      "Calling SMS-only sign-in 'passwordless MFA'"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "A legacy app requires LDAP binds in Azure.",
+      "cause": "Entra ID doesn't speak LDAP.",
+      "fix": "Use Microsoft Entra Domain Services."
+    },
+    {
+      "symptom": "Partners need accounts in your tenant and forget passwords.",
+      "cause": "Local accounts were created for them.",
+      "fix": "Use B2B collaboration so they use their own identity."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Entra ID vs Active Directory Domain Services",
+      "difference": "Entra ID is cloud identity using modern protocols (OAuth, SAML, OpenID Connect); AD DS is on-premises using Kerberos/LDAP."
+    },
+    {
+      "service": "B2B vs External ID for customers",
+      "difference": "B2B is for partners collaborating in your workforce tenant; customer identity is for consumer-facing apps."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Entra ID is just Active Directory in the cloud.",
+      "reality": "It's a different service with modern protocols."
+    },
+    {
+      "myth": "SSO means less security.",
+      "reality": "With MFA and Conditional Access, SSO reduces password reuse."
+    },
+    {
+      "myth": "Guests need accounts created for them.",
+      "reality": "They sign in with their own identity."
+    }
+  ],
+  "architectureDecisions": [
+    "Turn on MFA for everyone; move to passwordless where possible.",
+    "Use B2B for partner access instead of local accounts.",
+    "Use Domain Services only for legacy needs."
+  ],
+  "docs": [
+    {
+      "title": "Describe Azure identity, access, and security (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-azure-identity-access-security/"
+    },
+    {
+      "title": "What is Microsoft Entra ID?",
+      "url": "https://learn.microsoft.com/entra/fundamentals/whatis"
+    },
+    {
+      "title": "Microsoft Entra Domain Services",
+      "url": "https://learn.microsoft.com/entra/identity/domain-services/overview"
+    },
+    {
+      "title": "Passwordless authentication options",
+      "url": "https://learn.microsoft.com/entra/identity/authentication/concept-authentication-passwordless"
+    },
+    {
+      "title": "External ID overview",
+      "url": "https://learn.microsoft.com/entra/external-id/external-identities-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

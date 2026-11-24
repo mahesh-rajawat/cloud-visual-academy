@@ -1,0 +1,412 @@
+"""AZ-104 domain 3 (compute): easy walkthroughs and hands-on labs."""
+from _az104kit import BASE, DELETE_RG, ML, NEW_RG, REGION, RG, H
+from _walkkit import N, S, walk
+
+WALK: dict[str, dict] = {}
+LAB: dict[str, dict] = {}
+
+SHELL = "Cloud Shell: select the >_ icon at the top of the portal, choose Bash, and 'No storage account required' if asked."
+VM_COST = "Low. A B1s Linux VM costs about US$0.01 per hour (it is in the free account's 750 free hours). Delete it the same day."
+VM = (f"Create a small Linux VM: Virtual machines > + Create > Azure virtual machine. Resource group {RG}, name vm-lab, region {REGION}, "
+      "image Ubuntu Server 24.04 LTS, size Standard_B1s, authentication: password, username azureuser. Inbound ports: None. Review + create > Create."
+      " If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead.")
+
+# ---------------------------------------------------------------- 3.1 ARM and Bicep
+WALK["az104-arm-bicep"] = walk(
+    "Describe your infrastructure in a file, and let Azure build it the same way every time.",
+    ["Why infrastructure as code", "Parts of an ARM template", "The same thing in Bicep", "Deploying, modes and what-if", "Export and decompile"],
+    [N("file", "Template file", 130, 220, "service", "JSON or Bicep"), N("param", "Parameters", 130, 80, "service", "name, location"), N("arm", "Resource Manager", 400, 220, "service", "validates + deploys"),
+     N("rg", "Resource group", 660, 220, "identity"), N("res", "Storage + VNet", 660, 380, "storage"), N("exp", "Export template", 400, 380, "service", "from the portal")],
+    [S("problem", "Click-ops", "Building the same environment by hand, again",
+       "Dev, test and production should be identical. Clicking through the portal three times guarantees small differences.",
+       add=["rg"]),
+     S("concept", "ARM JSON", "An ARM template is a JSON description",
+       "Sections: $schema and contentVersion; parameters (values you supply at deploy time); variables (values worked out inside); resources (what to create, with type, apiVersion, name, location and properties); outputs (values returned).\n\nFunctions like [parameters('name')] and [resourceGroup().location] fill in values.",
+       add=["file", "param"], edges=[("param", "file")], learn=[0, 1]),
+     S("concept", "Bicep", "Bicep says the same thing more simply",
+       "Bicep is a cleaner language for the same templates: param, var, resource and output keywords, no brackets and quotes everywhere. It is converted to ARM JSON when you deploy.\n\nExample: param location string = resourceGroup().location.",
+       learn=[2], tip="On the exam, read templates calmly: find the parameter, follow where it is used, and check the resource type and SKU."),
+     S("technique", "Deploy", "Deploy, preview and choose a mode",
+       "Deploy with the portal (Deploy a custom template), az deployment group create, or New-AzResourceGroupDeployment. Use what-if to preview changes.\n\nIncremental mode (default) adds and updates, leaving other resources alone. Complete mode deletes resources in the group that are not in the template.",
+       add=["arm", "res"], edges=[("file", "arm", "deploy"), ("arm", "rg"), ("rg", "res")], learn=[3], warn="Complete mode can delete resources you forgot to put in the template."),
+     S("technique", "Export", "Start from what already exists",
+       "Export template (resource group or resource > Automation > Export template) produces ARM JSON from deployed resources. az bicep decompile converts that JSON into a Bicep file. Clean it up and add parameters before reusing it.",
+       add=["exp"], edges=[("res", "exp"), ("exp", "file", "decompile")], learn=[4]),
+     S("recap", "Recap", "Templates", "Write it once, deploy it many times.",
+       recap=["ARM: parameters, variables, resources, outputs", "Bicep: same thing, simpler syntax", "Incremental (default) vs Complete mode",
+              "what-if previews changes", "Export template, then az bicep decompile"])])
+
+LAB["az104-arm-bicep"] = H(
+    "Deploy a storage account from a Bicep file, then export it", 25, "free", "Cents for one empty storage account.",
+    [BASE, NEW_RG],
+    [(SHELL, "A Bash prompt."),
+     ("Paste the whole box below into Cloud Shell and press Enter. It creates the file main.bicep.", "No output. Check the file with: cat main.bicep", None,
+      "cat > main.bicep <<'EOF'\nparam name string\nparam location string = resourceGroup().location\nresource sa 'Microsoft.Storage/storageAccounts@2023-05-01' = {\n  name: name\n  location: location\n  sku: { name: 'Standard_LRS' }\n  kind: 'StorageV2'\n}\noutput id string = sa.id\nEOF"),
+     (f"Preview: az deployment group what-if -g {RG} --template-file main.bicep --parameters name=st<yourinitials>bicep1", "A list showing one resource to Create (+)."),
+     (f"Deploy: az deployment group create -g {RG} --template-file main.bicep --parameters name=st<yourinitials>bicep1", "JSON output with provisioningState: Succeeded and the id output."),
+     (f"In the portal open {RG} > Settings > Deployments.", "The 'main' deployment with its inputs, outputs and the template used."),
+     (f"Open {RG} > Automation > Export template.", "An ARM JSON template describing everything in the group. Select Download."),
+     ("Back in Cloud Shell, export the group to JSON and convert it to Bicep:", "A new file exported.bicep. Read it with: cat exported.bicep", None, f"az group export -n {RG} > exported.json\naz bicep decompile --file exported.json")],
+    ["The storage account was created by your Bicep file.", "You have an exported template and a decompiled Bicep file."],
+    [DELETE_RG],
+    [("Quickstart: create Bicep files with Visual Studio Code", ML + "azure/azure-resource-manager/bicep/quickstart-create-bicep-use-visual-studio-code"),
+     ("Understand the structure of ARM templates", ML + "azure/azure-resource-manager/templates/syntax"),
+     ("Use the portal to export a template", ML + "azure/azure-resource-manager/templates/export-template-portal"),
+     ("Decompile ARM JSON to Bicep", ML + "azure/azure-resource-manager/bicep/decompile")])
+
+# ---------------------------------------------------------------- 3.2 create, size and move VMs
+WALK["az104-vm-create"] = walk(
+    "Create a virtual machine, pick the right size, and move it when plans change.",
+    ["What a VM needs: image, size, disk, network", "VM size families", "Resizing and when it needs a restart", "Moving to another group, subscription or region"],
+    [N("img", "Image", 120, 90, "service", "Ubuntu / Windows"), N("size", "Size", 120, 220, "compute", "vCPU + memory"), N("disk", "OS disk", 120, 350, "storage"),
+     N("vm", "Virtual machine", 400, 220, "compute"), N("nic", "NIC + VNet", 660, 120, "network"), N("nsg", "NSG", 660, 330, "security", "inbound rules")],
+    [S("problem", "A server", "The team needs a Linux server today",
+       "In a data center that means hardware, cables and weeks. In Azure it is a form and a few minutes, if you choose the right options.",
+       add=["vm"]),
+     S("concept", "Parts", "What every VM is made of",
+       "An image (the operating system), a size (vCPUs and memory), an OS disk (a managed disk), and a network interface in a virtual network subnet, usually with a network security group.\n\nAccess: SSH key or password for Linux, password for Windows, and ideally no public inbound ports (use Bastion).",
+       add=["img", "size", "disk", "nic", "nsg"], edges=[("img", "vm"), ("size", "vm"), ("disk", "vm"), ("vm", "nic"), ("nic", "nsg")], learn=[0]),
+     S("concept", "Sizes", "Size families by job",
+       "B: burstable and cheap for light work. D: general purpose. E: memory optimised. F: compute optimised. L: storage optimised. N: GPU.\n\nCheck the size is available in your region and that your vCPU quota is high enough.",
+       focus=["size"], learn=[1]),
+     S("technique", "Resize", "Resizing",
+       "Change the size on the VM's Size page. The VM restarts. If the new size is not available on the current hardware cluster, you must stop (deallocate) the VM first, then resize.",
+       focus=["size", "vm"], learn=[2], warn="Stopped inside the OS = still billed for compute. Stopped (deallocated) in the portal = not billed for compute."),
+     S("technique", "Move", "Moving a VM",
+       "Move to another resource group or subscription with the Move button: take its disks, NIC and public IP along. The VM keeps its region.\n\nTo another region, use Azure Resource Mover or Azure Site Recovery; it is a copy and switch, not a simple move.",
+       learn=[3]),
+     S("recap", "Recap", "VMs", "Image + size + disk + network.",
+       recap=["Image, size, OS disk, NIC in a subnet", "B, D, E, F, L, N families", "Resize restarts; deallocate if size unavailable",
+              "Move RG/subscription with dependent resources; region via Resource Mover", "Deallocate to stop compute billing"])])
+
+LAB["az104-vm-create"] = H(
+    "Create a VM, resize it and move it to another resource group", 30, "low", VM_COST,
+    [BASE, NEW_RG],
+    [(VM, "Deployment complete after 2–3 minutes. Open the resource.", "If B1s is not available in your region, choose Standard_B2ats_v2 or another small B-series size."),
+     ("On the VM Overview note: size, public IP (if any), virtual network/subnet, and OS disk.", "The VM's running state and its resources."),
+     (f"Open {RG}.", "Besides the VM: an OS disk, a network interface, a virtual network, a network security group, and possibly a public IP. A VM is several resources."),
+     ("Open the VM > Availability + scale > Size. Pick another small size such as Standard_B1ms. Resize.", "The VM restarts with the new size.", "If a size is greyed out, it needs the VM to be deallocated first."),
+     ("Select Stop on the Overview page and wait.", "Status 'Stopped (deallocated)'. Compute billing stops; disks are still billed."),
+     (f"Create a resource group {RG}-2. Open {RG}, tick the VM, its disk, NIC, NSG, VNet and public IP, then Move > Move to another resource group > {RG}-2.", "Validation succeeds, then the resources appear in the new group, still in the same region."),
+     ("Open the VM > Overview > Start, wait, then Stop again.", "The VM works in its new group.")],
+    ["You resized the VM and moved it with its dependencies."],
+    [f"Delete {RG}-2 (it now holds the VM).", DELETE_RG],
+    [("Quickstart: create a Linux VM in the portal", ML + "azure/virtual-machines/linux/quick-create-portal"),
+     ("Change the size of a virtual machine", ML + "azure/virtual-machines/sizes/resize-vm"),
+     ("Move a VM to another resource group or subscription", ML + "azure/azure-resource-manager/management/move-resource-group-and-subscription"),
+     ("Sizes for virtual machines", ML + "azure/virtual-machines/sizes/overview")])
+
+# ---------------------------------------------------------------- 3.2 disks and encryption
+WALK["az104-vm-disks-encryption"] = walk(
+    "Give a VM the right disks, change them safely, and choose how they are encrypted.",
+    ["OS, temporary and data disks", "Disk types", "Disk operations: attach, resize, snapshot", "Encryption options: SSE, CMK, encryption at host, ADE"],
+    [N("vm", "VM", 400, 80, "compute"), N("os", "OS disk", 160, 220, "storage", "C: or /"), N("temp", "Temp disk", 400, 220, "storage", "lost on deallocate"),
+     N("data", "Data disk", 640, 220, "storage", "your files"), N("snap", "Snapshot", 640, 380, "storage", "point in time"), N("kv", "Key Vault", 160, 380, "security", "your keys")],
+    [S("problem", "Disks", "The database needs more space and faster disks",
+       "And the auditor asks how the disks are encrypted, and who controls the keys.",
+       add=["vm"]),
+     S("concept", "Disk roles", "Three kinds of disk on a VM",
+       "OS disk: the operating system. Temporary disk: fast local scratch space, lost when the VM is deallocated or moved to other hardware. Data disks: your data, attached as needed (the number depends on VM size).",
+       add=["os", "temp", "data"], edges=[("vm", "os"), ("vm", "temp"), ("vm", "data")], learn=[0], warn="Never keep important data on the temporary disk."),
+     S("concept", "Types", "Disk types, from cheap to fast",
+       "Standard HDD, Standard SSD, Premium SSD, Premium SSD v2 and Ultra Disk. Bigger Premium disks get more IOPS and throughput. You can change the type when the VM is deallocated (with some limits for v2 and Ultra).",
+       learn=[1]),
+     S("technique", "Operations", "Everyday disk jobs",
+       "Attach or detach data disks (often without a restart). Increase size (never shrink), then extend the partition inside the OS. Take a snapshot for a quick copy; create new disks from it.",
+       add=["snap"], edges=[("data", "snap", "snapshot")], learn=[2]),
+     S("technique", "Encryption", "Four ways encryption fits in",
+       "Server-side encryption (SSE) is always on, with platform-managed keys by default. Customer-managed keys use a disk encryption set pointing to Key Vault. Encryption at host also covers temp disks and caches. Azure Disk Encryption (ADE) encrypts inside the OS with BitLocker or DM-Crypt, keys in Key Vault.\n\nMicrosoft now recommends encryption at host instead of ADE for new VMs.",
+       add=["kv"], edges=[("kv", "os", "CMK / ADE")], learn=[3], tip="ADE needs a Key Vault in the same region and subscription, enabled for disk encryption."),
+     S("recap", "Recap", "Disks", "Right disk, right size, right keys.",
+       recap=["OS, temporary (not persistent), data disks", "HDD < Standard SSD < Premium SSD < Premium v2 / Ultra", "Grow only; snapshots for copies",
+              "SSE always on; CMK via disk encryption set", "Encryption at host preferred; ADE uses BitLocker/DM-Crypt"])])
+
+LAB["az104-vm-disks-encryption"] = H(
+    "Add, resize and snapshot a data disk, and review encryption", 25, "low", VM_COST + " A small data disk and snapshot add cents.",
+    [BASE, NEW_RG, VM],
+    [("Open vm-lab > Settings > Disks > + Create and attach a new disk. Name: vm-lab-data1, Standard SSD, size 4 GiB. Apply.", "The data disk listed under Data disks with LUN 0."),
+     ("Stop (deallocate) the VM. Open the data disk > Settings > Size + performance. Choose 8 GiB. Save.", "The disk now shows 8 GiB. Shrinking is not offered."),
+     ("On the same disk, try changing the performance tier or disk type to Premium SSD.", "Allowed while the VM is deallocated. Change it back to Standard SSD."),
+     ("Open the data disk > Overview > Create snapshot. Name: snap-data1, type: Incremental.", "A snapshot resource in the group."),
+     ("Open the data disk > Settings > Encryption.", "Encryption at rest with a platform-managed key; options for customer-managed keys via a disk encryption set."),
+     ("Open vm-lab > Settings > Disks > Additional settings.", "Encryption at host (may say it needs registering) and Azure Disk Encryption options."),
+     ("Back on Disks, detach the data disk and Save.", "The disk still exists in the resource group, unattached (and still billed).")],
+    ["You grew a disk and made an incremental snapshot."],
+    [DELETE_RG],
+    [("Attach a data disk to a Linux VM in the portal", ML + "azure/virtual-machines/linux/attach-disk-portal"),
+     ("Expand virtual hard disks on a Linux VM", ML + "azure/virtual-machines/linux/expand-disks"),
+     ("Overview of managed disk encryption options", ML + "azure/virtual-machines/disk-encryption-overview")])
+
+# ---------------------------------------------------------------- 3.2 availability
+WALK["az104-vm-availability"] = walk(
+    "Keep an app running when hardware fails or Azure updates its servers.",
+    ["Fault domains and update domains", "Availability sets", "Availability zones", "SLAs and choosing"],
+    [N("rack1", "Fault domain 0", 150, 110, "compute", "rack, power"), N("rack2", "Fault domain 1", 150, 250, "compute"), N("set", "Availability set", 400, 180, "service", "one datacenter"),
+     N("z1", "Zone 1", 650, 90, "globe"), N("z2", "Zone 2", 650, 220, "globe"), N("z3", "Zone 3", 650, 350, "globe"), N("lb", "Load balancer", 400, 380, "network")],
+    [S("problem", "Single VM", "One VM is one point of failure",
+       "A failed host, a power problem in a rack, or a planned update can take the only VM down.",
+       add=["rack1"]),
+     S("concept", "Domains", "Two kinds of failure",
+       "Fault domains are groups of hardware that share power and network (racks). Update domains are groups that Azure restarts together during planned maintenance.",
+       add=["rack2"], learn=[0]),
+     S("technique", "Sets", "Availability sets spread VMs in one datacenter",
+       "VMs in an availability set are spread over up to 3 fault domains and up to 20 update domains. Two or more VMs in a set get a 99.95% SLA.\n\nYou choose the set when you create the VM; you cannot add an existing VM later.",
+       add=["set"], edges=[("set", "rack1"), ("set", "rack2")], learn=[1], warn="An availability set does not protect against a whole datacenter failing."),
+     S("technique", "Zones", "Availability zones spread VMs across buildings",
+       "Zones are separate datacenters in a region with their own power, cooling and network. VMs in two or more zones get a 99.99% SLA. Put a load balancer in front to spread traffic.",
+       add=["z1", "z2", "z3", "lb"], edges=[("lb", "z1"), ("lb", "z2"), ("lb", "z3")], learn=[2]),
+     S("case", "Choose", "Choosing",
+       "Need the highest protection in one region: zones. Region without zones, or apps needing very low latency between VMs: availability set. A single VM with Premium SSD disks gets 99.9%.",
+       learn=[3]),
+     S("recap", "Recap", "Availability", "Spread copies so one failure cannot stop you.",
+       recap=["Fault domain = shared hardware; update domain = maintenance group", "Availability set: 99.95%, chosen at creation", "Zones: 99.99%, separate buildings",
+              "Add a load balancer in front", "Single VM with Premium SSD: 99.9%"])])
+
+LAB["az104-vm-availability"] = H(
+    "Explore availability options without paying for VMs", 15, "free", "Free. You create an empty availability set and only look at the VM form.",
+    [BASE, NEW_RG],
+    [("Search 'Availability sets' > + Create. Group: " + RG + ", name: avset-lab, fault domains: 2, update domains: 5. Create.", "avset-lab created. It contains no VMs and costs nothing."),
+     ("Open Virtual machines > + Create > Azure virtual machine. Open the 'Availability options' list.", "No infrastructure redundancy required, Availability zone, Virtual machine scale set, Availability set."),
+     ("Choose Availability zone and tick zones 1, 2 and 3.", "A message that one VM will be created in each selected zone."),
+     ("Choose Availability set and pick avset-lab.", "The VM would be placed in your set. Do not create it."),
+     ("Cancel the form. Open avset-lab > Overview.", "Fault and update domain counts. There is no button to add an existing VM.")],
+    ["You found where zones and sets are chosen, and saw that sets are chosen at VM creation."],
+    [DELETE_RG],
+    [("Availability options for Azure virtual machines", ML + "azure/virtual-machines/availability"),
+     ("Create VMs in an availability set using the portal", ML + "azure/virtual-machines/windows/tutorial-availability-sets"),
+     ("Create VMs in availability zones", ML + "azure/virtual-machines/create-portal-availability-zone")])
+
+# ---------------------------------------------------------------- 3.2 VM Scale Sets
+WALK["az104-vmss"] = walk(
+    "Run many identical VMs that grow and shrink with demand.",
+    ["What a scale set is", "Orchestration modes", "Autoscale rules and limits", "Upgrade policy"],
+    [N("users", "Users", 110, 220, "user"), N("lb", "Load balancer", 330, 220, "network"), N("ss", "Scale set", 560, 90, "compute", "min 2, max 10"),
+     N("vm1", "Instance 1", 560, 220, "compute"), N("vm2", "Instance 2", 560, 340, "compute"), N("mon", "Autoscale", 330, 380, "service", "CPU > 70%")],
+    [S("problem", "Busy evenings", "Traffic triples every evening",
+       "Two VMs are too few at 8 p.m. and too many at 4 a.m. Adding VMs by hand every day is not a plan.",
+       add=["users", "lb", "vm1"], edges=[("users", "lb"), ("lb", "vm1")]),
+     S("concept", "Scale set", "A scale set manages identical VMs as one",
+       "A Virtual Machine Scale Set creates instances from one configuration and spreads them across fault domains or zones. Put it behind a load balancer.\n\nFlexible orchestration (the default) lets you mix sizes and manage instances like normal VMs; Uniform uses identical instances managed only through the set.",
+       add=["ss", "vm2"], edges=[("ss", "vm1"), ("ss", "vm2"), ("lb", "vm2")], learn=[0, 1]),
+     S("technique", "Autoscale", "Autoscale adds and removes instances",
+       "Set a minimum, maximum and default instance count. Add rules: scale out by 1 when average CPU is over 70% for 10 minutes; scale in by 1 when under 30%. Or scale on a schedule.",
+       add=["mon"], edges=[("mon", "ss", "scale out / in")], learn=[2], tip="Always add a scale-in rule too, or the set only ever grows."),
+     S("technique", "Upgrades", "Updating the instances",
+       "The upgrade policy decides how model changes reach instances: Manual (you upgrade each), Automatic (all at once), or Rolling (in batches, safest).",
+       learn=[3]),
+     S("recap", "Recap", "Scale sets", "Many identical VMs, sized by demand.",
+       recap=["One config, many instances, behind a load balancer", "Flexible (default) vs Uniform orchestration", "Min, max, default + scale out AND scale in rules",
+              "Upgrade policy: Manual, Automatic, Rolling"])])
+
+LAB["az104-vmss"] = H(
+    "Create a small scale set with an autoscale rule", 30, "low", "Low. Two B1s instances cost about US$0.02 per hour together. Delete the same day.",
+    [BASE, NEW_RG],
+    [(f"Search 'Virtual machine scale sets' > + Create. Group {RG}, name vmss-lab, region your region, orchestration: Flexible, image Ubuntu 24.04, size Standard_B1s, password authentication.", "The Basics tab filled in."),
+     ("Scaling section: choose Autoscaling, then 'Configure'. Default 2, minimum 1, maximum 3. Scale out: CPU above 70% adds 1. Scale in: CPU below 30% removes 1. Save.", "A summary of the scaling policy."),
+     ("Networking tab: keep the new VNet. Do not add a load balancer for this lab. Review + create > Create.", "Deployment completes in a few minutes."),
+     ("Open vmss-lab > Instances.", "Two instances running."),
+     ("Open Availability + scale > Scaling.", "Your autoscale settings: minimum 1, maximum 3, default 2, and both rules."),
+     ("Wait about 15 minutes, then open Scaling > Run history (or Instances).", "CPU stays under 30%, so the scale-in rule removes one instance, down to the minimum of 1.", "The default count is only used when metrics are unavailable; the rules decide the real count."),
+     ("Open Settings > Upgrade policy (or Configuration).", "The upgrade mode for model changes.")],
+    ["The scale set has instances and an autoscale profile with scale-out and scale-in rules."],
+    [DELETE_RG],
+    [("Quickstart: create a scale set in the portal", ML + "azure/virtual-machine-scale-sets/flexible-virtual-machine-scale-sets-portal"),
+     ("Automatically scale a scale set in the portal", ML + "azure/virtual-machine-scale-sets/virtual-machine-scale-sets-autoscale-portal"),
+     ("Orchestration modes", ML + "azure/virtual-machine-scale-sets/virtual-machine-scale-sets-orchestration-modes")])
+
+# ---------------------------------------------------------------- 3.3 containers
+WALK["az104-containers"] = walk(
+    "Package an app once in a container image, store it privately, and run it without managing servers.",
+    ["Container images and registries", "Azure Container Registry SKUs and access", "Azure Container Instances", "Azure Container Apps"],
+    [N("img", "Container image", 120, 220, "service", "app + dependencies"), N("acr", "Container Registry", 380, 220, "storage", "private images"),
+     N("aci", "Container Instances", 640, 100, "compute", "one group, quick"), N("aca", "Container Apps", 640, 340, "compute", "scaling + revisions"), N("id", "Managed identity", 380, 380, "identity", "AcrPull")],
+    [S("problem", "It works on my PC", "The app runs on the developer's laptop only",
+       "A container packages the app with everything it needs, so it runs the same everywhere.",
+       add=["img"]),
+     S("concept", "Registry", "Azure Container Registry stores your images",
+       "ACR is a private registry. SKUs: Basic, Standard and Premium (Premium adds geo-replication and private endpoints). Push images with docker push or build them in Azure with az acr build; copy public images with az acr import.\n\nPull with a managed identity that has the AcrPull role, rather than the admin user.",
+       add=["acr", "id"], edges=[("img", "acr", "push / import"), ("id", "acr", "AcrPull")], learn=[0, 1]),
+     S("technique", "ACI", "Azure Container Instances: just run it",
+       "ACI runs a container group (one or more containers) with the CPU and memory you choose, billed per second. Good for simple apps, jobs and tests. Restart policy: Always, OnFailure or Never. A public IP and DNS label are optional.",
+       add=["aci"], edges=[("acr", "aci", "pull")], learn=[2]),
+     S("technique", "Container Apps", "Azure Container Apps: run it like a service",
+       "Container Apps adds HTTP ingress, automatic scaling (including to zero), revisions for safe updates, and environments that share a network. Good for web APIs and microservices.",
+       add=["aca"], edges=[("acr", "aca", "pull")], learn=[3]),
+     S("recap", "Recap", "Containers", "Build once, store in ACR, run on ACI or Container Apps.",
+       recap=["Images live in a registry", "ACR: Basic, Standard, Premium (geo-replication, private link)", "Pull with a managed identity + AcrPull",
+              "ACI: simple container groups, per-second billing", "Container Apps: ingress, autoscale, revisions"])])
+
+LAB["az104-containers"] = H(
+    "Import an image into ACR and run it on Container Instances", 30, "low", "Low. ACR Basic is about US$0.17 per day; a small container costs cents per hour. Delete the same day.",
+    [BASE, NEW_RG],
+    [(f"Search 'Container registries' > + Create. Group {RG}, registry name acr<yourinitials><number>, SKU Basic. Create.", "The registry Overview with a login server like acrxyz.azurecr.io."),
+     (SHELL, None),
+     ("Run: az acr import --name <registry> --source mcr.microsoft.com/azuredocs/aci-helloworld:latest --image hello:v1", "The command finishes without errors."),
+     ("In the portal open the registry > Services > Repositories.", "A repository named hello with tag v1."),
+     ("Open the registry > Settings > Access keys and turn on 'Admin user' (only for this lab).", "A username and two passwords.", "In real projects use a managed identity with AcrPull instead of the admin user."),
+     (f"Search 'Container instances' > + Create. Group {RG}, name aci-lab, image source: Azure Container Registry, registry: yours, image hello, tag v1, size 1 vCPU / 1.5 GiB.", None),
+     ("Networking tab: DNS name label aci-lab-<yourinitials>, port 80 TCP. Review + create > Create.", "Deployment completes in a minute or two."),
+     ("Open aci-lab > Overview and browse to the FQDN.", "A 'Welcome to Azure Container Instances!' page.")],
+    ["The image is in your registry and the container serves a web page."],
+    [DELETE_RG],
+    [("Quickstart: create a container registry in the portal", ML + "azure/container-registry/container-registry-get-started-portal"),
+     ("Import container images to a registry", ML + "azure/container-registry/container-registry-import-images"),
+     ("Quickstart: deploy a container instance in the portal", ML + "azure/container-instances/container-instances-quickstart-portal"),
+     ("Quickstart: deploy your first container app", ML + "azure/container-apps/quickstart-portal")])
+
+# ---------------------------------------------------------------- 3.3 container sizing and scaling
+WALK["az104-container-scaling"] = walk(
+    "Give containers the right CPU and memory, and let Container Apps scale them for you.",
+    ["Sizing ACI container groups", "ACI does not autoscale", "Container Apps scale rules", "Replicas, scale to zero and revisions"],
+    [N("aci", "ACI group", 150, 120, "compute", "fixed CPU + memory"), N("aca", "Container app", 450, 220, "compute"), N("rule", "Scale rule", 150, 320, "service", "HTTP: 50 requests"),
+     N("r1", "Replica 1", 690, 110, "compute"), N("r2", "Replica 2", 690, 220, "compute"), N("r3", "Replica 3", 690, 330, "compute")],
+    [S("problem", "Sizing", "How big, and how many?",
+       "Too little CPU and the app is slow; too much and you overpay. And traffic changes during the day.",
+       add=["aci"]),
+     S("concept", "ACI size", "ACI: you set the size, it stays",
+       "In ACI you request CPU and memory per container; the group's total is the sum. To change it, you redeploy. ACI has no built-in autoscale; for more copies, create more groups.",
+       learn=[0, 1], warn="Need automatic scaling for containers without managing Kubernetes? Choose Container Apps, not ACI."),
+     S("technique", "Rules", "Container Apps: scale rules",
+       "Each container app has minimum and maximum replicas and scale rules: HTTP (concurrent requests), TCP, CPU or memory, or event-driven rules from KEDA (for example queue length).",
+       add=["aca", "rule"], edges=[("rule", "aca")], learn=[2]),
+     S("technique", "Replicas", "Replicas grow, shrink and can reach zero",
+       "With minimum replicas 0, an idle app scales to zero and costs nothing for compute. CPU and memory per container are set in fixed combinations (for example 0.5 vCPU / 1 GiB).\n\nChanges to the template create a new revision; you can split traffic between revisions.",
+       add=["r1", "r2", "r3"], edges=[("aca", "r1"), ("aca", "r2"), ("aca", "r3")], learn=[3]),
+     S("recap", "Recap", "Container scaling", "ACI: fixed size. Container Apps: rules and replicas.",
+       recap=["ACI: CPU and memory per container; redeploy to change", "ACI has no autoscale", "Container Apps: HTTP, TCP, CPU/memory or KEDA rules",
+              "Min/max replicas; 0 = scale to zero", "Template changes create revisions"])])
+
+LAB["az104-container-scaling"] = H(
+    "Create a container app with an HTTP scale rule", 25, "free", "Free or cents. Container Apps (Consumption) includes a monthly free grant; the app scales to zero when idle.",
+    [BASE, NEW_RG],
+    [(f"Search 'Container Apps' > + Create > Container App. Group {RG}, name ca-lab, region your region, create a new Container Apps environment (Consumption only).", None),
+     ("Container tab: tick 'Use quickstart image' (Simple hello world container).", "Defaults of 0.5 CPU and 1 GiB memory."),
+     ("Ingress tab: enable ingress, traffic from anywhere, target port 80. Review + create > Create.", "Deployment completes in a few minutes."),
+     ("Open ca-lab > Overview and browse to the Application Url.", "A hello world page."),
+     ("Open Application > Scale (or Revisions and replicas > Edit and deploy > Scale). Set min replicas 0, max 5. Add a rule: HTTP scaling, concurrent requests 10. Create the new revision.", "A new revision with the scale rule."),
+     ("Open Revisions and replicas.", "The revision list and how many replicas are running. With no traffic it drops to 0 after a few minutes.")],
+    ["ca-lab has min 0, max 5 replicas and an HTTP rule."],
+    [DELETE_RG],
+    [("Set scaling rules in Azure Container Apps", ML + "azure/container-apps/scale-app"),
+     ("Container groups in Azure Container Instances", ML + "azure/container-instances/container-instances-container-groups"),
+     ("Revisions in Azure Container Apps", ML + "azure/container-apps/revisions")])
+
+# ---------------------------------------------------------------- 3.4 App Service plans
+WALK["az104-app-service-plans"] = walk(
+    "Host web apps without managing servers, and pay for the right amount of capacity.",
+    ["What an App Service plan is", "Pricing tiers and what they unlock", "Scale up vs scale out", "Autoscale"],
+    [N("plan", "App Service plan", 400, 90, "cost", "region + tier + size"), N("app1", "Web app 1", 220, 230, "compute"), N("app2", "Web app 2", 580, 230, "compute"),
+     N("inst1", "Instance", 220, 380, "compute"), N("inst2", "Instance", 400, 380, "compute"), N("inst3", "Instance", 580, 380, "compute")],
+    [S("problem", "Hosting", "A website without looking after servers",
+       "You want to deploy code, not patch operating systems. App Service runs the web server for you.",
+       add=["app1"]),
+     S("concept", "Plan", "The plan is the server farm you pay for",
+       "An App Service plan sets the region, the tier and the instance size. Every app on the plan runs on the same instances and shares them. You pay for the plan, not per app.",
+       add=["plan", "app2", "inst1"], edges=[("plan", "app1"), ("plan", "app2"), ("plan", "inst1")], learn=[0], warn="A busy app slows down every other app on the same plan."),
+     S("concept", "Tiers", "Tiers unlock features",
+       "Free and Shared: testing only. Basic: dedicated instances, custom domains and TLS, backups, manual scale. Standard: autoscale and deployment slots. Premium v3: faster hardware, more slots and instances. Isolated v2: a private App Service Environment.",
+       learn=[1], tip="Slots and autoscale start at Standard. Custom domains with TLS start at Basic."),
+     S("technique", "Scale", "Up or out",
+       "Scale up = a bigger tier or size (more CPU, memory, features). Scale out = more instances running the same apps.\n\nAutoscale (Standard and above) adds instances by rules on metrics such as CPU, or on a schedule. Premium plans also offer automatic scaling based on HTTP traffic.",
+       add=["inst2", "inst3"], edges=[("plan", "inst2"), ("plan", "inst3")], learn=[2, 3]),
+     S("recap", "Recap", "App Service plans", "Pay for the plan; apps share it.",
+       recap=["Plan = region + tier + size", "Apps on a plan share its instances", "Free/Shared → Basic → Standard → Premium v3 → Isolated v2",
+              "Scale up = bigger; scale out = more", "Autoscale and slots from Standard"])])
+
+LAB["az104-app-service-plans"] = H(
+    "Create a web app on a Free plan and see the scale options", 20, "free", "Free on the F1 tier. Do not leave a Standard plan running: it is billed by the hour.",
+    [BASE, NEW_RG],
+    [(f"Search 'App Services' > + Create > Web App. Group {RG}, name app-lab-<yourinitials> (globally unique), publish: Code, runtime stack: .NET 8 or Node 20, OS: Linux, region: your region.", None),
+     ("Pricing plan: create new plan plan-lab, choose Free F1. Review + create > Create.", "Deployment completes in a minute."),
+     ("Open the app > Overview > Default domain.", "The default 'Your web app is running' page."),
+     ("Open the plan (plan-lab) > Settings > Scale up (App Service plan).", "Tiers with their features. Compare Basic, Standard and Premium v3; do not change the tier."),
+     ("Open plan-lab > Scale out (App Service plan).", "On Free, scale out is not available. On Standard and higher you would see manual and rule-based autoscale."),
+     ("Open plan-lab > Apps.", "The web app listed. More apps can share this plan.")],
+    ["You found the scale up and scale out pages and the tier features."],
+    [DELETE_RG],
+    [("Quickstart: deploy an ASP.NET web app", ML + "azure/app-service/quickstart-dotnetcore"),
+     ("App Service plan overview", ML + "azure/app-service/overview-hosting-plans"),
+     ("Scale up an app in App Service", ML + "azure/app-service/manage-scale-up"),
+     ("Get started with autoscale", ML + "azure/azure-monitor/autoscale/autoscale-get-started")])
+
+# ---------------------------------------------------------------- 3.4 domains and TLS
+WALK["az104-app-service-domains"] = walk(
+    "Put your own domain name on a web app and serve it securely over HTTPS.",
+    ["DNS records for a custom domain", "Domain verification", "Certificate options", "TLS bindings and HTTPS settings"],
+    [N("user", "Browser", 110, 220, "user", "www.contoso.com"), N("dns", "DNS zone", 360, 90, "network", "CNAME + TXT"), N("app", "Web app", 360, 220, "compute", "app.azurewebsites.net"),
+     N("cert", "Certificate", 640, 220, "security"), N("kv", "Key Vault", 640, 380, "security", "imported cert")],
+    [S("problem", "Ugly URL", "Customers see app-xyz.azurewebsites.net",
+       "You want www.contoso.com, with a padlock in the browser.",
+       add=["user", "app"], edges=[("user", "app")]),
+     S("technique", "DNS", "Point the name at the app",
+       "For a subdomain (www): a CNAME record to the app's default domain. For the root domain (contoso.com): an A record to the app's IP address.\n\nAzure also asks for a TXT record named asuid.<subdomain> with a verification ID, to prove you own the domain.",
+       add=["dns"], edges=[("user", "dns", "lookup"), ("dns", "app", "CNAME")], learn=[0, 1], tip="Custom domains work from the Shared tier; TLS bindings and free managed certificates need Basic or higher."),
+     S("technique", "Certificates", "Get a certificate",
+       "Options: a free App Service managed certificate (Basic+, no wildcards), an App Service certificate you buy, a certificate imported from Key Vault, or uploading your own .pfx file.",
+       add=["cert", "kv"], edges=[("kv", "cert", "import"), ("cert", "app")], learn=[2]),
+     S("technique", "Binding", "Bind it, and force HTTPS",
+       "Add a TLS/SSL binding: SNI SSL (normal) or IP-based SSL. Then turn on HTTPS Only and set the minimum TLS version (1.2 or higher).",
+       focus=["app"], learn=[3]),
+     S("recap", "Recap", "Custom domains", "DNS, verify, certificate, bind.",
+       recap=["CNAME for subdomains, A record for the root", "TXT asuid record proves ownership", "Managed cert (free, no wildcard), Key Vault, upload or buy",
+              "SNI binding; HTTPS Only; minimum TLS 1.2", "Basic tier or higher"])])
+
+LAB["az104-app-service-domains"] = H(
+    "Find the domain and TLS settings and force HTTPS", 15, "free", "Free on the F1 tier. Mapping a real domain needs a domain you own and the Basic tier (billed hourly).",
+    [BASE, NEW_RG, "A web app on a Free plan (from the App Service plans lab)."],
+    [("Open the web app > Settings > Configuration > General settings (or Settings > Configuration).", "HTTPS Only and Minimum Inbound TLS Version settings. Turn HTTPS Only On and set minimum TLS 1.2. Save."),
+     ("Browse to http://<your app>.azurewebsites.net.", "The browser is redirected to https://."),
+     ("Open Settings > Custom domains > + Add custom domain.", "On Free tier, a message that custom domains need a higher tier. On Basic+, you would see the Domain provider, TLS/SSL certificate and Domain fields."),
+     ("Read the Custom domains page: note the 'Custom Domain Verification ID'.", "The value you would put in the TXT asuid record."),
+     ("Open Settings > Certificates.", "Tabs for managed certificates, bring your own certificate (.pfx) and public key certificates."),
+     ("Optional, if you own a domain and accept Basic B1 charges for an hour: scale the plan to B1, add the CNAME and TXT records at your DNS host, add the custom domain with an App Service managed certificate.", "Your domain served over HTTPS. Scale back to F1 or delete afterwards.")],
+    ["HTTPS Only is on and you located the verification ID and certificate options."],
+    [DELETE_RG],
+    [("Map an existing custom DNS name to App Service", ML + "azure/app-service/app-service-web-tutorial-custom-domain"),
+     ("Add and manage TLS/SSL certificates", ML + "azure/app-service/configure-ssl-certificate"),
+     ("Secure a custom DNS name with a TLS binding", ML + "azure/app-service/configure-ssl-bindings")])
+
+# ---------------------------------------------------------------- 3.4 backups, networking, slots
+WALK["az104-app-service-ops"] = walk(
+    "Back up a web app, connect it privately to your network, and release new versions without downtime.",
+    ["Backups and restore", "Inbound: access restrictions and private endpoints", "Outbound: VNet integration", "Deployment slots, swap and sticky settings"],
+    [N("prod", "Production slot", 400, 90, "compute", "v1"), N("stage", "Staging slot", 400, 230, "compute", "v2"), N("users", "Users", 130, 90, "user"),
+     N("bk", "Backups", 670, 90, "storage"), N("vnet", "VNet integration", 670, 230, "network", "outbound"), N("db", "Private database", 670, 380, "database"),
+     N("rules", "Access restrictions", 130, 230, "security", "inbound")],
+    [S("problem", "Release day", "Friday release, Monday outage",
+       "Deploying straight to production means users see errors while the new version starts. And the app must reach a database that has no public access.",
+       add=["users", "prod"], edges=[("users", "prod")]),
+     S("technique", "Slots", "Deployment slots and swap",
+       "A slot is a live copy of the app with its own URL (Standard: 5 slots, Premium: 20). Deploy to staging, warm it up, then swap: production now runs v2 with no downtime. Swap back if something breaks.",
+       add=["stage"], edges=[("stage", "prod", "swap")], learn=[3],
+       warn="Settings marked 'Deployment slot setting' (sticky) stay with the slot; others move with the code. Make database connection strings sticky."),
+     S("technique", "Backups", "Backups",
+       "Basic tier and higher take automatic backups. Custom backups (with a storage account and schedule) let you choose what and how often, including linked databases. Restore to the same app, another app or a slot.",
+       add=["bk"], edges=[("prod", "bk")], learn=[0]),
+     S("technique", "Inbound", "Control who can reach the app",
+       "Access restrictions allow or deny by IP range, service tag or VNet subnet, in priority order. A private endpoint gives the app a private IP and can remove public access.",
+       add=["rules"], edges=[("rules", "prod")], learn=[1]),
+     S("technique", "Outbound", "Let the app reach private resources",
+       "VNet integration sends the app's outbound traffic into a subnet of your VNet, so it can reach private endpoints and databases. It does not make the app private for inbound users.",
+       add=["vnet", "db"], edges=[("prod", "vnet"), ("vnet", "db")], learn=[2]),
+     S("recap", "Recap", "App Service operations", "Slots for releases, backups for safety, two network directions.",
+       recap=["Slots (Standard+): deploy, warm up, swap, swap back", "Sticky settings stay with the slot", "Automatic backups Basic+; custom backups for control",
+              "Inbound: access restrictions, private endpoint", "Outbound: VNet integration"])])
+
+LAB["az104-app-service-ops"] = H(
+    "Swap a staging slot into production (one hour on Standard)", 30, "watch", "Standard S1 costs roughly US$0.10 per hour. Do this lab in one sitting and delete the resource group straight after.",
+    [BASE, NEW_RG, "A web app (from the App Service plans lab)."],
+    [("Open the app's plan > Scale up > Standard S1 > Apply.", "The plan is now Standard."),
+     ("Open the app > Deployment > Deployment slots > + Add slot. Name: staging, clone settings from the production app. Add.", "Two slots: production and staging, each with its own URL."),
+     ("Open the staging slot > Settings > Environment variables. Add VERSION = v2 and tick 'Deployment slot setting'. Add GREETING = hello-v2 without the tick. Apply.", None),
+     ("In the production slot add VERSION = v1 (sticky) only.", None),
+     ("Back on Deployment slots select Swap: source staging, target production. Read the 'Config changes' preview. Swap.", "The preview shows GREETING moving to production while VERSION stays in each slot."),
+     ("Open production's Environment variables.", "GREETING = hello-v2 moved with the swap; VERSION is still v1 (sticky)."),
+     ("Open the app > Settings > Networking.", "Inbound (access restrictions, private endpoints) and outbound (VNet integration) settings."),
+     ("Open the app > Settings > Backups.", "Automatic backups available at this tier, and the option to configure custom backups.")],
+    ["You swapped slots and saw sticky settings stay behind."],
+    ["Delete the resource group now: Standard plans are billed by the hour.", DELETE_RG],
+    [("Set up staging environments (deployment slots)", ML + "azure/app-service/deploy-staging-slots"),
+     ("Back up and restore your app", ML + "azure/app-service/manage-backup"),
+     ("App Service networking features", ML + "azure/app-service/networking-features"),
+     ("Set up access restrictions", ML + "azure/app-service/app-service-ip-restrictions")])

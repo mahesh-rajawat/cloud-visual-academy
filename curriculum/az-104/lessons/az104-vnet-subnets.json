@@ -1,0 +1,593 @@
+{
+  "id": "az104-vnet-subnets",
+  "exam": "az-104",
+  "title": "Virtual networks, subnets and IP address planning",
+  "objectiveIds": [
+    "AZ104-4.1.1"
+  ],
+  "estimatedMinutes": 55,
+  "learningObjective": "Design a VNet address space and subnets that fit the workload, account for Azure's reserved addresses and special subnets, and stay peerable with other networks.",
+  "prerequisites": [
+    {
+      "text": "Virtual networking purpose, subnets and peering (AZ-900)",
+      "objectiveId": "AZ900-2.2.5"
+    },
+    {
+      "text": "Binary/CIDR notation: a /24 has 256 addresses, each smaller prefix doubles the size"
+    }
+  ],
+  "foundation": [
+    "A virtual network (VNet) is your private network in one Azure region. You give it one or more address ranges, such as 10.10.0.0/16.",
+    "You divide the VNet into subnets, such as 10.10.1.0/24 for web servers and 10.10.2.0/24 for databases. Every resource with a private IP lives in a subnet.",
+    "Azure keeps five addresses in every subnet for itself, so a /24 (256 addresses) gives you 251 usable addresses, and the smallest allowed subnet, a /29, gives you only 3.",
+    "Plan ranges that do not overlap with other VNets or your on-premises network. Overlapping networks cannot be peered or connected cleanly later."
+  ],
+  "engineer": [
+    "Reserved addresses per subnet: x.x.x.0 (network), x.x.x.1 (default gateway), x.x.x.2 and x.x.x.3 (map Azure DNS IPs into the VNet space) and the last address (broadcast). IPv4 subnets range from /29 to /2.",
+    "Use private ranges from RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16). You can also use public ranges you own, but they will not be internet-routable from the VNet. Ranges such as 224.0.0.0/4 (multicast), 255.255.255.255/32, 127.0.0.0/8, 169.254.0.0/16 and 168.63.129.16/32 are not allowed.",
+    "A VNet is regional and spans all availability zones of the region; subnets are not zonal. A VNet cannot span regions; connect regions with peering or gateways.",
+    "Several services need a dedicated, named subnet: GatewaySubnet for VPN/ExpressRoute gateways (/27 or larger recommended), AzureBastionSubnet (/26 or larger), AzureFirewallSubnet (/26). Some PaaS services require subnet delegation, after which only that service can deploy into the subnet.",
+    "Subnet address ranges can be changed only when the subnet contains no resources; VNet address spaces can be extended later (including for peered VNets, after which you sync the peering), so leave room rather than allocating the whole space up front.",
+    "Private IPs are assigned from the subnet by Azure DHCP. Static assignment in Azure (on the NIC IP configuration) reserves the address; never set static IPs inside the guest OS.",
+    "Outbound internet: new virtual networks use private subnets by default (defaultOutboundAccess = false). The portal already does this, and API versions released after 31 March 2026 do too; existing VNets keep their behaviour. VMs in a private subnet need an explicit outbound method: a NAT gateway (recommended), an instance-level public IP, or a Standard load balancer with outbound rules."
+  ],
+  "animation": {
+    "id": "subnet-calculator",
+    "caption": "Plan a VNet and see reserved addresses, overlaps and peering conflicts live."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "vnet",
+        "label": "vnet-prod 10.10.0.0/16 (West Europe)",
+        "x": 200,
+        "y": 0,
+        "kind": "network"
+      },
+      {
+        "id": "web",
+        "label": "snet-web 10.10.1.0/24",
+        "x": 0,
+        "y": 130,
+        "kind": "network"
+      },
+      {
+        "id": "app",
+        "label": "snet-app 10.10.2.0/24",
+        "x": 220,
+        "y": 130,
+        "kind": "network"
+      },
+      {
+        "id": "bastion",
+        "label": "AzureBastionSubnet 10.10.250.0/26",
+        "x": 440,
+        "y": 130,
+        "kind": "security"
+      },
+      {
+        "id": "gw",
+        "label": "GatewaySubnet 10.10.255.0/27",
+        "x": 660,
+        "y": 130,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "vnet",
+        "to": "web"
+      },
+      {
+        "from": "vnet",
+        "to": "app"
+      },
+      {
+        "from": "vnet",
+        "to": "bastion"
+      },
+      {
+        "from": "vnet",
+        "to": "gw"
+      }
+    ]
+  },
+  "example": {
+    "title": "Hub-and-spoke address plan",
+    "body": [
+      "Contoso allocates 10.10.0.0/16 for the hub VNet (gateway, Bastion, firewall) and 10.20.0.0/16, 10.30.0.0/16 for spokes. On-premises uses 172.16.0.0/12. Nothing overlaps, so every spoke can peer with the hub and reach on-premises through the hub gateway.",
+      "In each spoke, /24 subnets per tier leave room for 251 VMs each and space to add more subnets later."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "A resource group in the target region",
+      "An agreed non-overlapping address plan"
+    ],
+    "permissions": [
+      "Network Contributor (Microsoft.Network/virtualNetworks/*) on the resource group"
+    ],
+    "limits": [
+      "Subnet size /29 to /2 (IPv4)",
+      "5 reserved IPs per subnet",
+      "Default limit of 1,000 VNets per subscription per region and 3,000 subnets per VNet"
+    ],
+    "portal": [
+      "Virtual networks > Create > Basics: subscription, resource group, name, region.",
+      "IP addresses tab: set the IPv4 address space, then add subnets with name and range (the portal shows the available address count).",
+      "Security tab: optionally enable Azure Bastion, Azure Firewall or DDoS Network Protection, which create their own subnets.",
+      "After creation: VNet > Subnets > + Subnet, or Address space to add ranges."
+    ],
+    "cli": "az network vnet create -g rg-net -n vnet-prod -l westeurope \\\n  --address-prefixes 10.10.0.0/16 --subnet-name snet-web --subnet-prefixes 10.10.1.0/24\naz network vnet subnet create -g rg-net --vnet-name vnet-prod -n snet-app --address-prefixes 10.10.2.0/24\naz network vnet subnet create -g rg-net --vnet-name vnet-prod -n AzureBastionSubnet --address-prefixes 10.10.250.0/26\naz network vnet subnet list -g rg-net --vnet-name vnet-prod -o table",
+    "powershell": "$web = New-AzVirtualNetworkSubnetConfig -Name snet-web -AddressPrefix 10.10.1.0/24\n$app = New-AzVirtualNetworkSubnetConfig -Name snet-app -AddressPrefix 10.10.2.0/24\nNew-AzVirtualNetwork -Name vnet-prod -ResourceGroupName rg-net -Location westeurope `\n  -AddressPrefix 10.10.0.0/16 -Subnet $web, $app",
+    "bicep": "resource vnet 'Microsoft.Network/virtualNetworks@2023-09-01' = {\n  name: 'vnet-prod'\n  location: location\n  properties: {\n    addressSpace: { addressPrefixes: [ '10.10.0.0/16' ] }\n    subnets: [\n      { name: 'snet-web', properties: { addressPrefix: '10.10.1.0/24' } }\n      { name: 'snet-app', properties: { addressPrefix: '10.10.2.0/24' } }\n      { name: 'AzureBastionSubnet', properties: { addressPrefix: '10.10.250.0/26' } }\n    ]\n  }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "subnet-calculator",
+    "objective": "Build a valid address plan for a VNet and a peer VNet.",
+    "duration": 15,
+    "steps": [
+      "Enter 10.10.1.0/24 and read which five addresses Azure reserves.",
+      "Add a subnet 10.10.1.128/25 and observe the overlap error; fix it.",
+      "Set the peer VNet to 10.10.128.0/17 and observe the peering conflict; change it to 10.20.0.0/16."
+    ],
+    "expected": [
+      "251 usable in a /24",
+      "Overlap flagged",
+      "Peering allowed once address spaces do not overlap"
+    ],
+    "validation": [
+      {
+        "id": "reserved-5",
+        "text": "Inspected the reserved addresses of a subnet"
+      },
+      {
+        "id": "overlap-detected",
+        "text": "Triggered an overlap or out-of-range error"
+      },
+      {
+        "id": "valid-plan",
+        "text": "Finished with a valid subnet plan and a peerable second VNet"
+      }
+    ],
+    "failureScenarios": [
+      "/30 subnet requested",
+      "Subnet outside the address space",
+      "Misaligned prefix such as 10.10.2.5/24"
+    ],
+    "cleanup": [
+      "Simulation only."
+    ],
+    "cost": "None. VNets and subnets themselves are free in Azure; resources inside them are billed."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "'Subnet is not valid in virtual network' when creating a subnet.",
+      "cause": "Range is outside the VNet address space or overlaps an existing subnet.",
+      "fix": "Add an address space or pick a free, aligned range."
+    },
+    {
+      "symptom": "Cannot shrink or move a subnet.",
+      "cause": "The subnet contains resources (NICs, private endpoints, delegations).",
+      "fix": "Move or delete the resources first, or create a new subnet and migrate."
+    },
+    {
+      "symptom": "Peering creation fails with overlapping address space.",
+      "cause": "The two VNets share part of their address space.",
+      "fix": "Re-address one VNet; peering never supports overlap."
+    },
+    {
+      "symptom": "VPN gateway deployment fails.",
+      "cause": "No subnet named exactly GatewaySubnet, or it is too small.",
+      "fix": "Create GatewaySubnet (/27 or larger) with no NSG blocking gateway traffic."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS VPC",
+      "difference": "AWS subnets live in a single Availability Zone and AWS reserves 5 addresses per subnet as well; Azure subnets span all zones of the region."
+    },
+    {
+      "service": "On-premises VLANs",
+      "difference": "Azure does not support broadcast or multicast within a VNet; routing between subnets is automatic through system routes."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "A /24 subnet provides 254 usable addresses in Azure.",
+      "reality": "Azure reserves 5, so 251."
+    },
+    {
+      "myth": "You need a separate subnet per availability zone.",
+      "reality": "Azure subnets span zones; you pick the zone on the resource."
+    },
+    {
+      "myth": "Address spaces can overlap if the VNets are in different regions.",
+      "reality": "Overlap blocks peering and gateway connectivity regardless of region."
+    }
+  ],
+  "architectureDecisions": [
+    "Reserve a large, non-overlapping block per region (for example a /16) and allocate VNets from it with an IPAM process.",
+    "Create GatewaySubnet and AzureBastionSubnet at the top of the hub range early; they are hard to add once the space is full.",
+    "Size subnets for scale-out and for services that consume many IPs (AKS, App Service VNet integration, private endpoints)."
+  ],
+  "docs": [
+    {
+      "title": "What is Azure Virtual Network?",
+      "url": "https://learn.microsoft.com/azure/virtual-network/virtual-networks-overview"
+    },
+    {
+      "title": "Azure Virtual Network FAQ (reserved addresses, allowed ranges)",
+      "url": "https://learn.microsoft.com/azure/virtual-network/virtual-networks-faq"
+    },
+    {
+      "title": "Add, change, or delete a virtual network subnet",
+      "url": "https://learn.microsoft.com/azure/virtual-network/virtual-network-manage-subnet"
+    },
+    {
+      "title": "Plan virtual networks",
+      "url": "https://learn.microsoft.com/azure/virtual-network/virtual-network-vnet-plan-design-arm"
+    },
+    {
+      "title": "Azure subscription and service limits: networking",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/azure-subscription-service-limits#networking-limits"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Plan a private network in Azure: address ranges, subnets, and how VMs reach the internet.",
+    "learn": [
+      "Address spaces and subnets",
+      "Five reserved IPs per subnet",
+      "Planning ranges that never overlap",
+      "Private subnets and outbound internet access"
+    ],
+    "nodes": [
+      {
+        "id": "vnet",
+        "label": "VNet 10.10.0.0/16",
+        "x": 400,
+        "y": 70,
+        "kind": "network",
+        "sub": "address space"
+      },
+      {
+        "id": "web",
+        "label": "snet-web 10.10.1.0/24",
+        "x": 180,
+        "y": 210,
+        "kind": "network"
+      },
+      {
+        "id": "app",
+        "label": "snet-app 10.10.2.0/24",
+        "x": 620,
+        "y": 210,
+        "kind": "network"
+      },
+      {
+        "id": "vm1",
+        "label": "Web VM 10.10.1.4",
+        "x": 180,
+        "y": 350,
+        "kind": "compute"
+      },
+      {
+        "id": "vm2",
+        "label": "App VM 10.10.2.4",
+        "x": 620,
+        "y": 350,
+        "kind": "compute"
+      },
+      {
+        "id": "nat",
+        "label": "NAT gateway",
+        "x": 400,
+        "y": 350,
+        "kind": "network",
+        "sub": "outbound internet"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Network",
+        "title": "Servers need a private network",
+        "body": [
+          "Web servers, app servers and databases must talk to each other privately, and you must be able to connect it to the office later without IP clashes."
+        ],
+        "show": [
+          "vnet"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Address space",
+        "title": "A VNet has an address space; subnets slice it",
+        "body": [
+          "A virtual network lives in one region and subscription and has one or more address ranges in CIDR notation, such as 10.10.0.0/16 (65,536 addresses). Subnets divide it, for example 10.10.1.0/24 for web and 10.10.2.0/24 for app."
+        ],
+        "show": [
+          "vnet",
+          "web",
+          "app"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vnet",
+            "to": "web",
+            "fresh": true
+          },
+          {
+            "from": "vnet",
+            "to": "app",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Reserved",
+        "title": "Azure keeps five addresses in every subnet",
+        "body": [
+          "The first four and the last address of each subnet are reserved. A /24 has 256 addresses, so 251 are usable. The smallest subnet is /29 (8 addresses, 3 usable). VMs get the next free address, starting at .4."
+        ],
+        "show": [
+          "vnet",
+          "web",
+          "app",
+          "vm1",
+          "vm2"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vnet",
+            "to": "web"
+          },
+          {
+            "from": "vnet",
+            "to": "app"
+          },
+          {
+            "from": "web",
+            "to": "vm1",
+            "fresh": true
+          },
+          {
+            "from": "app",
+            "to": "vm2",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Exam favourite: how many usable IPs in a /27? 32 − 5 = 27."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Plan",
+        "title": "Plan ranges that never overlap",
+        "body": [
+          "Use private ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16). Leave room to grow. Never overlap with on-premises or other VNets you might peer, because overlapping networks cannot be connected.",
+          "Some services need their own named subnet: GatewaySubnet, AzureBastionSubnet, AzureFirewallSubnet."
+        ],
+        "show": [
+          "vnet",
+          "web",
+          "app",
+          "vm1",
+          "vm2"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vnet",
+            "to": "web"
+          },
+          {
+            "from": "vnet",
+            "to": "app"
+          },
+          {
+            "from": "web",
+            "to": "vm1"
+          },
+          {
+            "from": "app",
+            "to": "vm2"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Outbound",
+        "title": "Private subnets: no automatic internet",
+        "body": [
+          "New VNets now create private subnets by default: VMs no longer get Azure's hidden 'default outbound access' to the internet. Give outbound access explicitly with a NAT gateway (recommended), a public IP on the VM, or a load balancer outbound rule."
+        ],
+        "show": [
+          "vnet",
+          "web",
+          "app",
+          "vm1",
+          "vm2",
+          "nat"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vnet",
+            "to": "web"
+          },
+          {
+            "from": "vnet",
+            "to": "app"
+          },
+          {
+            "from": "web",
+            "to": "vm1"
+          },
+          {
+            "from": "app",
+            "to": "vm2"
+          },
+          {
+            "from": "app",
+            "to": "nat",
+            "fresh": true
+          },
+          {
+            "from": "web",
+            "to": "nat",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "If a new VM cannot download updates, check how the subnet reaches the internet."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "VNets and subnets",
+        "body": [
+          "Plan ranges first; subnets slice them."
+        ],
+        "show": [
+          "vnet",
+          "web",
+          "app",
+          "vm1",
+          "vm2",
+          "nat"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vnet",
+            "to": "web"
+          },
+          {
+            "from": "vnet",
+            "to": "app"
+          },
+          {
+            "from": "web",
+            "to": "vm1"
+          },
+          {
+            "from": "app",
+            "to": "vm2"
+          },
+          {
+            "from": "app",
+            "to": "nat"
+          },
+          {
+            "from": "web",
+            "to": "nat"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "VNet = one region, address space in CIDR",
+          "Subnets divide the space",
+          "5 reserved IPs per subnet; /29 is smallest",
+          "No overlaps if you will ever connect networks",
+          "Private subnets need NAT gateway or a public IP for internet"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a VNet with two subnets and work out usable addresses",
+    "minutes": 15,
+    "costLevel": "free",
+    "cost": "Free. Virtual networks and subnets cost nothing.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Virtual networks' > + Create. Group rg-az104-lab, name vnet-lab, region UAE North (or any region near you)."
+      },
+      {
+        "do": "IP addresses tab: set the address space to 10.10.0.0/16. Delete the default subnet. Add subnet snet-app 10.10.1.0/24 and subnet snet-web 10.10.2.0/27.",
+        "see": "Each subnet shows its size: 256 and 32 addresses.",
+        "tip": "Read the 'Enable private subnet' option on each subnet. It removes default outbound internet access."
+      },
+      {
+        "do": "Review + create > Create. Open vnet-lab > Settings > Subnets.",
+        "see": "Available IPs: 251 for snet-app and 27 for snet-web (5 reserved each)."
+      },
+      {
+        "do": "Select + Subnet and choose Subnet purpose: Azure Bastion.",
+        "see": "The name is fixed to AzureBastionSubnet. Cancel without creating."
+      },
+      {
+        "do": "Open Settings > Address space and add 10.11.0.0/16. Save.",
+        "see": "The VNet now has two address ranges."
+      },
+      {
+        "do": "Try adding a subnet 10.10.1.128/25.",
+        "see": "An error: it overlaps snet-app."
+      }
+    ],
+    "check": [
+      "vnet-lab has two subnets; you confirmed the 5 reserved addresses."
+    ],
+    "cleanup": [
+      "Keep vnet-lab for the next networking labs, or: When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: create a virtual network in the portal",
+        "url": "https://learn.microsoft.com/azure/virtual-network/quick-create-portal"
+      },
+      {
+        "title": "Add, change or delete a subnet",
+        "url": "https://learn.microsoft.com/azure/virtual-network/virtual-network-manage-subnet"
+      },
+      {
+        "title": "Default outbound access in Azure",
+        "url": "https://learn.microsoft.com/azure/virtual-network/ip-services/default-outbound-access"
+      }
+    ]
+  }
+}

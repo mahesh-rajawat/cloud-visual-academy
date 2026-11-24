@@ -1,0 +1,255 @@
+{
+  "id": "ai901-agents",
+  "exam": "ai-901",
+  "title": "Build and test a single agent, and a client app for it",
+  "objectiveIds": [
+    "AI901-2.1.4",
+    "AI901-2.1.5"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Create and test a single-agent solution in the Foundry portal, and build a lightweight client application that talks to the agent.",
+  "prerequisites": [
+    {
+      "text": "Chat client with the SDK",
+      "objectiveId": "AI901-2.1.3",
+      "lessonId": "ai901-sdk-chat-client"
+    }
+  ],
+  "foundation": [
+    "An agent is a model plus instructions plus tools. Tools let it do things a model alone can't: search your files, run code, search the web, or call your own functions and APIs.",
+    "In the Foundry portal you create an agent, choose its model, write its instructions, add tools and test it in the agent playground.",
+    "Your app then talks to the agent by name: it starts a conversation, sends messages and shows the replies."
+  ],
+  "engineer": [
+    "Foundry Agent Service: agents are versioned definitions (model deployment, instructions, tools). Create in the portal (Agents > New agent) or in code with project.agents.create_version(agent_name=..., definition=PromptAgentDefinition(model=..., instructions=..., tools=[...])).",
+    "Tools: file search (uploaded files in a vector store, for grounded answers with citations), code interpreter (sandboxed Python for analysis and charts), web search (current public information), function calling (the model returns a function call; your code runs it and sends the result back), OpenAPI tools (call REST APIs from a spec), MCP servers (Model Context Protocol tools) and memory.",
+    "Testing: the agent playground shows each run, tool calls and their outputs; use tracing and evaluations for quality and safety. Keep instructions explicit about when to use each tool and what to do when unsure.",
+    "Client app: agent_client = project.get_openai_client(agent_name='<agent>'); conversation = agent_client.conversations.create(); reply = agent_client.responses.create(conversation=conversation.id, input='...'); print(reply.output_text). Reuse the conversation ID for follow-up turns.",
+    "Function tools: when the response contains a function call, your client runs the function (for example look up an order) and submits the output in the next request; the agent then completes its answer. Give tools least privilege and validate their inputs."
+  ],
+  "animation": {
+    "id": "ai901-agent-sim",
+    "caption": "Give the agent the tool it needs for each request, including client-side function calling."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "user",
+        "label": "User via client app",
+        "x": 0,
+        "y": 100,
+        "kind": "user"
+      },
+      {
+        "id": "conv",
+        "label": "Conversation (id)",
+        "x": 220,
+        "y": 100,
+        "kind": "service"
+      },
+      {
+        "id": "agent",
+        "label": "Agent: model + instructions",
+        "x": 440,
+        "y": 100,
+        "kind": "ai"
+      },
+      {
+        "id": "fs",
+        "label": "File search",
+        "x": 680,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "ci",
+        "label": "Code interpreter",
+        "x": 680,
+        "y": 80,
+        "kind": "service"
+      },
+      {
+        "id": "fn",
+        "label": "Function call → your code",
+        "x": 680,
+        "y": 160,
+        "kind": "service"
+      },
+      {
+        "id": "web",
+        "label": "Web search / OpenAPI / MCP",
+        "x": 680,
+        "y": 240,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "user",
+        "to": "conv"
+      },
+      {
+        "from": "conv",
+        "to": "agent"
+      },
+      {
+        "from": "agent",
+        "to": "fs"
+      },
+      {
+        "from": "agent",
+        "to": "ci"
+      },
+      {
+        "from": "agent",
+        "to": "fn"
+      },
+      {
+        "from": "agent",
+        "to": "web"
+      },
+      {
+        "from": "fn",
+        "to": "user",
+        "label": "client runs function"
+      }
+    ]
+  },
+  "example": {
+    "title": "An HR policy agent",
+    "body": [
+      "HR uploads 200 policy PDFs and creates 'policy-agent' with file search and instructions to cite the policy and say when unsure. In the playground, 'How many vacation days do new staff get?' returns an answer citing the leave policy.",
+      "A small Python client lets employees ask questions from Teams; a function tool 'get_leave_balance' runs in the client to look up each employee's balance."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Foundry portal > your project > Agents > New agent: choose the model deployment, write instructions.",
+      "Add tools: File search (upload documents), Code interpreter, Web search or functions.",
+      "Test in the agent playground; review the thread and tool calls.",
+      "Copy the project endpoint from the project Overview page."
+    ],
+    "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name chat-model --model-name gpt-5-mini --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50\n# Give your user access to the project\naz role assignment create --assignee <user-or-identity> --role \"Azure AI User\" \\\n  --scope $(az cognitiveservices account show -n contoso-ai -g rg-ai901 --query id -o tsv)",
+    "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI\nNew-AzRoleAssignment -SignInName user@contoso.com -RoleDefinitionName 'Azure AI User' -Scope (Get-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai).Id",
+    "python": "# pip install \"azure-ai-projects>=2.3.0\" azure-identity\nimport os\nfrom azure.identity import DefaultAzureCredential\nfrom azure.ai.projects import AIProjectClient\n\nproject = AIProjectClient(endpoint=os.environ[\"FOUNDRY_PROJECT_ENDPOINT\"], credential=DefaultAzureCredential())\nopenai = project.get_openai_client()\n\nfrom azure.ai.projects.models import PromptAgentDefinition\n\nagent = project.agents.create_version(\n    agent_name=\"policy-agent\",\n    definition=PromptAgentDefinition(model=\"chat-model\", instructions=\"Answer HR questions briefly. Say when you are unsure.\"),\n)\nagent_client = project.get_openai_client(agent_name=\"policy-agent\")\nconversation = agent_client.conversations.create()\nreply = agent_client.responses.create(conversation=conversation.id, input=\"How many vacation days do new staff get?\")\nprint(reply.output_text)\n"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-agent-sim",
+    "objective": "Equip an agent with the right tools.",
+    "duration": 20,
+    "steps": [
+      "Single agent with tools tab: run each request; add the missing tool; try the function-calling preset.",
+      "Agent tools tab: answer every task."
+    ],
+    "expected": [
+      "Agents need the right tool for the task",
+      "Function calls are executed by your code"
+    ],
+    "validation": [
+      {
+        "id": "ai-agent-tool",
+        "text": "Agent completed a task with a tool"
+      },
+      {
+        "id": "ai-agent-missing-tool",
+        "text": "Saw an agent lacking a tool"
+      },
+      {
+        "id": "ai-agent-function",
+        "text": "Used function calling"
+      },
+      {
+        "id": "agent-tool-correct",
+        "text": "Chose the right tool"
+      },
+      {
+        "id": "agent-tool-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Expecting the agent to run your functions itself",
+      "Giving tools more access than needed"
+    ],
+    "cleanup": [
+      "Simulation: use Reset.",
+      "If you ran it in Azure: az group delete --name rg-ai901 --yes (deletes the Foundry resource, projects and deployments)."
+    ],
+    "cost": "Simulation: free. Optional real run: model tokens and Foundry Tools transactions are billed per use; delete the resource group afterwards."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Agent answers from general knowledge instead of policies.",
+      "cause": "No file search tool or files not indexed.",
+      "fix": "Add file search with a vector store containing the files; instruct it to cite."
+    },
+    {
+      "symptom": "Client hangs after a function call.",
+      "cause": "The client never sent the function output back.",
+      "fix": "Run the function and submit its result in the next request."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Agent vs chat client",
+      "difference": "A chat client only generates text; an agent can use tools and act."
+    },
+    {
+      "service": "File search vs web search",
+      "difference": "File search uses your uploaded documents; web search uses public web results."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Agents always need multiple agents.",
+      "reality": "A single agent with tools covers many scenarios."
+    },
+    {
+      "myth": "The agent executes function tools in Azure.",
+      "reality": "Function tools run in your client code."
+    },
+    {
+      "myth": "Tools make answers automatically correct.",
+      "reality": "Evaluate and trace agent runs."
+    }
+  ],
+  "architectureDecisions": [
+    "Start with one agent and few tools.",
+    "Write explicit tool-use instructions.",
+    "Trace and evaluate before releasing."
+  ],
+  "docs": [
+    {
+      "title": "Foundry Agent Service overview",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/agents/overview"
+    },
+    {
+      "title": "Agent tools overview",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/agents/how-to/tools/overview"
+    },
+    {
+      "title": "Function calling with agents",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/agents/how-to/tools/function-calling"
+    },
+    {
+      "title": "Azure AI Projects client library for Python",
+      "url": "https://learn.microsoft.com/python/api/overview/azure/ai-projects-readme"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

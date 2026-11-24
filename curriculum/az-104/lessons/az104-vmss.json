@@ -1,0 +1,578 @@
+{
+  "id": "az104-vmss",
+  "exam": "az-104",
+  "title": "Virtual Machine Scale Sets and autoscale",
+  "objectiveIds": [
+    "AZ104-3.2.7"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Deploy a scale set with the right orchestration mode and upgrade policy, and design autoscale rules that scale out and in without flapping.",
+  "prerequisites": [
+    {
+      "text": "Availability zones and sets",
+      "objectiveId": "AZ104-3.2.6",
+      "lessonId": "az104-vm-availability"
+    },
+    {
+      "text": "Scalability and elasticity (AZ-900)",
+      "objectiveId": "AZ900-1.2.1"
+    }
+  ],
+  "foundation": [
+    "A Virtual Machine Scale Set manages a group of VMs as one unit, so you can run many identical web servers and add or remove them automatically.",
+    "Autoscale watches a metric such as CPU and adds instances when it is high and removes them when it is low, within a minimum and maximum you set.",
+    "Scale sets can spread instances across availability zones and fault domains for resilience."
+  ],
+  "engineer": [
+    "Orchestration modes: Flexible (recommended): standard VMs that can mix sizes, can be managed with VM APIs, and are spread across fault domains and zones. Uniform: identical instances from one scale set model, managed through VMSS APIs, suited to large stateless fleets.",
+    "Upgrade policy for model changes (for example a new image): Manual (you upgrade instances), Automatic (all instances updated in an undefined order, possibly simultaneously) or Rolling (batches with pauses and health checks via the Application Health extension or a load balancer probe).",
+    "Autoscale settings (Azure Monitor autoscale): a profile with minimum, maximum and default instance counts; rules with metric, time aggregation, operator, threshold, duration (look-back window, for example 10 minutes), action (increase/decrease by count or percent) and cooldown (default 5 minutes). Schedule-based profiles handle predictable peaks.",
+    "Behaviour: autoscale scales out if any scale-out rule is met, and scales in only when the scale-in conditions are met. Flapping protection estimates the post-scale-in metric and skips scale-in if it would immediately trigger a scale-out. Keep a gap between thresholds (for example out > 70%, in < 30%).",
+    "Scale-in policy: Default (balance across zones/FDs, then remove highest instance ID), NewestVM or OldestVM. Instance protection prevents specific instances from scale-in or model updates. Use custom images from Azure Compute Gallery and cloud-init or extensions for configuration.",
+    "Limits: up to 1,000 VM instances in a scale set (lower with custom images in some cases). Autoscale needs a metric source; the guest-level metrics require the Azure Monitor agent."
+  ],
+  "animation": {
+    "id": "autoscale-sim",
+    "caption": "Tune VMSS autoscale rules against a traffic peak and watch instances follow."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "lb",
+        "label": "Load balancer",
+        "x": 0,
+        "y": 60,
+        "kind": "network"
+      },
+      {
+        "id": "vmss",
+        "label": "vmss-web (Flexible, zones 1–3)",
+        "x": 240,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "mon",
+        "label": "Azure Monitor: CPU",
+        "x": 500,
+        "y": 0,
+        "kind": "service"
+      },
+      {
+        "id": "as",
+        "label": "Autoscale: 2–10, out>70%, in<30%",
+        "x": 500,
+        "y": 130,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "lb",
+        "to": "vmss"
+      },
+      {
+        "from": "vmss",
+        "to": "mon",
+        "label": "metrics"
+      },
+      {
+        "from": "mon",
+        "to": "as"
+      },
+      {
+        "from": "as",
+        "to": "vmss",
+        "label": "set capacity"
+      }
+    ]
+  },
+  "example": {
+    "title": "Black Friday web tier",
+    "body": [
+      "The shop's web tier runs as a Flexible scale set across three zones with autoscale 3–30 instances: +2 when average CPU > 70% for 10 minutes, -1 when < 30% for 15 minutes, cooldown 5 minutes.",
+      "A scheduled profile raises the minimum to 10 on the event day. Rolling upgrades with health probes roll out a patched image without downtime."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "VNet/subnet and load balancer or Application Gateway",
+      "Image (marketplace or Compute Gallery)"
+    ],
+    "permissions": [
+      "Virtual Machine Contributor",
+      "Monitoring Contributor to edit autoscale settings"
+    ],
+    "limits": [
+      "Up to 1,000 instances",
+      "Cooldown default 5 minutes",
+      "Autoscale needs metric data"
+    ],
+    "portal": [
+      "Virtual machine scale sets > Create: orchestration mode, image, size, zones, scaling (manual or autoscale), upgrade policy, health monitoring.",
+      "Scale set > Scaling: Custom autoscale > add rules and schedule profiles; view run history.",
+      "Scale set > Instances: upgrade, protect or delete instances."
+    ],
+    "cli": "az vmss create -g rg-app -n vmss-web --image Ubuntu2204 --orchestration-mode Flexible --vm-sku Standard_D2s_v5 \\\n  --instance-count 2 --zones 1 2 3 --admin-username azureuser --generate-ssh-keys\naz monitor autoscale create -g rg-app --resource vmss-web --resource-type Microsoft.Compute/virtualMachineScaleSets \\\n  --name as-web --min-count 2 --max-count 10 --count 2\naz monitor autoscale rule create -g rg-app --autoscale-name as-web --condition \"Percentage CPU > 70 avg 10m\" --scale out 1\naz monitor autoscale rule create -g rg-app --autoscale-name as-web --condition \"Percentage CPU < 30 avg 10m\" --scale in 1\naz vmss scale -g rg-app -n vmss-web --new-capacity 5",
+    "powershell": "New-AzVmss -ResourceGroupName rg-app -VMScaleSetName vmss-web -Location westeurope -OrchestrationMode Flexible -VmSize Standard_D2s_v5 `\n  -InstanceCount 2 -Zone 1,2,3 -ImageName Ubuntu2204 -Credential (Get-Credential)\nUpdate-AzVmss -ResourceGroupName rg-app -VMScaleSetName vmss-web -SkuCapacity 5\nGet-AzAutoscaleSetting -ResourceGroupName rg-app"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "autoscale-sim",
+    "objective": "Design autoscale rules that handle a peak without flapping or saturation.",
+    "duration": 15,
+    "steps": [
+      "Run the default rules and read the instance curve.",
+      "Apply 'Flapping' and 'Max too low' presets and explain each warning.",
+      "Find settings that keep CPU unsaturated with the fewest scale actions."
+    ],
+    "expected": [
+      "Close thresholds flag flapping risk",
+      "Low max causes saturation"
+    ],
+    "validation": [
+      {
+        "id": "autoscale-problem",
+        "text": "Diagnosed a poor autoscale configuration"
+      },
+      {
+        "id": "autoscale-tuned",
+        "text": "Tuned autoscale to a healthy result"
+      }
+    ],
+    "failureScenarios": [
+      "Thresholds too close",
+      "Maximum too low",
+      "Duration too short"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Instances never scale in.",
+      "cause": "Scale-in threshold too low or flapping protection prevents it.",
+      "fix": "Widen the gap between thresholds and check autoscale run history."
+    },
+    {
+      "symptom": "Autoscale does nothing.",
+      "cause": "Metric unavailable (for example guest metrics without the agent) or the profile is disabled.",
+      "fix": "Check run history and metric availability."
+    },
+    {
+      "symptom": "Model update did not reach instances.",
+      "cause": "Upgrade policy Manual.",
+      "fix": "Upgrade instances, or switch to Rolling."
+    },
+    {
+      "symptom": "New instances fail health checks during rolling upgrade.",
+      "cause": "Bad image or app config.",
+      "fix": "Rolling upgrade pauses; fix the image and resume."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS EC2 Auto Scaling groups",
+      "difference": "Equivalent concept with launch templates and scaling policies."
+    },
+    {
+      "service": "App Service autoscale",
+      "difference": "Same Azure Monitor autoscale engine, applied to App Service plans."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Autoscale reacts instantly.",
+      "reality": "It evaluates over the duration window and waits for the cooldown."
+    },
+    {
+      "myth": "Uniform mode is required for autoscale.",
+      "reality": "Both modes support autoscale; Flexible is recommended for new deployments."
+    }
+  ],
+  "architectureDecisions": [
+    "Use Flexible orchestration across zones.",
+    "Combine metric rules with schedule profiles for predictable peaks.",
+    "Use rolling upgrades with health probes."
+  ],
+  "docs": [
+    {
+      "title": "What are Virtual Machine Scale Sets?",
+      "url": "https://learn.microsoft.com/azure/virtual-machine-scale-sets/overview"
+    },
+    {
+      "title": "Orchestration modes",
+      "url": "https://learn.microsoft.com/azure/virtual-machine-scale-sets/virtual-machine-scale-sets-orchestration-modes"
+    },
+    {
+      "title": "Autoscale best practices",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/autoscale/autoscale-best-practices"
+    },
+    {
+      "title": "Upgrade policies",
+      "url": "https://learn.microsoft.com/azure/virtual-machine-scale-sets/virtual-machine-scale-sets-upgrade-policy"
+    },
+    {
+      "title": "Scale-in policies",
+      "url": "https://learn.microsoft.com/azure/virtual-machine-scale-sets/virtual-machine-scale-sets-scale-in-policy"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Run many identical VMs that grow and shrink with demand.",
+    "learn": [
+      "What a scale set is",
+      "Orchestration modes",
+      "Autoscale rules and limits",
+      "Upgrade policy"
+    ],
+    "nodes": [
+      {
+        "id": "users",
+        "label": "Users",
+        "x": 110,
+        "y": 220,
+        "kind": "user"
+      },
+      {
+        "id": "lb",
+        "label": "Load balancer",
+        "x": 330,
+        "y": 220,
+        "kind": "network"
+      },
+      {
+        "id": "ss",
+        "label": "Scale set",
+        "x": 560,
+        "y": 90,
+        "kind": "compute",
+        "sub": "min 2, max 10"
+      },
+      {
+        "id": "vm1",
+        "label": "Instance 1",
+        "x": 560,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "vm2",
+        "label": "Instance 2",
+        "x": 560,
+        "y": 340,
+        "kind": "compute"
+      },
+      {
+        "id": "mon",
+        "label": "Autoscale",
+        "x": 330,
+        "y": 380,
+        "kind": "service",
+        "sub": "CPU > 70%"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Busy evenings",
+        "title": "Traffic triples every evening",
+        "body": [
+          "Two VMs are too few at 8 p.m. and too many at 4 a.m. Adding VMs by hand every day is not a plan."
+        ],
+        "show": [
+          "users",
+          "lb",
+          "vm1"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "lb",
+            "fresh": true
+          },
+          {
+            "from": "lb",
+            "to": "vm1",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Scale set",
+        "title": "A scale set manages identical VMs as one",
+        "body": [
+          "A Virtual Machine Scale Set creates instances from one configuration and spreads them across fault domains or zones. Put it behind a load balancer.",
+          "Flexible orchestration (the default) lets you mix sizes and manage instances like normal VMs; Uniform uses identical instances managed only through the set."
+        ],
+        "show": [
+          "users",
+          "lb",
+          "vm1",
+          "ss",
+          "vm2"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "lb"
+          },
+          {
+            "from": "lb",
+            "to": "vm1"
+          },
+          {
+            "from": "ss",
+            "to": "vm1",
+            "fresh": true
+          },
+          {
+            "from": "ss",
+            "to": "vm2",
+            "fresh": true
+          },
+          {
+            "from": "lb",
+            "to": "vm2",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Autoscale",
+        "title": "Autoscale adds and removes instances",
+        "body": [
+          "Set a minimum, maximum and default instance count. Add rules: scale out by 1 when average CPU is over 70% for 10 minutes; scale in by 1 when under 30%. Or scale on a schedule."
+        ],
+        "show": [
+          "users",
+          "lb",
+          "vm1",
+          "ss",
+          "vm2",
+          "mon"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "lb"
+          },
+          {
+            "from": "lb",
+            "to": "vm1"
+          },
+          {
+            "from": "ss",
+            "to": "vm1"
+          },
+          {
+            "from": "ss",
+            "to": "vm2"
+          },
+          {
+            "from": "lb",
+            "to": "vm2"
+          },
+          {
+            "from": "mon",
+            "to": "ss",
+            "label": "scale out / in",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Always add a scale-in rule too, or the set only ever grows."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Upgrades",
+        "title": "Updating the instances",
+        "body": [
+          "The upgrade policy decides how model changes reach instances: Manual (you upgrade each), Automatic (all at once), or Rolling (in batches, safest)."
+        ],
+        "show": [
+          "users",
+          "lb",
+          "vm1",
+          "ss",
+          "vm2",
+          "mon"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "lb"
+          },
+          {
+            "from": "lb",
+            "to": "vm1"
+          },
+          {
+            "from": "ss",
+            "to": "vm1"
+          },
+          {
+            "from": "ss",
+            "to": "vm2"
+          },
+          {
+            "from": "lb",
+            "to": "vm2"
+          },
+          {
+            "from": "mon",
+            "to": "ss",
+            "label": "scale out / in"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Scale sets",
+        "body": [
+          "Many identical VMs, sized by demand."
+        ],
+        "show": [
+          "users",
+          "lb",
+          "vm1",
+          "ss",
+          "vm2",
+          "mon"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "lb"
+          },
+          {
+            "from": "lb",
+            "to": "vm1"
+          },
+          {
+            "from": "ss",
+            "to": "vm1"
+          },
+          {
+            "from": "ss",
+            "to": "vm2"
+          },
+          {
+            "from": "lb",
+            "to": "vm2"
+          },
+          {
+            "from": "mon",
+            "to": "ss",
+            "label": "scale out / in"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "One config, many instances, behind a load balancer",
+          "Flexible (default) vs Uniform orchestration",
+          "Min, max, default + scale out AND scale in rules",
+          "Upgrade policy: Manual, Automatic, Rolling"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a small scale set with an autoscale rule",
+    "minutes": 30,
+    "costLevel": "low",
+    "cost": "Low. Two B1s instances cost about US$0.02 per hour together. Delete the same day.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Virtual machine scale sets' > + Create. Group rg-az104-lab, name vmss-lab, region your region, orchestration: Flexible, image Ubuntu 24.04, size Standard_B1s, password authentication.",
+        "see": "The Basics tab filled in."
+      },
+      {
+        "do": "Scaling section: choose Autoscaling, then 'Configure'. Default 2, minimum 1, maximum 3. Scale out: CPU above 70% adds 1. Scale in: CPU below 30% removes 1. Save.",
+        "see": "A summary of the scaling policy."
+      },
+      {
+        "do": "Networking tab: keep the new VNet. Do not add a load balancer for this lab. Review + create > Create.",
+        "see": "Deployment completes in a few minutes."
+      },
+      {
+        "do": "Open vmss-lab > Instances.",
+        "see": "Two instances running."
+      },
+      {
+        "do": "Open Availability + scale > Scaling.",
+        "see": "Your autoscale settings: minimum 1, maximum 3, default 2, and both rules."
+      },
+      {
+        "do": "Wait about 15 minutes, then open Scaling > Run history (or Instances).",
+        "see": "CPU stays under 30%, so the scale-in rule removes one instance, down to the minimum of 1.",
+        "tip": "The default count is only used when metrics are unavailable; the rules decide the real count."
+      },
+      {
+        "do": "Open Settings > Upgrade policy (or Configuration).",
+        "see": "The upgrade mode for model changes."
+      }
+    ],
+    "check": [
+      "The scale set has instances and an autoscale profile with scale-out and scale-in rules."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: create a scale set in the portal",
+        "url": "https://learn.microsoft.com/azure/virtual-machine-scale-sets/flexible-virtual-machine-scale-sets-portal"
+      },
+      {
+        "title": "Automatically scale a scale set in the portal",
+        "url": "https://learn.microsoft.com/azure/virtual-machine-scale-sets/virtual-machine-scale-sets-autoscale-portal"
+      },
+      {
+        "title": "Orchestration modes",
+        "url": "https://learn.microsoft.com/azure/virtual-machine-scale-sets/virtual-machine-scale-sets-orchestration-modes"
+      }
+    ]
+  }
+}

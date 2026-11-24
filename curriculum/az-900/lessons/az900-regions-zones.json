@@ -1,0 +1,237 @@
+{
+  "id": "az900-regions-zones",
+  "exam": "az-900",
+  "title": "Regions, region pairs, sovereign regions, availability zones and datacenters",
+  "objectiveIds": [
+    "AZ900-2.1.1",
+    "AZ900-2.1.2",
+    "AZ900-2.1.3"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Describe Azure's physical infrastructure (datacenters, availability zones, regions, region pairs and sovereign regions) and what failure each protects against.",
+  "prerequisites": [
+    {
+      "text": "High availability",
+      "objectiveId": "AZ900-1.2.1",
+      "lessonId": "az900-availability-scalability"
+    }
+  ],
+  "foundation": [
+    "Datacenter: a building full of servers with its own power, cooling and networking. You never pick a datacenter directly.",
+    "Region: a geographic area (for example West Europe) with one or more datacenters linked by a fast, low-latency network. You choose a region when you create most resources.",
+    "Availability zone: a physically separate location inside a region (one or more datacenters) with independent power, cooling and networking. Regions that support zones have at least three.",
+    "Region pair: two regions in the same geography (for example UK South and UK West) that Microsoft treats as partners for updates and disaster recovery. Sovereign regions are separate instances of Azure for governments or specific countries."
+  ],
+  "engineer": [
+    "Regions: more than 60 worldwide. Choose by latency to users, data residency, service availability and price. Some services are global (for example Microsoft Entra ID, Azure DNS, Front Door) and have no region.",
+    "Availability zones: zonal services pin a resource to one zone (a VM in zone 1); zone-redundant services replicate across zones automatically (ZRS storage, zone-redundant SQL). Using zones protects against a datacenter failure and enables higher SLAs; there may be a small data transfer cost between zones.",
+    "Region pairs: each pair is at least 300 miles apart where possible, platform updates are rolled out to one region of a pair at a time, and one region of each pair is prioritised for recovery in a broad outage. Some services (such as GRS storage) replicate to the paired region. Most pairs are bidirectional; some newer regions have no pair and rely on zones.",
+    "Sovereign regions: Azure Government (US government agencies and partners, physically and logically isolated, screened personnel) and Azure operated by 21Vianet (China; Microsoft doesn't directly operate the datacenters).",
+    "Failure scopes: rack/host → availability sets or zones; datacenter → availability zones; region → a second region (pair or another region) with replication and failover."
+  ],
+  "animation": {
+    "id": "az900-regions-sim",
+    "caption": "Inject failures at rack, datacenter and region scope, then name each part of the infrastructure."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "geo",
+        "label": "Geography: Europe",
+        "x": 0,
+        "y": 80,
+        "kind": "scope"
+      },
+      {
+        "id": "r1",
+        "label": "Region: West Europe",
+        "x": 220,
+        "y": 0,
+        "kind": "scope"
+      },
+      {
+        "id": "r2",
+        "label": "Region: North Europe (pair)",
+        "x": 220,
+        "y": 170,
+        "kind": "scope"
+      },
+      {
+        "id": "z1",
+        "label": "Zone 1",
+        "x": 460,
+        "y": -40,
+        "kind": "compute"
+      },
+      {
+        "id": "z2",
+        "label": "Zone 2",
+        "x": 460,
+        "y": 40,
+        "kind": "compute"
+      },
+      {
+        "id": "z3",
+        "label": "Zone 3",
+        "x": 460,
+        "y": 120,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "geo",
+        "to": "r1"
+      },
+      {
+        "from": "geo",
+        "to": "r2"
+      },
+      {
+        "from": "r1",
+        "to": "r2",
+        "label": "pair"
+      },
+      {
+        "from": "r1",
+        "to": "z1"
+      },
+      {
+        "from": "r1",
+        "to": "z2"
+      },
+      {
+        "from": "r1",
+        "to": "z3"
+      }
+    ]
+  },
+  "example": {
+    "title": "A payment API",
+    "body": [
+      "A payment provider runs its API on VMs in three availability zones in West Europe, so losing a datacenter doesn't stop payments.",
+      "Its storage uses GRS replicated to North Europe, the pair region, so it can recover from a regional disaster. A US agency customer runs a separate copy in Azure Government."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Create a resource > Region and Availability options (No redundancy / Availability zone / Availability set).",
+      "Azure portal home > All services > 'Regions' map in the Azure global infrastructure site."
+    ],
+    "cli": "az account list-locations --query \"[].{name:name, pair:metadata.pairedRegion[0].name}\" -o table\naz vm create -g <rg> -n vm1 --image Ubuntu2404 --zone 1 --generate-ssh-keys",
+    "powershell": "Get-AzLocation | Select-Object Location, DisplayName"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-regions-sim",
+    "objective": "See which deployments survive which failures, and name infrastructure parts.",
+    "duration": 15,
+    "steps": [
+      "Regions, zones and pairs tab: try each deployment against each failure.",
+      "Regions, zones and datacenters tab: answer every description."
+    ],
+    "expected": [
+      "Zones survive a datacenter failure but not a region outage",
+      "Region pairs protect against regional disasters"
+    ],
+    "validation": [
+      {
+        "id": "region-survived",
+        "text": "Deployment survived a failure"
+      },
+      {
+        "id": "region-outage",
+        "text": "Saw an outage"
+      },
+      {
+        "id": "geography-correct",
+        "text": "Chose the right infrastructure term"
+      },
+      {
+        "id": "geography-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Assuming zones protect against a whole-region outage",
+      "Assuming every service exists in every region"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Zone option is greyed out when creating a VM.",
+      "cause": "The region or VM size doesn't support availability zones.",
+      "fix": "Pick a zone-enabled region or another size."
+    },
+    {
+      "symptom": "A service isn't available in the chosen region.",
+      "cause": "Service availability varies by region.",
+      "fix": "Check 'Products available by region' and choose another region."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Availability set vs availability zone",
+      "difference": "Sets spread VMs across racks in one datacenter; zones across datacenters."
+    },
+    {
+      "service": "Region vs geography",
+      "difference": "A geography (for example Europe) contains several regions and defines data residency boundaries."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Every region has availability zones.",
+      "reality": "Many do, not all."
+    },
+    {
+      "myth": "You can choose the datacenter.",
+      "reality": "You choose region and zone; Azure abstracts datacenters."
+    },
+    {
+      "myth": "Region pairs replicate everything automatically.",
+      "reality": "Only services you configure for it (for example GRS) replicate."
+    }
+  ],
+  "architectureDecisions": [
+    "Use zones for production workloads in zone-enabled regions.",
+    "Plan a second region for disaster recovery of critical systems.",
+    "Pick regions close to users and within required data boundaries."
+  ],
+  "docs": [
+    {
+      "title": "Describe the core architectural components of Azure (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-core-architectural-components-of-azure/"
+    },
+    {
+      "title": "What are availability zones?",
+      "url": "https://learn.microsoft.com/azure/reliability/availability-zones-overview"
+    },
+    {
+      "title": "Azure region pairs and nonpaired regions",
+      "url": "https://learn.microsoft.com/azure/reliability/cross-region-replication-azure"
+    },
+    {
+      "title": "Azure Government",
+      "url": "https://learn.microsoft.com/azure/azure-government/documentation-government-welcome"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

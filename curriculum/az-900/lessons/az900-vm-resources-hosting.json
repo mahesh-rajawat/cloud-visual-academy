@@ -1,0 +1,228 @@
+{
+  "id": "az900-vm-resources-hosting",
+  "exam": "az-900",
+  "title": "Resources a VM needs, and application hosting options",
+  "objectiveIds": [
+    "AZ900-2.2.3",
+    "AZ900-2.2.4"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Describe the resources required to run a VM, and choose between web apps, containers and VMs to host an application.",
+  "prerequisites": [
+    {
+      "text": "Compute types",
+      "objectiveId": "AZ900-2.2.1",
+      "lessonId": "az900-compute-types"
+    }
+  ],
+  "foundation": [
+    "A VM isn't one resource. It needs a size (CPU and memory), an image and OS disk, and networking: a virtual network with a subnet and a network interface (NIC).",
+    "Optional extras: a public IP address (to reach it from the internet), a network security group (firewall rules), data disks, and extensions.",
+    "To host an application you can use a web app (App Service), containers, or VMs. The more control you need, the more you manage."
+  ],
+  "engineer": [
+    "Required: size (vCPUs, memory, temporary storage; changeable later), image (Marketplace or custom), OS disk (managed disk: Standard HDD, Standard SSD, Premium SSD, Ultra), virtual network and subnet, network interface.",
+    "Optional: public IP (Standard SKU is secure by default and needs an NSG rule to allow traffic), network security group, data disks, availability options, boot diagnostics storage, extensions (monitoring agents, scripts).",
+    "Each is a separate resource and some outlive the VM: deleting a VM doesn't delete its disks, NIC or public IP unless you chose 'delete with VM'. Leftover disks and IPs keep costing money.",
+    "Billing: compute is billed per second while running; a stopped (deallocated) VM stops compute charges but disks still cost.",
+    "Hosting options: Azure App Service (PaaS for web apps, REST APIs, background jobs; Windows or Linux; .NET, Java, Node.js, Python, PHP; deployment slots, autoscale, built-in authentication), containers (ACI, Container Apps, AKS), and VMs (full control, most management).",
+    "Choose App Service for standard web apps; containers for portable or microservice apps; VMs when you need OS access, custom software or legacy dependencies."
+  ],
+  "animation": {
+    "id": "az900-vm-hosting-sim",
+    "caption": "Build a VM from its required resources, then choose where to host each application."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "Virtual machine (size)",
+        "x": 260,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "disk",
+        "label": "Managed OS disk (image)",
+        "x": 0,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "nic",
+        "label": "NIC",
+        "x": 0,
+        "y": 130,
+        "kind": "network"
+      },
+      {
+        "id": "vnet",
+        "label": "VNet / subnet",
+        "x": 0,
+        "y": 240,
+        "kind": "network"
+      },
+      {
+        "id": "pip",
+        "label": "Public IP (optional)",
+        "x": 520,
+        "y": 0,
+        "kind": "network"
+      },
+      {
+        "id": "nsg",
+        "label": "NSG (optional)",
+        "x": 520,
+        "y": 130,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "disk",
+        "to": "vm"
+      },
+      {
+        "from": "nic",
+        "to": "vm"
+      },
+      {
+        "from": "vnet",
+        "to": "nic"
+      },
+      {
+        "from": "pip",
+        "to": "nic"
+      },
+      {
+        "from": "nsg",
+        "to": "nic"
+      }
+    ]
+  },
+  "example": {
+    "title": "Two apps, two choices",
+    "body": [
+      "A marketing site built with Node.js goes on App Service: no VM to manage, staging slot for testing, autoscale.",
+      "A licensing server that needs a hardware dongle emulator and registry tweaks goes on a VM with a NIC, managed disk and an NSG allowing RDP from the office IP only."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Create a VM: Basics (image, size), Disks (OS disk type), Networking (VNet, subnet, public IP, NSG), Management, Monitoring.",
+      "VM > Overview: see the linked disk, NIC and IP resources.",
+      "Create a resource > Web App: runtime stack and plan."
+    ],
+    "cli": "az vm create -g <rg> -n vm1 --image Ubuntu2404 --size Standard_B2s --vnet-name vnet1 --subnet default --public-ip-address \"\" --nsg-rule NONE --generate-ssh-keys\naz webapp up -n <app> --runtime \"PYTHON:3.12\"",
+    "powershell": "New-AzVM -ResourceGroupName <rg> -Name vm1 -Image Ubuntu2404 -Size Standard_B2s"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-vm-hosting-sim",
+    "objective": "Build a working VM and choose hosting options.",
+    "duration": 15,
+    "steps": [
+      "Resources a VM needs tab: start from the default (missing NIC), then apply each preset.",
+      "Application hosting tab: answer every app."
+    ],
+    "expected": [
+      "NIC, VNet/subnet, disk and size are required",
+      "Internet access needs a public IP and an NSG rule"
+    ],
+    "validation": [
+      {
+        "id": "vm-deployed",
+        "text": "Deployed a complete VM"
+      },
+      {
+        "id": "vm-blocked",
+        "text": "Found a missing resource"
+      },
+      {
+        "id": "hosting-correct",
+        "text": "Chose the right hosting option"
+      },
+      {
+        "id": "hosting-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Opening RDP to the whole internet",
+      "Forgetting leftover disks after deleting a VM"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Can't RDP to a new VM.",
+      "cause": "No public IP, or no NSG rule allowing 3389.",
+      "fix": "Use Bastion, or add a public IP and a rule limited to your IP."
+    },
+    {
+      "symptom": "Costs continue after a VM was deleted.",
+      "cause": "Disks and public IPs were left behind.",
+      "fix": "Delete orphaned disks and IPs."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "App Service vs VM",
+      "difference": "App Service manages the OS and runtime; a VM gives full control and full responsibility."
+    },
+    {
+      "service": "Container Apps vs AKS",
+      "difference": "Container Apps hides Kubernetes; AKS exposes it for full control."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Stopping a VM in the OS stops billing.",
+      "reality": "Only deallocating stops compute charges."
+    },
+    {
+      "myth": "A VM always needs a public IP.",
+      "reality": "Private access via VPN or Bastion is safer."
+    }
+  ],
+  "architectureDecisions": [
+    "Default to App Service for web apps.",
+    "Use VMs only when OS control is needed.",
+    "Avoid public IPs on VMs; use Bastion."
+  ],
+  "docs": [
+    {
+      "title": "Describe Azure compute and networking services (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-azure-compute-networking-services/"
+    },
+    {
+      "title": "Virtual machines in Azure",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/overview"
+    },
+    {
+      "title": "App Service overview",
+      "url": "https://learn.microsoft.com/azure/app-service/overview"
+    },
+    {
+      "title": "Azure Container Apps overview",
+      "url": "https://learn.microsoft.com/azure/container-apps/overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

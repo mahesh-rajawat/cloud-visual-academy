@@ -1,0 +1,601 @@
+{
+  "id": "az104-vm-disks-encryption",
+  "exam": "az-104",
+  "title": "Managed disks and disk encryption",
+  "objectiveIds": [
+    "AZ104-3.2.2",
+    "AZ104-3.2.5"
+  ],
+  "estimatedMinutes": 50,
+  "learningObjective": "Add, expand, convert, snapshot and detach managed disks, and choose and configure the right encryption option, including Azure Disk Encryption.",
+  "prerequisites": [
+    {
+      "text": "Creating VMs",
+      "objectiveId": "AZ104-3.2.1",
+      "lessonId": "az104-vm-create"
+    },
+    {
+      "text": "Customer-managed keys",
+      "objectiveId": "AZ104-2.2.4",
+      "lessonId": "az104-storage-accounts"
+    }
+  ],
+  "foundation": [
+    "VM disks in Azure are managed disks: Azure handles the underlying storage. Each VM has an OS disk, can have data disks, and often a temporary disk that is wiped on redeployment.",
+    "Disk types trade speed for price: Standard HDD, Standard SSD, Premium SSD, Premium SSD v2 and Ultra Disk.",
+    "All managed disks are encrypted at rest automatically. You can add your own keys, encryption at the host, or Azure Disk Encryption, which encrypts the volumes inside the operating system."
+  ],
+  "engineer": [
+    "Operations: attach or detach data disks while the VM runs; expand disk size (shrinking is not supported; data disks can often be expanded without downtime, then extend the partition in the OS); change disk type (for example Standard SSD → Premium SSD) with the VM deallocated; incremental snapshots for backup or cloning; host caching (None/ReadOnly/ReadWrite) per disk.",
+    "Limits: the VM size sets the maximum number of data disks and combined IOPS/throughput; Premium SSD performance depends on disk size (P-tiers) unless you use Premium SSD v2 or Ultra, where IOPS and throughput are set independently. Ultra and Premium SSD v2 have restrictions such as no OS disk support (Ultra) and zone requirements.",
+    "Encryption options: server-side encryption (SSE) with platform-managed keys (default, always on); SSE with customer-managed keys through a disk encryption set pointing to a Key Vault key; encryption at host (also encrypts temp disks and disk caches, needs the feature enabled and a supported size); Azure Disk Encryption (ADE), which uses BitLocker (Windows) or DM-Crypt (Linux) inside the guest with keys and secrets in Key Vault.",
+    "ADE requirements: Key Vault in the same region and subscription as the VM, with 'Azure Disk Encryption for volume encryption' enabled (enabledForDiskEncryption); optionally a key encryption key (KEK). ADE does not work on some sizes and images, and cannot be combined with encryption at host. Microsoft recommends encryption at host for new deployments and has announced a retirement date for ADE, so check current guidance before choosing it.",
+    "Confidential disk encryption is available for confidential VMs."
+  ],
+  "animation": {
+    "id": "vm-sim",
+    "caption": "Open 'Resize, disks and encryption': try disk operations and encryption options."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "vm1",
+        "x": 0,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "os",
+        "label": "OS disk",
+        "x": 220,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "data",
+        "label": "Data disk 256 GiB (Premium SSD)",
+        "x": 220,
+        "y": 130,
+        "kind": "storage"
+      },
+      {
+        "id": "des",
+        "label": "Disk encryption set (CMK)",
+        "x": 480,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "kv",
+        "label": "Key Vault (enabledForDiskEncryption)",
+        "x": 480,
+        "y": 130,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "vm",
+        "to": "os"
+      },
+      {
+        "from": "vm",
+        "to": "data"
+      },
+      {
+        "from": "os",
+        "to": "des",
+        "label": "SSE + CMK"
+      },
+      {
+        "from": "data",
+        "to": "kv",
+        "label": "ADE (in-guest)"
+      }
+    ]
+  },
+  "example": {
+    "title": "Expanding a full data disk",
+    "body": [
+      "A database VM's 128 GiB data disk is 95% full. The admin expands it to 256 GiB in the portal while the VM runs, then extends the volume in Disk Management.",
+      "Compliance later requires customer-managed keys, so the team creates a disk encryption set with a Key Vault key and assigns it to the disks."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Supported VM size for the disk type",
+      "For ADE: Key Vault in the same region/subscription, enabled for disk encryption",
+      "For encryption at host: feature registered"
+    ],
+    "permissions": [
+      "Virtual Machine Contributor / Disk Pool roles for disk operations",
+      "Key Vault access for disk encryption sets or ADE"
+    ],
+    "limits": [
+      "Disks cannot be shrunk",
+      "Changing disk type requires deallocation",
+      "Max data disks depends on VM size"
+    ],
+    "portal": [
+      "VM > Disks > + Create and attach a new disk / Attach existing; Detach.",
+      "Disk > Size + performance: increase size or change tier.",
+      "Disk > Encryption: choose encryption type and disk encryption set.",
+      "Disk > Create snapshot (incremental).",
+      "VM > Disks > Additional settings: encryption at host, Azure Disk Encryption."
+    ],
+    "cli": "az vm disk attach -g rg-app --vm-name vm1 --name vm1-data1 --new --size-gb 128 --sku Premium_LRS\naz disk update -g rg-app -n vm1-data1 --size-gb 256\naz vm deallocate -g rg-app -n vm1 && az disk update -g rg-app -n vm1-data1 --sku Premium_LRS\naz snapshot create -g rg-app -n vm1-data1-snap --source vm1-data1 --incremental true\naz keyvault update -n kv-contoso --enabled-for-disk-encryption true\naz vm encryption enable -g rg-app -n vm1 --disk-encryption-keyvault kv-contoso --volume-type All\naz feature register --namespace Microsoft.Compute --name EncryptionAtHost\naz vm update -g rg-app -n vm1 --set securityProfile.encryptionAtHost=true",
+    "powershell": "$vm = Get-AzVM -ResourceGroupName rg-app -Name vm1\n$cfg = New-AzDiskConfig -Location westeurope -CreateOption Empty -DiskSizeGB 128 -SkuName Premium_LRS\n$disk = New-AzDisk -ResourceGroupName rg-app -DiskName vm1-data1 -Disk $cfg\nAdd-AzVMDataDisk -VM $vm -Name vm1-data1 -CreateOption Attach -ManagedDiskId $disk.Id -Lun 0 | Update-AzVM\n$kv = Get-AzKeyVault -VaultName kv-contoso\nSet-AzVMDiskEncryptionExtension -ResourceGroupName rg-app -VMName vm1 -DiskEncryptionKeyVaultUrl $kv.VaultUri -DiskEncryptionKeyVaultId $kv.ResourceId -VolumeType All"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "vm-sim",
+    "objective": "Predict which disk operations need downtime and which encryption prerequisites are missing.",
+    "duration": 15,
+    "steps": [
+      "Try each disk operation, with the VM running and deallocated.",
+      "Select Azure Disk Encryption and fix the Key Vault prerequisites.",
+      "Compare SSE with CMK and encryption at host."
+    ],
+    "expected": [
+      "Shrinking is blocked; type change needs deallocation",
+      "ADE needs Key Vault enabled for disk encryption in the same region"
+    ],
+    "validation": [
+      {
+        "id": "disk-blocked",
+        "text": "Saw a disk operation blocked"
+      },
+      {
+        "id": "ade-enabled",
+        "text": "Enabled Azure Disk Encryption successfully"
+      }
+    ],
+    "failureScenarios": [
+      "Shrinking a disk",
+      "Key Vault in another region",
+      "Too many data disks for the size"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Cannot reduce disk size.",
+      "cause": "Shrinking is not supported.",
+      "fix": "Create a smaller disk and copy data."
+    },
+    {
+      "symptom": "ADE extension fails.",
+      "cause": "Key Vault not enabled for disk encryption or in another region.",
+      "fix": "az keyvault update --enabled-for-disk-encryption true; use a vault in the VM's region."
+    },
+    {
+      "symptom": "New disk size not visible in the OS.",
+      "cause": "Partition not extended.",
+      "fix": "Extend the volume (Disk Management / growpart and resize2fs)."
+    },
+    {
+      "symptom": "Cannot attach another data disk.",
+      "cause": "Size limit reached.",
+      "fix": "Resize the VM to one with more data disk slots."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon EBS",
+      "difference": "Block volumes similar to managed disks; gp3/io2 correspond to Premium SSD v2/Ultra-like provisioning."
+    },
+    {
+      "service": "Azure Files",
+      "difference": "Shared SMB/NFS file storage rather than a block device."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Disks are unencrypted unless you enable ADE.",
+      "reality": "SSE with platform-managed keys is always on."
+    },
+    {
+      "myth": "You can switch a disk to Premium while the VM runs.",
+      "reality": "Disk type changes need the VM deallocated."
+    },
+    {
+      "myth": "Temp disk data survives redeployment.",
+      "reality": "The temp disk is wiped."
+    }
+  ],
+  "architectureDecisions": [
+    "Use Premium SSD (or v2) for production databases.",
+    "Prefer encryption at host or SSE with CMK over ADE for new deployments.",
+    "Snapshot before risky changes."
+  ],
+  "docs": [
+    {
+      "title": "Azure managed disk types",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/disks-types"
+    },
+    {
+      "title": "Expand virtual hard disks on a Linux VM",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/linux/expand-disks"
+    },
+    {
+      "title": "Change the disk type of a managed disk",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/disks-convert-types"
+    },
+    {
+      "title": "Overview of managed disk encryption options",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/disk-encryption-overview"
+    },
+    {
+      "title": "Azure Disk Encryption for Windows VMs",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/windows/disk-encryption-overview"
+    },
+    {
+      "title": "Encryption at host",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/disks-enable-host-based-encryption-portal"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Give a VM the right disks, change them safely, and choose how they are encrypted.",
+    "learn": [
+      "OS, temporary and data disks",
+      "Disk types",
+      "Disk operations: attach, resize, snapshot",
+      "Encryption options: SSE, CMK, encryption at host, ADE"
+    ],
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "VM",
+        "x": 400,
+        "y": 80,
+        "kind": "compute"
+      },
+      {
+        "id": "os",
+        "label": "OS disk",
+        "x": 160,
+        "y": 220,
+        "kind": "storage",
+        "sub": "C: or /"
+      },
+      {
+        "id": "temp",
+        "label": "Temp disk",
+        "x": 400,
+        "y": 220,
+        "kind": "storage",
+        "sub": "lost on deallocate"
+      },
+      {
+        "id": "data",
+        "label": "Data disk",
+        "x": 640,
+        "y": 220,
+        "kind": "storage",
+        "sub": "your files"
+      },
+      {
+        "id": "snap",
+        "label": "Snapshot",
+        "x": 640,
+        "y": 380,
+        "kind": "storage",
+        "sub": "point in time"
+      },
+      {
+        "id": "kv",
+        "label": "Key Vault",
+        "x": 160,
+        "y": 380,
+        "kind": "security",
+        "sub": "your keys"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Disks",
+        "title": "The database needs more space and faster disks",
+        "body": [
+          "And the auditor asks how the disks are encrypted, and who controls the keys."
+        ],
+        "show": [
+          "vm"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Disk roles",
+        "title": "Three kinds of disk on a VM",
+        "body": [
+          "OS disk: the operating system. Temporary disk: fast local scratch space, lost when the VM is deallocated or moved to other hardware. Data disks: your data, attached as needed (the number depends on VM size)."
+        ],
+        "show": [
+          "vm",
+          "os",
+          "temp",
+          "data"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "os",
+            "fresh": true
+          },
+          {
+            "from": "vm",
+            "to": "temp",
+            "fresh": true
+          },
+          {
+            "from": "vm",
+            "to": "data",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Never keep important data on the temporary disk."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Types",
+        "title": "Disk types, from cheap to fast",
+        "body": [
+          "Standard HDD, Standard SSD, Premium SSD, Premium SSD v2 and Ultra Disk. Bigger Premium disks get more IOPS and throughput. You can change the type when the VM is deallocated (with some limits for v2 and Ultra)."
+        ],
+        "show": [
+          "vm",
+          "os",
+          "temp",
+          "data"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "os"
+          },
+          {
+            "from": "vm",
+            "to": "temp"
+          },
+          {
+            "from": "vm",
+            "to": "data"
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Operations",
+        "title": "Everyday disk jobs",
+        "body": [
+          "Attach or detach data disks (often without a restart). Increase size (never shrink), then extend the partition inside the OS. Take a snapshot for a quick copy; create new disks from it."
+        ],
+        "show": [
+          "vm",
+          "os",
+          "temp",
+          "data",
+          "snap"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "os"
+          },
+          {
+            "from": "vm",
+            "to": "temp"
+          },
+          {
+            "from": "vm",
+            "to": "data"
+          },
+          {
+            "from": "data",
+            "to": "snap",
+            "label": "snapshot",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Encryption",
+        "title": "Four ways encryption fits in",
+        "body": [
+          "Server-side encryption (SSE) is always on, with platform-managed keys by default. Customer-managed keys use a disk encryption set pointing to Key Vault. Encryption at host also covers temp disks and caches. Azure Disk Encryption (ADE) encrypts inside the OS with BitLocker or DM-Crypt, keys in Key Vault.",
+          "Microsoft now recommends encryption at host instead of ADE for new VMs."
+        ],
+        "show": [
+          "vm",
+          "os",
+          "temp",
+          "data",
+          "snap",
+          "kv"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "os"
+          },
+          {
+            "from": "vm",
+            "to": "temp"
+          },
+          {
+            "from": "vm",
+            "to": "data"
+          },
+          {
+            "from": "data",
+            "to": "snap",
+            "label": "snapshot"
+          },
+          {
+            "from": "kv",
+            "to": "os",
+            "label": "CMK / ADE",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "ADE needs a Key Vault in the same region and subscription, enabled for disk encryption."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Disks",
+        "body": [
+          "Right disk, right size, right keys."
+        ],
+        "show": [
+          "vm",
+          "os",
+          "temp",
+          "data",
+          "snap",
+          "kv"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "os"
+          },
+          {
+            "from": "vm",
+            "to": "temp"
+          },
+          {
+            "from": "vm",
+            "to": "data"
+          },
+          {
+            "from": "data",
+            "to": "snap",
+            "label": "snapshot"
+          },
+          {
+            "from": "kv",
+            "to": "os",
+            "label": "CMK / ADE"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "OS, temporary (not persistent), data disks",
+          "HDD < Standard SSD < Premium SSD < Premium v2 / Ultra",
+          "Grow only; snapshots for copies",
+          "SSE always on; CMK via disk encryption set",
+          "Encryption at host preferred; ADE uses BitLocker/DM-Crypt"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Add, resize and snapshot a data disk, and review encryption",
+    "minutes": 25,
+    "costLevel": "low",
+    "cost": "Low. A B1s Linux VM costs about US$0.01 per hour (it is in the free account's 750 free hours). Delete it the same day. A small data disk and snapshot add cents.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "Create a small Linux VM: Virtual machines > + Create > Azure virtual machine. Resource group rg-az104-lab, name vm-lab, region UAE North (or any region near you), image Ubuntu Server 24.04 LTS, size Standard_B1s, authentication: password, username azureuser. Inbound ports: None. Review + create > Create. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead."
+    ],
+    "steps": [
+      {
+        "do": "Open vm-lab > Settings > Disks > + Create and attach a new disk. Name: vm-lab-data1, Standard SSD, size 4 GiB. Apply.",
+        "see": "The data disk listed under Data disks with LUN 0."
+      },
+      {
+        "do": "Stop (deallocate) the VM. Open the data disk > Settings > Size + performance. Choose 8 GiB. Save.",
+        "see": "The disk now shows 8 GiB. Shrinking is not offered."
+      },
+      {
+        "do": "On the same disk, try changing the performance tier or disk type to Premium SSD.",
+        "see": "Allowed while the VM is deallocated. Change it back to Standard SSD."
+      },
+      {
+        "do": "Open the data disk > Overview > Create snapshot. Name: snap-data1, type: Incremental.",
+        "see": "A snapshot resource in the group."
+      },
+      {
+        "do": "Open the data disk > Settings > Encryption.",
+        "see": "Encryption at rest with a platform-managed key; options for customer-managed keys via a disk encryption set."
+      },
+      {
+        "do": "Open vm-lab > Settings > Disks > Additional settings.",
+        "see": "Encryption at host (may say it needs registering) and Azure Disk Encryption options."
+      },
+      {
+        "do": "Back on Disks, detach the data disk and Save.",
+        "see": "The disk still exists in the resource group, unattached (and still billed)."
+      }
+    ],
+    "check": [
+      "You grew a disk and made an incremental snapshot."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Attach a data disk to a Linux VM in the portal",
+        "url": "https://learn.microsoft.com/azure/virtual-machines/linux/attach-disk-portal"
+      },
+      {
+        "title": "Expand virtual hard disks on a Linux VM",
+        "url": "https://learn.microsoft.com/azure/virtual-machines/linux/expand-disks"
+      },
+      {
+        "title": "Overview of managed disk encryption options",
+        "url": "https://learn.microsoft.com/azure/virtual-machines/disk-encryption-overview"
+      }
+    ]
+  }
+}

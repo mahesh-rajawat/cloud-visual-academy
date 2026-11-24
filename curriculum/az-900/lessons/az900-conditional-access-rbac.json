@@ -1,0 +1,226 @@
+{
+  "id": "az900-conditional-access-rbac",
+  "exam": "az-900",
+  "title": "Conditional Access and Azure role-based access control",
+  "objectiveIds": [
+    "AZ900-2.4.4",
+    "AZ900-2.4.5"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Describe how Microsoft Entra Conditional Access uses signals to make access decisions, and how Azure RBAC grants permissions at a scope.",
+  "prerequisites": [
+    {
+      "text": "Authentication methods",
+      "objectiveId": "AZ900-2.4.2",
+      "lessonId": "az900-entra-authentication"
+    },
+    {
+      "text": "Resource hierarchy",
+      "objectiveId": "AZ900-2.1.7",
+      "lessonId": "az900-resource-hierarchy"
+    }
+  ],
+  "foundation": [
+    "Conditional Access is an if-then engine for sign-ins: IF a user signs in from an unknown country, THEN require MFA (or block). It looks at who, where, what device and which app.",
+    "Azure role-based access control (RBAC) decides what a signed-in person can do with Azure resources. You assign a role (for example Reader) to a person or group at a scope (for example a resource group).",
+    "Authentication is 'who are you?' (Entra ID, MFA, Conditional Access). Authorization is 'what may you do?' (RBAC)."
+  ],
+  "engineer": [
+    "Conditional Access signals: user or group membership, location (IP ranges, countries), device (platform, compliant or hybrid-joined), application, sign-in and user risk (with Microsoft Entra ID P2). Decisions: block access; grant access; grant with requirements (MFA, compliant device, approved app, password change, terms of use). Requires Microsoft Entra ID P1.",
+    "Common policies: require MFA for administrators; require MFA from outside trusted locations; block legacy authentication; require compliant devices for sensitive apps; block sign-ins from certain countries.",
+    "RBAC elements: security principal (user, group, service principal, managed identity) + role definition (set of permissions) + scope (management group, subscription, resource group, resource) = role assignment.",
+    "Built-in roles: Owner (full access including access management), Contributor (full resource management, no access management), Reader (view only), User Access Administrator (manage access only), plus 100s of service-specific roles (for example Virtual Machine Contributor). You can create custom roles.",
+    "RBAC is additive and inherited down the hierarchy; it's enforced on any action through Azure Resource Manager (portal, CLI, PowerShell, templates). Follow least privilege: smallest role, narrowest scope, groups instead of individuals."
+  ],
+  "animation": {
+    "id": "az900-access-sim",
+    "caption": "Sign in with different methods, locations and roles; pick the least-privileged built-in role."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "u",
+        "label": "User signs in",
+        "x": 0,
+        "y": 60,
+        "kind": "user"
+      },
+      {
+        "id": "signals",
+        "label": "Signals: user, location, device, app, risk",
+        "x": 220,
+        "y": 0,
+        "kind": "scope"
+      },
+      {
+        "id": "ca",
+        "label": "Conditional Access: block / MFA / allow",
+        "x": 440,
+        "y": 60,
+        "kind": "security"
+      },
+      {
+        "id": "rbac",
+        "label": "RBAC: role + scope",
+        "x": 660,
+        "y": 60,
+        "kind": "identity"
+      },
+      {
+        "id": "res",
+        "label": "Azure resource",
+        "x": 880,
+        "y": 60,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "u",
+        "to": "ca"
+      },
+      {
+        "from": "signals",
+        "to": "ca"
+      },
+      {
+        "from": "ca",
+        "to": "rbac",
+        "label": "authenticated"
+      },
+      {
+        "from": "rbac",
+        "to": "res",
+        "label": "authorized"
+      }
+    ]
+  },
+  "example": {
+    "title": "A finance team",
+    "body": [
+      "Policy: IF a finance app is opened from outside the office, THEN require MFA and a compliant device. Sign-ins from countries where the company doesn't operate are blocked.",
+      "In Azure, the finance-ops group has Contributor on rg-finance only; auditors have Reader on the subscription; nobody gets Owner except two admins."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Owner or User Access Administrator to assign Azure roles; Conditional Access Administrator for policies"
+    ],
+    "limits": [
+      "Conditional Access requires Microsoft Entra ID P1 or higher"
+    ],
+    "portal": [
+      "Microsoft Entra admin center > Protection > Conditional Access > New policy (users, target resources, conditions, grant).",
+      "Resource / resource group / subscription > Access control (IAM) > Add role assignment."
+    ],
+    "cli": "az role assignment create --assignee <user-or-group-id> --role Reader --scope /subscriptions/<sub>/resourceGroups/rg-finance\naz role definition list --query \"[?roleType=='BuiltInRole'].roleName\" -o tsv | head",
+    "powershell": "New-AzRoleAssignment -ObjectId <id> -RoleDefinitionName Reader -ResourceGroupName rg-finance"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-access-sim",
+    "objective": "See authentication, Conditional Access and RBAC decisions.",
+    "duration": 15,
+    "steps": [
+      "Sign-in and access tab: run the default, then each preset; change role and action.",
+      "Built-in Azure roles tab: answer every requirement."
+    ],
+    "expected": [
+      "MFA satisfies the Conditional Access policy",
+      "RBAC decides the action after sign-in"
+    ],
+    "validation": [
+      {
+        "id": "signin-ok",
+        "text": "Completed a sign-in with access"
+      },
+      {
+        "id": "signin-blocked",
+        "text": "Saw access blocked"
+      },
+      {
+        "id": "rbac-role-correct",
+        "text": "Chose the right role"
+      },
+      {
+        "id": "rbac-role-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Giving Owner when Contributor is enough",
+      "Confusing Conditional Access (authentication) with RBAC (authorization)"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "User signed in but gets 'authorization failed'.",
+      "cause": "No role assignment at that scope.",
+      "fix": "Assign the needed role at the right scope."
+    },
+    {
+      "symptom": "Users outside the office can't sign in at all.",
+      "cause": "A policy blocks instead of requiring MFA.",
+      "fix": "Change the grant control to 'Require MFA'."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Conditional Access vs RBAC",
+      "difference": "Conditional Access controls sign-in conditions; RBAC controls actions on Azure resources."
+    },
+    {
+      "service": "Azure RBAC vs Entra roles",
+      "difference": "Azure roles manage Azure resources; Microsoft Entra roles (such as User Administrator) manage the directory."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Contributor can grant access to others.",
+      "reality": "Only Owner or User Access Administrator."
+    },
+    {
+      "myth": "Conditional Access is included in every Entra ID edition.",
+      "reality": "It requires P1."
+    },
+    {
+      "myth": "Deny is the default role effect.",
+      "reality": "RBAC is additive; no assignment means no access."
+    }
+  ],
+  "architectureDecisions": [
+    "Assign roles to groups at the narrowest scope.",
+    "Require MFA for all admins with Conditional Access.",
+    "Review role assignments regularly."
+  ],
+  "docs": [
+    {
+      "title": "Describe Azure identity, access, and security (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-azure-identity-access-security/"
+    },
+    {
+      "title": "What is Conditional Access?",
+      "url": "https://learn.microsoft.com/entra/identity/conditional-access/overview"
+    },
+    {
+      "title": "What is Azure RBAC?",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/overview"
+    },
+    {
+      "title": "Azure built-in roles",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/built-in-roles"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

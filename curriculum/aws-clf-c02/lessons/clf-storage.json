@@ -1,0 +1,612 @@
+{
+  "id": "clf-storage",
+  "exam": "aws-clf-c02",
+  "title": "AWS storage services",
+  "objectiveIds": [
+    "CLFC02-3.6.1",
+    "CLFC02-3.6.2",
+    "CLFC02-3.6.3",
+    "CLFC02-3.6.4",
+    "CLFC02-3.6.5",
+    "CLFC02-3.6.6",
+    "CLFC02-3.6.7",
+    "CLFC02-3.6.8"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Identify uses for object storage, S3 storage classes, block storage (EBS, instance store), file services (EFS, FSx), cached hybrid storage (Storage Gateway), lifecycle policies and AWS Backup.",
+  "prerequisites": [
+    {
+      "text": "Compute services",
+      "objectiveId": "CLFC02-3.3.1",
+      "lessonId": "clf-compute"
+    }
+  ],
+  "foundation": [
+    "Amazon S3 stores objects (files) of any size with very high durability, in buckets. Storage classes trade price for access speed.",
+    "Amazon EBS gives EC2 instances persistent disks; instance store is temporary disk attached to the host.",
+    "Amazon EFS and Amazon FSx provide shared file systems. AWS Storage Gateway connects on-premises apps to cloud storage. Lifecycle policies and AWS Backup automate data management."
+  ],
+  "engineer": [
+    "S3: designed for 11 nines durability; use cases: backups, data lakes, static websites, media, logs. Storage classes: Standard, Intelligent-Tiering, Standard-IA, One Zone-IA, Glacier Instant Retrieval, Glacier Flexible Retrieval, Glacier Deep Archive, Express One Zone. IA and Glacier classes have minimum storage durations and retrieval charges.",
+    "Block: Amazon EBS volumes (SSD gp3/io2, HDD st1/sc1) live in one AZ, persist independently of the instance, and support snapshots to S3. Instance store: physically attached, very fast, lost when the instance stops or terminates.",
+    "File: Amazon EFS (managed elastic NFS for Linux, Regional across AZs); Amazon FSx (Windows File Server, Lustre for HPC, NetApp ONTAP, OpenZFS).",
+    "Hybrid: AWS Storage Gateway (S3 File Gateway, FSx File Gateway, Volume Gateway, Tape Gateway) with local cache.",
+    "Lifecycle: S3 Lifecycle rules transition objects between classes and expire them (for example logs to Glacier after 90 days, delete after 7 years). AWS Backup: centralised, policy-based backups across EBS, EC2, RDS, DynamoDB, EFS, FSx, S3 and more, including cross-Region/cross-account copies.",
+    "Other: AWS Elastic Disaster Recovery replicates servers for recovery; Snow Family and DataSync move data."
+  ],
+  "animation": {
+    "id": "aws-tech-sim",
+    "caption": "Open 'Storage choice'."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "s3",
+        "label": "S3 Standard → IA → Glacier (lifecycle)",
+        "x": 0,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "ebs",
+        "label": "EBS (block, one AZ)",
+        "x": 0,
+        "y": 120,
+        "kind": "storage"
+      },
+      {
+        "id": "efs",
+        "label": "EFS / FSx (file)",
+        "x": 260,
+        "y": 120,
+        "kind": "storage"
+      },
+      {
+        "id": "sgw",
+        "label": "Storage Gateway (on-prem cache)",
+        "x": 260,
+        "y": 0,
+        "kind": "network"
+      },
+      {
+        "id": "bk",
+        "label": "AWS Backup (policies)",
+        "x": 520,
+        "y": 60,
+        "kind": "service"
+      }
+    ],
+    "edges": [
+      {
+        "from": "sgw",
+        "to": "s3"
+      },
+      {
+        "from": "bk",
+        "to": "ebs"
+      },
+      {
+        "from": "bk",
+        "to": "efs"
+      },
+      {
+        "from": "bk",
+        "to": "s3"
+      }
+    ]
+  },
+  "example": {
+    "title": "Media company storage",
+    "body": [
+      "Raw footage lands in S3 Standard, moves to Glacier Flexible Retrieval after 60 days by lifecycle rule; editors share an FSx for Windows file system; render nodes use instance store scratch space; AWS Backup protects EBS and FSx daily with copies to another Region."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "S3 > Create bucket > Management > Lifecycle rules.",
+      "EC2 > Elastic Block Store > Volumes.",
+      "AWS Backup > Backup plans."
+    ],
+    "cli": "aws s3 mb s3://media-raw-123\naws s3api put-bucket-lifecycle-configuration --bucket media-raw-123 --lifecycle-configuration file://lifecycle.json\naws backup list-backup-plans",
+    "powershell": "New-S3Bucket -BucketName media-raw-123\nGet-BAKBackupPlanList"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-tech-sim",
+    "objective": "Practise choosing the right storage option.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Storage choice' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-storage-correct",
+        "text": "Chose a correct storage option"
+      },
+      {
+        "id": "aws-storage-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Data lost after stopping an instance.",
+      "cause": "It was on instance store.",
+      "fix": "Use EBS for persistent data."
+    },
+    {
+      "symptom": "Unexpected retrieval charges.",
+      "cause": "Frequent reads from IA/Glacier classes.",
+      "fix": "Use Standard or Intelligent-Tiering for frequently accessed data."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure",
+      "difference": "S3 ≈ Blob Storage; EBS ≈ Managed Disks; EFS/FSx ≈ Azure Files/NetApp Files; Storage Gateway ≈ File Sync/StorSimple-style; AWS Backup ≈ Azure Backup."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "EBS volumes span AZs.",
+      "reality": "EBS volumes are in one AZ; snapshots go to S3."
+    },
+    {
+      "myth": "S3 One Zone-IA is as resilient as Standard.",
+      "reality": "It stores data in a single AZ."
+    }
+  ],
+  "architectureDecisions": [
+    "Use Intelligent-Tiering for unknown access patterns; automate lifecycle and backups."
+  ],
+  "docs": [
+    {
+      "title": "Amazon S3",
+      "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html"
+    },
+    {
+      "title": "S3 storage classes",
+      "url": "https://aws.amazon.com/s3/storage-classes/"
+    },
+    {
+      "title": "Amazon EBS",
+      "url": "https://docs.aws.amazon.com/ebs/latest/userguide/what-is-ebs.html"
+    },
+    {
+      "title": "Instance store",
+      "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html"
+    },
+    {
+      "title": "Amazon EFS",
+      "url": "https://docs.aws.amazon.com/efs/latest/ug/whatisefs.html"
+    },
+    {
+      "title": "Amazon FSx",
+      "url": "https://aws.amazon.com/fsx/"
+    },
+    {
+      "title": "AWS Storage Gateway",
+      "url": "https://docs.aws.amazon.com/storagegateway/latest/userguide/WhatIsStorageGateway.html"
+    },
+    {
+      "title": "S3 Lifecycle",
+      "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html"
+    },
+    {
+      "title": "AWS Backup",
+      "url": "https://docs.aws.amazon.com/aws-backup/latest/devguide/whatisbackup.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Store photos, server disks, shared files and backups, each in the right kind of storage.",
+    "learn": [
+      "Object storage: Amazon S3",
+      "S3 storage classes and lifecycle policies",
+      "Block storage: EBS and instance store",
+      "File storage: EFS and FSx",
+      "Hybrid caching with Storage Gateway; AWS Backup"
+    ],
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Your app",
+        "x": 400,
+        "y": 40,
+        "kind": "service"
+      },
+      {
+        "id": "s3",
+        "label": "Amazon S3",
+        "x": 160,
+        "y": 140,
+        "kind": "storage",
+        "sub": "objects in buckets"
+      },
+      {
+        "id": "cls",
+        "label": "S3 storage classes",
+        "x": 160,
+        "y": 290,
+        "kind": "storage",
+        "sub": "Standard → Glacier"
+      },
+      {
+        "id": "ebs",
+        "label": "EBS volume",
+        "x": 400,
+        "y": 160,
+        "kind": "storage",
+        "sub": "disk for one instance"
+      },
+      {
+        "id": "ist",
+        "label": "Instance store",
+        "x": 400,
+        "y": 290,
+        "kind": "storage",
+        "sub": "temporary disk"
+      },
+      {
+        "id": "efs",
+        "label": "EFS / FSx",
+        "x": 640,
+        "y": 140,
+        "kind": "storage",
+        "sub": "shared file systems"
+      },
+      {
+        "id": "sgw",
+        "label": "Storage Gateway",
+        "x": 640,
+        "y": 290,
+        "kind": "network",
+        "sub": "on-prem cache"
+      },
+      {
+        "id": "bk",
+        "label": "AWS Backup",
+        "x": 400,
+        "y": 400,
+        "kind": "security",
+        "sub": "one backup policy"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Kinds of data",
+        "title": "Photos, disks, shared folders, backups",
+        "body": [
+          "Your app stores millions of user photos. Its servers need disks. The office wants a shared drive. Everything needs backups.",
+          "AWS has a different storage type for each."
+        ],
+        "show": [
+          "app"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "S3",
+        "title": "Photos: object storage in S3",
+        "body": [
+          "Amazon S3 stores objects (files plus metadata) in buckets, accessed over HTTPS. It scales without limit and is designed for 99.999999999% (11 nines) durability.",
+          "Use it for media, backups, data lakes and static websites."
+        ],
+        "show": [
+          "app",
+          "s3"
+        ],
+        "focus": [
+          "s3"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "s3",
+            "label": "PUT / GET",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Classes + lifecycle",
+        "title": "Pay less as data cools down",
+        "body": [
+          "S3 Standard is for frequent access. Standard-IA and One Zone-IA cost less for data you rarely read. Glacier Instant Retrieval, Flexible Retrieval and Deep Archive are for archives. Intelligent-Tiering moves objects between tiers automatically.",
+          "A lifecycle policy moves or deletes objects by age, for example to Glacier after 90 days and delete after 7 years."
+        ],
+        "show": [
+          "app",
+          "s3",
+          "cls"
+        ],
+        "focus": [
+          "cls"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "s3",
+            "label": "PUT / GET"
+          },
+          {
+            "from": "s3",
+            "to": "cls",
+            "label": "lifecycle rule",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Block",
+        "title": "Server disks: EBS or instance store",
+        "body": [
+          "Amazon EBS volumes are network-attached block disks for EC2. They persist when the instance stops, live in one AZ, and can be snapshotted.",
+          "Instance store is a disk physically on the host. It's very fast but temporary: the data is lost when the instance stops or ends."
+        ],
+        "show": [
+          "app",
+          "s3",
+          "cls",
+          "ebs",
+          "ist"
+        ],
+        "focus": [
+          "ebs",
+          "ist"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "s3",
+            "label": "PUT / GET"
+          },
+          {
+            "from": "s3",
+            "to": "cls",
+            "label": "lifecycle rule"
+          },
+          {
+            "from": "app",
+            "to": "ebs",
+            "label": "boot + data disk",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Need data to survive a stop? EBS. Scratch or cache data only? Instance store."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "File",
+        "title": "Shared drives: EFS and FSx",
+        "body": [
+          "Amazon EFS is a managed NFS file system that many Linux instances can mount at once, and it grows automatically.",
+          "Amazon FSx provides managed file systems: Windows File Server (SMB), Lustre (high-performance computing), NetApp ONTAP and OpenZFS."
+        ],
+        "show": [
+          "app",
+          "s3",
+          "cls",
+          "ebs",
+          "ist",
+          "efs"
+        ],
+        "focus": [
+          "efs"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "s3",
+            "label": "PUT / GET"
+          },
+          {
+            "from": "s3",
+            "to": "cls",
+            "label": "lifecycle rule"
+          },
+          {
+            "from": "app",
+            "to": "ebs",
+            "label": "boot + data disk"
+          },
+          {
+            "from": "app",
+            "to": "efs",
+            "label": "mount",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Hybrid + backup",
+        "title": "Bridge on-premises, and back it all up",
+        "body": [
+          "AWS Storage Gateway gives on-premises apps local file, volume or tape interfaces, keeps a cache of hot data on site, and stores the data in AWS.",
+          "AWS Backup sets one backup policy (schedule, retention, copies) across EBS, RDS, DynamoDB, EFS, FSx, S3 and more."
+        ],
+        "show": [
+          "app",
+          "s3",
+          "cls",
+          "ebs",
+          "ist",
+          "efs",
+          "sgw",
+          "bk"
+        ],
+        "focus": [
+          "sgw",
+          "bk"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "s3",
+            "label": "PUT / GET"
+          },
+          {
+            "from": "s3",
+            "to": "cls",
+            "label": "lifecycle rule"
+          },
+          {
+            "from": "app",
+            "to": "ebs",
+            "label": "boot + data disk"
+          },
+          {
+            "from": "app",
+            "to": "efs",
+            "label": "mount"
+          },
+          {
+            "from": "sgw",
+            "to": "s3",
+            "label": "stores in AWS",
+            "fresh": true
+          },
+          {
+            "from": "bk",
+            "to": "ebs",
+            "fresh": true
+          },
+          {
+            "from": "bk",
+            "to": "efs",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Object, block, file, hybrid",
+        "body": [
+          "Match the storage type to how the data is used."
+        ],
+        "show": [
+          "app",
+          "s3",
+          "cls",
+          "ebs",
+          "ist",
+          "efs",
+          "sgw",
+          "bk"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "s3",
+            "label": "PUT / GET"
+          },
+          {
+            "from": "s3",
+            "to": "cls",
+            "label": "lifecycle rule"
+          },
+          {
+            "from": "app",
+            "to": "ebs",
+            "label": "boot + data disk"
+          },
+          {
+            "from": "app",
+            "to": "efs",
+            "label": "mount"
+          },
+          {
+            "from": "sgw",
+            "to": "s3",
+            "label": "stores in AWS"
+          },
+          {
+            "from": "bk",
+            "to": "ebs"
+          },
+          {
+            "from": "bk",
+            "to": "efs"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "S3: objects, 11 nines durability",
+          "Storage classes + lifecycle policies cut cost",
+          "EBS persists; instance store is temporary",
+          "EFS (Linux NFS) and FSx (Windows, Lustre, ONTAP, OpenZFS)",
+          "Storage Gateway for hybrid; AWS Backup for central backups"
+        ]
+      }
+    ]
+  }
+}

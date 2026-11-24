@@ -1,0 +1,223 @@
+{
+  "id": "ai901-cu-documents-images",
+  "exam": "ai-901",
+  "title": "Content Understanding: extract information from documents, forms and images",
+  "objectiveIds": [
+    "AI901-2.4.1",
+    "AI901-2.4.2"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Extract information from documents, forms and images with Azure Content Understanding in Foundry Tools, using prebuilt and custom analyzers.",
+  "prerequisites": [
+    {
+      "text": "Information extraction concepts",
+      "objectiveId": "AI901-1.3.5",
+      "lessonId": "ai901-vision-extraction"
+    }
+  ],
+  "foundation": [
+    "Content Understanding turns documents and images into structured data: the fields you care about, ready to store or search.",
+    "You choose an analyzer: a prebuilt one (for example prebuilt-invoice) or your own, where you list the fields you want.",
+    "Each result includes the values, a confidence score, and grounding that shows where each value came from."
+  ],
+  "engineer": [
+    "Analyzers bundle extraction settings, a field schema and model deployments. Prebuilt document analyzers include prebuilt-invoice (vendor, totals, line items); prebuilt-imageSearch describes images for search. Custom analyzers define fields (name, type, description) with methods Extract (documents only; value as it appears), Classify (pick from categories) and Generate (create a value).",
+    "Documents and forms: OCR and layout (text, tables, selection marks, structure) produce markdown, then fields are extracted. Images: descriptions, detected text and generated or classified fields.",
+    "Portal: Foundry portal > Content Understanding: upload samples, choose or build a schema, test, review fields with confidence and grounding, then build the analyzer and copy its ID.",
+    "REST (GA api-version 2025-11-01): POST {endpoint}/contentunderstanding/analyzers/{analyzerId}:analyze?api-version=2025-11-01 with body {\"inputs\":[{\"url\":\"https://...\"}]} and a key or Entra token. 202 Accepted with Operation-Location; poll it until status Succeeded; read result.contents[].fields.",
+    "Quality: write clear field descriptions; use Classify for fixed categories; set confidence thresholds and route low-confidence values to human review."
+  ],
+  "animation": {
+    "id": "ai901-cu-sim",
+    "caption": "Analyze documents and images with prebuilt and custom analyzers through the REST flow; choose the analyzer."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "file",
+        "label": "Invoice PDF / form / image",
+        "x": 0,
+        "y": 100,
+        "kind": "storage"
+      },
+      {
+        "id": "an",
+        "label": "Analyzer: prebuilt-invoice or custom schema",
+        "x": 240,
+        "y": 100,
+        "kind": "ai"
+      },
+      {
+        "id": "post",
+        "label": "POST :analyze → 202 + Operation-Location",
+        "x": 480,
+        "y": 30,
+        "kind": "network"
+      },
+      {
+        "id": "poll",
+        "label": "Poll until Succeeded",
+        "x": 480,
+        "y": 170,
+        "kind": "service"
+      },
+      {
+        "id": "fields",
+        "label": "Fields + confidence + grounding",
+        "x": 720,
+        "y": 100,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "file",
+        "to": "an"
+      },
+      {
+        "from": "an",
+        "to": "post"
+      },
+      {
+        "from": "post",
+        "to": "poll"
+      },
+      {
+        "from": "poll",
+        "to": "fields"
+      }
+    ]
+  },
+  "example": {
+    "title": "Accounts payable automation",
+    "body": [
+      "A finance team runs supplier invoices through prebuilt-invoice and gets vendor name, invoice number, due date, total and line items with confidence scores.",
+      "For their own expense-claim form they build a custom analyzer: Extract claim_number, Classify expense_type (travel, meals, equipment), Generate a one-line justification summary from the attached receipt image."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Analyzers and models are available in supported regions",
+      "Input file size and page limits apply per request"
+    ],
+    "portal": [
+      "Foundry portal > your project > Content Understanding: upload a sample file.",
+      "Pick a prebuilt analyzer or define a schema (field name, type, method Extract/Classify/Generate).",
+      "Test and review fields, confidence and grounding; then build the analyzer and copy its ID."
+    ],
+    "cli": "ENDPOINT=$(az cognitiveservices account show -n contoso-ai -g rg-ai901 --query properties.endpoint -o tsv)\nKEY=$(az cognitiveservices account keys list -n contoso-ai -g rg-ai901 --query key1 -o tsv)\ncurl -i -X POST \"${ENDPOINT}contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\" \\\n  -H \"Ocp-Apim-Subscription-Key: $KEY\" -H \"Content-Type: application/json\" \\\n  -d '{\"inputs\":[{\"url\":\"https://contoso.example/invoices/inv-1001.pdf\"}]}'\n# Copy the Operation-Location header, then poll:\ncurl -H \"Ocp-Apim-Subscription-Key: $KEY\" \"<Operation-Location>\"",
+    "powershell": "$endpoint = (Get-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai).Endpoint\n$key = (Get-AzCognitiveServicesAccountKey -ResourceGroupName rg-ai901 -Name contoso-ai).Key1\n$r = Invoke-WebRequest -Method Post -Uri \"$($endpoint)contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\" `\n  -Headers @{ 'Ocp-Apim-Subscription-Key' = $key } -ContentType 'application/json' -Body '{\"inputs\":[{\"url\":\"https://contoso.example/invoices/inv-1001.pdf\"}]}'\n$op = $r.Headers['Operation-Location']\ndo { Start-Sleep 2; $res = Invoke-RestMethod -Uri \"$op\" -Headers @{ 'Ocp-Apim-Subscription-Key' = $key } } while ($res.status -notin 'Succeeded','Failed')\n$res.result.contents[0].fields",
+    "python": "# pip install requests\nimport os, time, requests\n\nendpoint = os.environ[\"CU_ENDPOINT\"].rstrip(\"/\")  # https://<resource>.services.ai.azure.com\nheaders = {\"Ocp-Apim-Subscription-Key\": os.environ[\"CU_KEY\"], \"Content-Type\": \"application/json\"}\nurl = f\"{endpoint}/contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\"\n\nresp = requests.post(url, headers=headers, json={\"inputs\": [{\"url\": \"https://contoso.example/invoices/inv-1001.pdf\"}]})\nresp.raise_for_status()  # expect 202 Accepted\noperation = resp.headers[\"Operation-Location\"]\n\nwhile True:\n    result = requests.get(operation, headers=headers).json()\n    if result[\"status\"] in (\"Succeeded\", \"Failed\"):\n        break\n    time.sleep(2)\n\nfor name, field in result[\"result\"][\"contents\"][0].get(\"fields\", {}).items():\n    print(name, field.get(\"valueString\") or field.get(\"valueNumber\") or field.get(\"valueDate\"), field.get(\"confidence\"))"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-cu-sim",
+    "objective": "Extract fields from documents and images.",
+    "duration": 20,
+    "steps": [
+      "Content Understanding tab: analyze a document and an image; fix each error preset.",
+      "Choose a Content Understanding analyzer tab: answer every content type."
+    ],
+    "expected": [
+      "Analyze returns 202, then you poll",
+      "Prebuilt analyzers cover common documents"
+    ],
+    "validation": [
+      {
+        "id": "ai-cu-document",
+        "text": "Extracted document fields"
+      },
+      {
+        "id": "ai-cu-image",
+        "text": "Analyzed an image"
+      },
+      {
+        "id": "ai-cu-error",
+        "text": "Diagnosed an analysis error"
+      },
+      {
+        "id": "cu-analyzer-correct",
+        "text": "Chose the right analyzer"
+      },
+      {
+        "id": "cu-analyzer-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Expecting fields in the 202 response",
+      "Using Extract for generated summaries"
+    ],
+    "cleanup": [
+      "Simulation: use Reset.",
+      "If you ran it in Azure: az group delete --name rg-ai901 --yes (deletes the Foundry resource, projects and deployments)."
+    ],
+    "cost": "Simulation: free. Optional real run: model tokens and Foundry Tools transactions are billed per use; delete the resource group afterwards."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "POST returns 401.",
+      "cause": "Missing or wrong key / token.",
+      "fix": "Use the resource key header or an Entra token with the right role."
+    },
+    {
+      "symptom": "Result has fields with low confidence.",
+      "cause": "Poor scan quality or vague field descriptions.",
+      "fix": "Improve descriptions or input quality; route to human review."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Content Understanding vs Document Intelligence",
+      "difference": "Content Understanding is multimodal with Extract/Classify/Generate; Document Intelligence focuses on document models."
+    },
+    {
+      "service": "Prebuilt vs custom analyzer",
+      "difference": "Prebuilt for common types; custom for your own fields."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Results come back immediately in the POST response.",
+      "reality": "Analysis is asynchronous; poll Operation-Location."
+    },
+    {
+      "myth": "Extract works on images and audio.",
+      "reality": "Extract is for documents; use Generate or Classify otherwise."
+    }
+  ],
+  "architectureDecisions": [
+    "Start with prebuilt analyzers.",
+    "Write precise field descriptions.",
+    "Use confidence thresholds with human review."
+  ],
+  "docs": [
+    {
+      "title": "Content Understanding overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/content-understanding/overview"
+    },
+    {
+      "title": "Analyzer reference",
+      "url": "https://learn.microsoft.com/azure/ai-services/content-understanding/concepts/analyzer-reference"
+    },
+    {
+      "title": "Quickstart: Content Understanding REST API",
+      "url": "https://learn.microsoft.com/azure/ai-services/content-understanding/quickstart/use-rest-api"
+    },
+    {
+      "title": "Document processing with Content Understanding",
+      "url": "https://learn.microsoft.com/azure/ai-services/content-understanding/document/overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

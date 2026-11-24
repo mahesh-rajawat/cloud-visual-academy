@@ -1,0 +1,637 @@
+{
+  "id": "az104-vm-create",
+  "exam": "az-104",
+  "title": "Creating, sizing and moving virtual machines",
+  "objectiveIds": [
+    "AZ104-3.2.1",
+    "AZ104-3.2.3",
+    "AZ104-3.2.4"
+  ],
+  "estimatedMinutes": 60,
+  "learningObjective": "Create VMs that pass quota, SKU, credential and network checks, resize them correctly, and move them across resource groups, subscriptions or regions with the right tool.",
+  "prerequisites": [
+    {
+      "text": "Resources required for virtual machines (AZ-900)",
+      "objectiveId": "AZ900-2.2.3"
+    },
+    {
+      "text": "VNets and NSGs",
+      "objectiveId": "AZ104-4.2.1",
+      "lessonId": "az104-nsg-asg"
+    }
+  ],
+  "foundation": [
+    "A virtual machine is a computer you rent in Azure. You choose an operating system image, a size (CPU and memory), disks and the network it connects to.",
+    "A VM is made of several resources: the VM itself, an OS disk, usually a network interface (NIC) in a subnet, and optionally a public IP and an NSG.",
+    "You can change a VM's size later. If the new size is not available on the hardware it runs on, you have to stop (deallocate) it first.",
+    "Moving a VM to another resource group keeps it in the same region; moving it to another region needs a different tool."
+  ],
+  "engineer": [
+    "Creation checks: regional and per-family vCPU quotas (az vm list-usage), SKU availability per region and zone (az vm list-skus), image and generation (Gen2 with Trusted Launch is the default for supported images), admin credentials (reserved usernames such as 'admin' are rejected; Windows passwords must be 12–123 characters and meet complexity), and networking (VNet/subnet, optional public IP, NIC-level or subnet NSG).",
+    "Management options at creation: boot diagnostics, auto-shutdown, backup, extensions (for example the Azure Monitor agent), and Spot pricing for interruptible workloads.",
+    "VM sizes are grouped into families: B (burstable), D (general purpose), E (memory optimised), F (compute optimised), L (storage optimised), N (GPU). Each size limits vCPU, memory, data disks, NICs and throughput.",
+    "Resizing restarts the VM. If the target size is not available on the current hardware cluster, deallocate first; for VMs in an availability set, all VMs in the set must be deallocated. az vm list-vm-resize-options shows the sizes available without deallocation.",
+    "Moving: within or across subscriptions in the same tenant with resource move (move the VM with its disks, NICs, public IPs and other dependencies; the region stays the same, the resource ID changes). Across regions with Azure Resource Mover or by replicating with Azure Site Recovery. Moving into an availability zone requires recreating the VM or using the zone-move capability.",
+    "Deallocated VMs stop compute billing but keep disk billing; 'Stopped' from inside the OS keeps compute allocated and billed."
+  ],
+  "animation": {
+    "id": "vm-sim",
+    "caption": "Create a VM and hit quota, SKU and credential errors; resize; move it."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "img",
+        "label": "Image (Ubuntu 22.04 Gen2)",
+        "x": 0,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "vm",
+        "label": "vm1 Standard_D2s_v5",
+        "x": 240,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "os",
+        "label": "OS disk (Premium SSD)",
+        "x": 0,
+        "y": 140,
+        "kind": "storage"
+      },
+      {
+        "id": "nic",
+        "label": "NIC → snet-app",
+        "x": 480,
+        "y": 0,
+        "kind": "network"
+      },
+      {
+        "id": "nsg",
+        "label": "NSG",
+        "x": 480,
+        "y": 140,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "img",
+        "to": "vm"
+      },
+      {
+        "from": "os",
+        "to": "vm"
+      },
+      {
+        "from": "vm",
+        "to": "nic"
+      },
+      {
+        "from": "nic",
+        "to": "nsg"
+      }
+    ]
+  },
+  "example": {
+    "title": "Right-sizing a reporting server",
+    "body": [
+      "A reporting VM on Standard_D2s_v5 hits 95% memory every month-end. The admin lists resize options, sees Standard_E4s_v5 is not available on the current cluster, deallocates the VM in a maintenance window, resizes and starts it again.",
+      "Later the team moves the VM, its disks and NIC to a new resource group with resource move, and uses Azure Resource Mover to create a copy in North Europe."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "VNet and subnet",
+      "vCPU quota for the family in the region",
+      "SSH key or compliant password"
+    ],
+    "permissions": [
+      "Virtual Machine Contributor (VM) plus Network Contributor or join permissions on the subnet",
+      "Microsoft.Resources/subscriptions/resourceGroups/moveResources/action for moves"
+    ],
+    "limits": [
+      "Quotas per region and VM family",
+      "Resizing restarts the VM",
+      "Resource move keeps the region"
+    ],
+    "portal": [
+      "Virtual machines > Create: Basics (image, size, auth, inbound ports), Disks, Networking, Management, Monitoring, Advanced, Tags.",
+      "VM > Availability + scale > Size: choose a new size (deallocate if required).",
+      "VM > Overview > Move > Move to another resource group / subscription / region (region launches Resource Mover).",
+      "Subscriptions > Usage + quotas: request vCPU increases."
+    ],
+    "cli": "az vm list-skus --location westeurope --size Standard_D --zone -o table\naz vm list-usage --location westeurope -o table\naz vm create -g rg-app -n vm1 --image Ubuntu2204 --size Standard_D2s_v5 --zone 1 \\\n  --admin-username azureuser --generate-ssh-keys --vnet-name vnet-app --subnet snet-app --public-ip-address \"\" --nsg \"\"\naz vm list-vm-resize-options -g rg-app -n vm1 -o table\naz vm deallocate -g rg-app -n vm1 && az vm resize -g rg-app -n vm1 --size Standard_E4s_v5 && az vm start -g rg-app -n vm1\naz resource move --destination-group rg-app-prod --ids <vm-id> <osdisk-id> <nic-id>",
+    "powershell": "New-AzVM -ResourceGroupName rg-app -Name vm1 -Location westeurope -Image Ubuntu2204 -Size Standard_D2s_v5 -Zone 1 `\n  -VirtualNetworkName vnet-app -SubnetName snet-app -Credential (Get-Credential)\nGet-AzVMSize -ResourceGroupName rg-app -VMName vm1\n$vm = Get-AzVM -ResourceGroupName rg-app -Name vm1\n$vm.HardwareProfile.VmSize = 'Standard_E4s_v5'\nUpdate-AzVM -ResourceGroupName rg-app -VM $vm\nMove-AzResource -DestinationResourceGroupName rg-app-prod -ResourceId $vm.Id, $vm.StorageProfile.OsDisk.ManagedDisk.Id",
+    "bicep": "resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {\n  name: 'vm1'\n  location: location\n  zones: [ '1' ]\n  properties: {\n    hardwareProfile: { vmSize: 'Standard_D2s_v5' }\n    osProfile: { computerName: 'vm1', adminUsername: 'azureuser', linuxConfiguration: { disablePasswordAuthentication: true, ssh: { publicKeys: [ { path: '/home/azureuser/.ssh/authorized_keys', keyData: sshKey } ] } } }\n    storageProfile: { imageReference: { publisher: 'Canonical', offer: '0001-com-ubuntu-server-jammy', sku: '22_04-lts-gen2', version: 'latest' }, osDisk: { createOption: 'FromImage', managedDisk: { storageAccountType: 'Premium_LRS' } } }\n    networkProfile: { networkInterfaces: [ { id: nicId } ] }\n  }\n}\nparam location string = resourceGroup().location\nparam sshKey string\nparam nicId string"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "vm-sim",
+    "objective": "Create a VM, then resize and move it with the right method.",
+    "duration": 20,
+    "steps": [
+      "Create VM: try the quota, reserved username and zone presets, then fix them.",
+      "Resize, disks and encryption: untick 'available on cluster' and read the resize message.",
+      "Move a VM: try a region move with resource move, then with Azure Resource Mover."
+    ],
+    "expected": [
+      "Quota, SKU and username errors explained",
+      "Resize requires deallocation when the size is not on the cluster",
+      "Region moves need Resource Mover or Site Recovery"
+    ],
+    "validation": [
+      {
+        "id": "vm-create-failed",
+        "text": "Saw a VM creation fail"
+      },
+      {
+        "id": "vm-created",
+        "text": "Created a VM"
+      },
+      {
+        "id": "resize-deallocate",
+        "text": "Resized with deallocation"
+      },
+      {
+        "id": "vm-moved-region",
+        "text": "Moved a VM to another region"
+      }
+    ],
+    "failureScenarios": [
+      "Quota exhausted",
+      "Reserved username",
+      "Resource move across regions"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "OperationNotAllowed: exceeds approved Total Regional Cores quota.",
+      "cause": "Quota exhausted.",
+      "fix": "Request an increase in Usage + quotas or choose a smaller size."
+    },
+    {
+      "symptom": "SkuNotAvailable.",
+      "cause": "Size not offered in the region/zone or restricted for the subscription.",
+      "fix": "az vm list-skus to find alternatives."
+    },
+    {
+      "symptom": "Resize option is missing for the running VM.",
+      "cause": "Size not on the current cluster.",
+      "fix": "Deallocate (all VMs in the availability set) and resize."
+    },
+    {
+      "symptom": "Move validation fails for the VM.",
+      "cause": "Dependent disks/NICs not included, or the VM has unsupported configurations.",
+      "fix": "Include all dependencies; check the VM move limitations page."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon EC2",
+      "difference": "Comparable IaaS; EC2 instance types correspond to Azure VM sizes; stopping an EBS-backed instance is similar to deallocating."
+    },
+    {
+      "service": "Azure App Service / Container Apps",
+      "difference": "PaaS options without OS management."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Shutting down from inside Windows stops billing.",
+      "reality": "Only deallocating (Stop in the portal) releases compute billing."
+    },
+    {
+      "myth": "Moving a VM to another resource group changes its region.",
+      "reality": "Region is unchanged."
+    },
+    {
+      "myth": "You can always resize a running VM to any size.",
+      "reality": "Only sizes available on its current hardware cluster."
+    }
+  ],
+  "architectureDecisions": [
+    "Use Bastion instead of public IPs for admin access.",
+    "Pick sizes by measured CPU/memory; use Advisor for right-sizing.",
+    "Automate creation with Bicep and image definitions (Compute Gallery)."
+  ],
+  "docs": [
+    {
+      "title": "Virtual machines in Azure",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/overview"
+    },
+    {
+      "title": "Create a Linux VM with the Azure CLI",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/linux/quick-create-cli"
+    },
+    {
+      "title": "Change the size of a virtual machine",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/sizes/resize-vm"
+    },
+    {
+      "title": "Move a VM to another resource group or subscription",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/move-limitations/virtual-machines-move-limitations"
+    },
+    {
+      "title": "Move Azure VMs to another region (Resource Mover)",
+      "url": "https://learn.microsoft.com/azure/resource-mover/tutorial-move-region-virtual-machines"
+    },
+    {
+      "title": "Check vCPU quotas",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/quotas"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Create a virtual machine, pick the right size, and move it when plans change.",
+    "learn": [
+      "What a VM needs: image, size, disk, network",
+      "VM size families",
+      "Resizing and when it needs a restart",
+      "Moving to another group, subscription or region"
+    ],
+    "nodes": [
+      {
+        "id": "img",
+        "label": "Image",
+        "x": 120,
+        "y": 90,
+        "kind": "service",
+        "sub": "Ubuntu / Windows"
+      },
+      {
+        "id": "size",
+        "label": "Size",
+        "x": 120,
+        "y": 220,
+        "kind": "compute",
+        "sub": "vCPU + memory"
+      },
+      {
+        "id": "disk",
+        "label": "OS disk",
+        "x": 120,
+        "y": 350,
+        "kind": "storage"
+      },
+      {
+        "id": "vm",
+        "label": "Virtual machine",
+        "x": 400,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "nic",
+        "label": "NIC + VNet",
+        "x": 660,
+        "y": 120,
+        "kind": "network"
+      },
+      {
+        "id": "nsg",
+        "label": "NSG",
+        "x": 660,
+        "y": 330,
+        "kind": "security",
+        "sub": "inbound rules"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "A server",
+        "title": "The team needs a Linux server today",
+        "body": [
+          "In a data center that means hardware, cables and weeks. In Azure it is a form and a few minutes, if you choose the right options."
+        ],
+        "show": [
+          "vm"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Parts",
+        "title": "What every VM is made of",
+        "body": [
+          "An image (the operating system), a size (vCPUs and memory), an OS disk (a managed disk), and a network interface in a virtual network subnet, usually with a network security group.",
+          "Access: SSH key or password for Linux, password for Windows, and ideally no public inbound ports (use Bastion)."
+        ],
+        "show": [
+          "vm",
+          "img",
+          "size",
+          "disk",
+          "nic",
+          "nsg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "img",
+            "to": "vm",
+            "fresh": true
+          },
+          {
+            "from": "size",
+            "to": "vm",
+            "fresh": true
+          },
+          {
+            "from": "disk",
+            "to": "vm",
+            "fresh": true
+          },
+          {
+            "from": "vm",
+            "to": "nic",
+            "fresh": true
+          },
+          {
+            "from": "nic",
+            "to": "nsg",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Sizes",
+        "title": "Size families by job",
+        "body": [
+          "B: burstable and cheap for light work. D: general purpose. E: memory optimised. F: compute optimised. L: storage optimised. N: GPU.",
+          "Check the size is available in your region and that your vCPU quota is high enough."
+        ],
+        "show": [
+          "vm",
+          "img",
+          "size",
+          "disk",
+          "nic",
+          "nsg"
+        ],
+        "focus": [
+          "size"
+        ],
+        "edges": [
+          {
+            "from": "img",
+            "to": "vm"
+          },
+          {
+            "from": "size",
+            "to": "vm"
+          },
+          {
+            "from": "disk",
+            "to": "vm"
+          },
+          {
+            "from": "vm",
+            "to": "nic"
+          },
+          {
+            "from": "nic",
+            "to": "nsg"
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Resize",
+        "title": "Resizing",
+        "body": [
+          "Change the size on the VM's Size page. The VM restarts. If the new size is not available on the current hardware cluster, you must stop (deallocate) the VM first, then resize."
+        ],
+        "show": [
+          "vm",
+          "img",
+          "size",
+          "disk",
+          "nic",
+          "nsg"
+        ],
+        "focus": [
+          "size",
+          "vm"
+        ],
+        "edges": [
+          {
+            "from": "img",
+            "to": "vm"
+          },
+          {
+            "from": "size",
+            "to": "vm"
+          },
+          {
+            "from": "disk",
+            "to": "vm"
+          },
+          {
+            "from": "vm",
+            "to": "nic"
+          },
+          {
+            "from": "nic",
+            "to": "nsg"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Stopped inside the OS = still billed for compute. Stopped (deallocated) in the portal = not billed for compute."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Move",
+        "title": "Moving a VM",
+        "body": [
+          "Move to another resource group or subscription with the Move button: take its disks, NIC and public IP along. The VM keeps its region.",
+          "To another region, use Azure Resource Mover or Azure Site Recovery; it is a copy and switch, not a simple move."
+        ],
+        "show": [
+          "vm",
+          "img",
+          "size",
+          "disk",
+          "nic",
+          "nsg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "img",
+            "to": "vm"
+          },
+          {
+            "from": "size",
+            "to": "vm"
+          },
+          {
+            "from": "disk",
+            "to": "vm"
+          },
+          {
+            "from": "vm",
+            "to": "nic"
+          },
+          {
+            "from": "nic",
+            "to": "nsg"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "VMs",
+        "body": [
+          "Image + size + disk + network."
+        ],
+        "show": [
+          "vm",
+          "img",
+          "size",
+          "disk",
+          "nic",
+          "nsg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "img",
+            "to": "vm"
+          },
+          {
+            "from": "size",
+            "to": "vm"
+          },
+          {
+            "from": "disk",
+            "to": "vm"
+          },
+          {
+            "from": "vm",
+            "to": "nic"
+          },
+          {
+            "from": "nic",
+            "to": "nsg"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Image, size, OS disk, NIC in a subnet",
+          "B, D, E, F, L, N families",
+          "Resize restarts; deallocate if size unavailable",
+          "Move RG/subscription with dependent resources; region via Resource Mover",
+          "Deallocate to stop compute billing"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a VM, resize it and move it to another resource group",
+    "minutes": 30,
+    "costLevel": "low",
+    "cost": "Low. A B1s Linux VM costs about US$0.01 per hour (it is in the free account's 750 free hours). Delete it the same day.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Create a small Linux VM: Virtual machines > + Create > Azure virtual machine. Resource group rg-az104-lab, name vm-lab, region UAE North (or any region near you), image Ubuntu Server 24.04 LTS, size Standard_B1s, authentication: password, username azureuser. Inbound ports: None. Review + create > Create. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead.",
+        "see": "Deployment complete after 2–3 minutes. Open the resource.",
+        "tip": "If B1s is not available in your region, choose Standard_B2ats_v2 or another small B-series size."
+      },
+      {
+        "do": "On the VM Overview note: size, public IP (if any), virtual network/subnet, and OS disk.",
+        "see": "The VM's running state and its resources."
+      },
+      {
+        "do": "Open rg-az104-lab.",
+        "see": "Besides the VM: an OS disk, a network interface, a virtual network, a network security group, and possibly a public IP. A VM is several resources."
+      },
+      {
+        "do": "Open the VM > Availability + scale > Size. Pick another small size such as Standard_B1ms. Resize.",
+        "see": "The VM restarts with the new size.",
+        "tip": "If a size is greyed out, it needs the VM to be deallocated first."
+      },
+      {
+        "do": "Select Stop on the Overview page and wait.",
+        "see": "Status 'Stopped (deallocated)'. Compute billing stops; disks are still billed."
+      },
+      {
+        "do": "Create a resource group rg-az104-lab-2. Open rg-az104-lab, tick the VM, its disk, NIC, NSG, VNet and public IP, then Move > Move to another resource group > rg-az104-lab-2.",
+        "see": "Validation succeeds, then the resources appear in the new group, still in the same region."
+      },
+      {
+        "do": "Open the VM > Overview > Start, wait, then Stop again.",
+        "see": "The VM works in its new group."
+      }
+    ],
+    "check": [
+      "You resized the VM and moved it with its dependencies."
+    ],
+    "cleanup": [
+      "Delete rg-az104-lab-2 (it now holds the VM).",
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: create a Linux VM in the portal",
+        "url": "https://learn.microsoft.com/azure/virtual-machines/linux/quick-create-portal"
+      },
+      {
+        "title": "Change the size of a virtual machine",
+        "url": "https://learn.microsoft.com/azure/virtual-machines/sizes/resize-vm"
+      },
+      {
+        "title": "Move a VM to another resource group or subscription",
+        "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/move-resource-group-and-subscription"
+      },
+      {
+        "title": "Sizes for virtual machines",
+        "url": "https://learn.microsoft.com/azure/virtual-machines/sizes/overview"
+      }
+    ]
+  }
+}

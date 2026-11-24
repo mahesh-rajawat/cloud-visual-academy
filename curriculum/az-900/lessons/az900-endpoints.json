@@ -1,0 +1,221 @@
+{
+  "id": "az900-endpoints",
+  "exam": "az-900",
+  "title": "Public and private endpoints",
+  "objectiveIds": [
+    "AZ900-2.2.6"
+  ],
+  "estimatedMinutes": 25,
+  "learningObjective": "Define public and private endpoints and decide when a PaaS service should be reached privately.",
+  "prerequisites": [
+    {
+      "text": "Virtual networks",
+      "objectiveId": "AZ900-2.2.5",
+      "lessonId": "az900-virtual-networking"
+    }
+  ],
+  "foundation": [
+    "An endpoint is the address a client connects to. A public endpoint is reachable from the internet, for example mystorage.blob.core.windows.net.",
+    "A private endpoint puts a network interface with a private IP address from your VNet in front of a service (such as a storage account or SQL database). Traffic stays on the Microsoft network.",
+    "With a private endpoint you can turn off public access completely, so the service can't be reached from the internet at all."
+  ],
+  "engineer": [
+    "Public endpoints: most PaaS services have one by default. You can restrict them with firewall rules (allowed IP ranges, selected VNets) or disable public network access.",
+    "Private endpoints use Azure Private Link: a NIC with a private IP in your subnet maps to a specific resource (for example one storage account), not the whole service. Reachable from the VNet, peered VNets and on-premises over VPN/ExpressRoute.",
+    "DNS: clients must resolve the service name to the private IP. Private DNS zones (privatelink.blob.core.windows.net) are created and linked to make this work; otherwise clients still resolve the public address.",
+    "Security benefits: no exposure to the internet, protection against data exfiltration (connects to one specific resource), works with NSGs and on-premises connectivity.",
+    "Service endpoints (a related AZ-104 topic) keep traffic on the backbone but the service keeps its public IP; private endpoints give it a private IP."
+  ],
+  "animation": {
+    "id": "az900-endpoints-sim",
+    "caption": "Connect from the internet, the VNet or on-premises with different public-access and private endpoint settings."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "inet",
+        "label": "Internet client",
+        "x": 0,
+        "y": 0,
+        "kind": "user"
+      },
+      {
+        "id": "pub",
+        "label": "Public endpoint (disabled)",
+        "x": 240,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "vm",
+        "label": "VM in VNet",
+        "x": 0,
+        "y": 160,
+        "kind": "compute"
+      },
+      {
+        "id": "pe",
+        "label": "Private endpoint 10.0.2.5",
+        "x": 240,
+        "y": 160,
+        "kind": "network"
+      },
+      {
+        "id": "st",
+        "label": "Storage account",
+        "x": 480,
+        "y": 80,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "inet",
+        "to": "pub",
+        "label": "blocked"
+      },
+      {
+        "from": "pub",
+        "to": "st"
+      },
+      {
+        "from": "vm",
+        "to": "pe",
+        "label": "private IP"
+      },
+      {
+        "from": "pe",
+        "to": "st",
+        "label": "Private Link"
+      }
+    ]
+  },
+  "example": {
+    "title": "Patient records",
+    "body": [
+      "A hospital stores scans in a storage account. It adds a private endpoint in its app subnet and disables public network access.",
+      "The web app in the VNet and clinicians on-premises (over ExpressRoute) reach the account at 10.0.2.5; requests from the internet fail even with a valid key."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Storage account > Networking > Public network access: Disabled / Enabled from selected networks.",
+      "Storage account > Networking > Private endpoint connections > + Private endpoint.",
+      "Private DNS zones: privatelink.blob.core.windows.net linked to the VNet."
+    ],
+    "cli": "az network private-endpoint create -g <rg> -n pe-st --vnet-name vnet-a --subnet data --private-connection-resource-id <storage-id> --group-id blob --connection-name st-conn\naz storage account update -g <rg> -n <account> --public-network-access Disabled",
+    "powershell": "Set-AzStorageAccount -ResourceGroupName <rg> -Name <account> -PublicNetworkAccess Disabled"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-endpoints-sim",
+    "objective": "See which clients reach a storage account through which endpoint.",
+    "duration": 15,
+    "steps": [
+      "Public vs private endpoint tab: run the default, then each preset.",
+      "Public or private endpoint? tab: answer every requirement."
+    ],
+    "expected": [
+      "Private endpoint works from the VNet even with public access disabled",
+      "The internet can't use a private endpoint"
+    ],
+    "validation": [
+      {
+        "id": "endpoint-private",
+        "text": "Connected through a private endpoint"
+      },
+      {
+        "id": "endpoint-public",
+        "text": "Connected through the public endpoint"
+      },
+      {
+        "id": "endpoint-blocked",
+        "text": "Saw a blocked connection"
+      },
+      {
+        "id": "endpoints-correct",
+        "text": "Chose the right endpoint type"
+      },
+      {
+        "id": "endpoints-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Disabling public access before the private endpoint and DNS are ready"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "VMs still go to the public IP after adding a private endpoint.",
+      "cause": "DNS resolves the public address.",
+      "fix": "Link the privatelink private DNS zone to the VNet."
+    },
+    {
+      "symptom": "Internet clients can't reach the account any more.",
+      "cause": "Public network access was disabled.",
+      "fix": "Enable selected networks, or use the private path."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Private endpoint vs service endpoint",
+      "difference": "Private endpoint: private IP for one resource. Service endpoint: optimised route to the public endpoint from a subnet."
+    },
+    {
+      "service": "Private endpoint vs VPN",
+      "difference": "VPN connects networks; a private endpoint gives a service an address inside the network."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "A private endpoint makes the service private automatically.",
+      "reality": "Public access stays on until you disable it."
+    },
+    {
+      "myth": "Private endpoints connect to the whole service (all storage accounts).",
+      "reality": "They map to one resource."
+    }
+  ],
+  "architectureDecisions": [
+    "Use private endpoints for data services holding sensitive data.",
+    "Disable public network access when all clients are private.",
+    "Plan private DNS with the endpoint."
+  ],
+  "docs": [
+    {
+      "title": "Describe Azure compute and networking services (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-azure-compute-networking-services/"
+    },
+    {
+      "title": "What is a private endpoint?",
+      "url": "https://learn.microsoft.com/azure/private-link/private-endpoint-overview"
+    },
+    {
+      "title": "Azure Private Link",
+      "url": "https://learn.microsoft.com/azure/private-link/private-link-overview"
+    },
+    {
+      "title": "Storage network security",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-network-security"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

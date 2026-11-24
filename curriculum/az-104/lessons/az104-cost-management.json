@@ -1,0 +1,550 @@
+{
+  "id": "az104-cost-management",
+  "exam": "az-104",
+  "title": "Managing costs: cost analysis, budgets, alerts and Azure Advisor",
+  "objectiveIds": [
+    "AZ104-1.3.6"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Create budgets with actual and forecast alerts at the right scope, connect them to action groups, analyse cost by tag and resource group, and act on Advisor cost recommendations.",
+  "prerequisites": [
+    {
+      "text": "Cost factors and cost management (AZ-900)",
+      "objectiveId": "AZ900-3.1.3"
+    },
+    {
+      "text": "Tags",
+      "lessonId": "az104-policy-tags",
+      "objectiveId": "AZ104-1.3.3"
+    },
+    {
+      "text": "Purpose of Azure Advisor (AZ-900)",
+      "objectiveId": "AZ900-3.4.1"
+    }
+  ],
+  "foundation": [
+    "Cost Management shows what you have spent, what you are likely to spend, and what is driving the cost (by service, resource group, tag and so on).",
+    "A budget is a spending target for a scope, such as a subscription or resource group. You choose when to be warned, for example at 80% of actual spend, or when the forecast says you will pass 100%.",
+    "A budget only warns. It does not stop or delete anything, unless you connect its alert to automation through an action group.",
+    "Azure Advisor is a free recommendation service. Its Cost category points out savings such as underused VMs to shut down or resize, and reservations or savings plans to buy."
+  ],
+  "engineer": [
+    "Budget scopes include management groups, subscriptions, resource groups and billing scopes. Budgets can filter by resource group, resource, service or tag, reset monthly, quarterly or annually, and have start and expiry dates.",
+    "Alert conditions are percentages of the budget amount, evaluated against Actual or Forecasted cost; a budget supports up to five notifications. Email recipients can be listed directly. Action groups (email, SMS, webhook, Logic App, Azure Function, Automation runbook) can be attached to budgets at subscription and resource group scope.",
+    "Cost data is not real-time; usage typically appears within 8–24 hours, so alerts arrive after the money is spent. Forecast alerts give earlier warning for steady spending patterns.",
+    "Cost analysis: group or filter by resource group, service, location or tag; save views; schedule exports to a storage account. Tag-based reporting needs tags on the resources themselves, or tag inheritance enabled in Cost Management.",
+    "Other alert types: credit alerts (Azure Prepayment), department spending quota alerts (EA), and cost anomaly alerts.",
+    "Advisor cost recommendations include right-sizing or shutting down underutilised VMs and VM scale sets, buying reservations or savings plans, and deleting idle resources. For the VM rule you can configure the average CPU threshold (5, 10, 15, 20 or 100%) and the lookback period (7 to 90 days). Recommendations can be postponed or dismissed, and Advisor alerts can notify you about new ones.",
+    "Roles: Cost Management Reader to view costs; Cost Management Contributor (or Contributor) to create budgets and exports. Advisor recommendations need at least Reader on the resources."
+  ],
+  "animation": {
+    "id": "budget-sim",
+    "caption": "Run a month of spend against a budget, add actual and forecast alerts, connect automation, and tune Advisor."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "usage",
+        "label": "Usage (8–24 h latency)",
+        "x": 0,
+        "y": 80,
+        "kind": "compute"
+      },
+      {
+        "id": "cm",
+        "label": "Cost Management: analysis + budgets",
+        "x": 230,
+        "y": 80,
+        "kind": "storage"
+      },
+      {
+        "id": "alert",
+        "label": "Budget alert (actual / forecast %)",
+        "x": 480,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "ag",
+        "label": "Action group → email / runbook",
+        "x": 480,
+        "y": 160,
+        "kind": "network"
+      },
+      {
+        "id": "adv",
+        "label": "Advisor: right-size / shut down",
+        "x": 230,
+        "y": 230,
+        "kind": "scope"
+      }
+    ],
+    "edges": [
+      {
+        "from": "usage",
+        "to": "cm"
+      },
+      {
+        "from": "cm",
+        "to": "alert",
+        "label": "threshold crossed"
+      },
+      {
+        "from": "alert",
+        "to": "ag",
+        "label": "RG/subscription budgets"
+      },
+      {
+        "from": "usage",
+        "to": "adv",
+        "label": "utilisation"
+      }
+    ]
+  },
+  "example": {
+    "title": "Keeping a dev subscription under 500 USD",
+    "body": [
+      "The team creates a monthly 500 USD budget on the dev subscription with alerts at Forecasted 100% (early warning) and Actual 90%. The Actual 90% alert triggers an action group whose Automation runbook deallocates all VMs tagged environment=dev.",
+      "Advisor flags a build VM averaging 2% CPU. They schedule auto-shutdown for it and resize a web VM that sits under 10% CPU, which keeps the forecast under the budget."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Cost Management access at the scope",
+      "An action group (and runbook) if automation is required"
+    ],
+    "permissions": [
+      "Cost Management Contributor or Contributor to create budgets",
+      "Reader on resources for Advisor"
+    ],
+    "limits": [
+      "Budgets alert; they never enforce",
+      "Up to five notifications per budget",
+      "Cost data latency of hours, not minutes"
+    ],
+    "portal": [
+      "Cost Management + Billing > Cost Management > Cost analysis: choose the scope, group by Resource group or Tag, and save the view.",
+      "Cost Management > Budgets > Add: scope, filters, amount, reset period, then alert conditions (Actual/Forecasted %), recipients and action groups.",
+      "Advisor > Cost: review recommendations. Advisor > Configuration > Rules: set the VM CPU threshold and lookback period.",
+      "Cost Management > Exports: schedule daily or monthly CSV exports to a storage account."
+    ],
+    "cli": "az consumption budget create --budget-name dev-monthly --amount 500 --category cost \\\n  --time-grain monthly --start-date 2026-12-01 --end-date 2027-12-01\naz consumption budget list -o table\naz advisor recommendation list --category Cost -o table\naz advisor configuration update --low-cpu-threshold 10",
+    "powershell": "New-AzConsumptionBudget -Name dev-monthly -Amount 500 -Category Cost -TimeGrain Monthly `\n  -StartDate 2026-12-01 -EndDate 2027-12-01 -ContactEmail ops@contoso.com `\n  -NotificationKey actual90 -NotificationThreshold 90 -NotificationEnabled\nGet-AzAdvisorRecommendation -Category Cost\nSet-AzAdvisorConfiguration -LowCpuThreshold 10",
+    "bicep": "targetScope = 'subscription'\n\nresource budget 'Microsoft.Consumption/budgets@2023-05-01' = {\n  name: 'dev-monthly'\n  properties: {\n    category: 'Cost'\n    amount: 500\n    timeGrain: 'Monthly'\n    timePeriod: { startDate: '2026-12-01' }\n    notifications: {\n      forecast100: { enabled: true, operator: 'GreaterThan', threshold: 100, thresholdType: 'Forecasted', contactEmails: [ 'ops@contoso.com' ] }\n      actual90: { enabled: true, operator: 'GreaterThan', threshold: 90, thresholdType: 'Actual', contactEmails: [ 'ops@contoso.com' ], contactGroups: [ actionGroupId ] }\n    }\n  }\n}\n\nparam actionGroupId string"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "budget-sim",
+    "objective": "Show that budgets warn but do not enforce, compare actual and forecast alerts, and use automation and Advisor to control cost.",
+    "duration": 15,
+    "steps": [
+      "Run the month with the defaults. Note when each alert fires relative to the spend that caused it.",
+      "Tick the automation option and run again. The month now ends under budget.",
+      "Change the Advisor CPU threshold and see which VMs get recommendations."
+    ],
+    "expected": [
+      "Forecast 100% fires before Actual 80% for steady spend",
+      "Without automation the month ends over budget",
+      "Higher thresholds produce more recommendations"
+    ],
+    "validation": [
+      {
+        "id": "budget-alert",
+        "text": "Saw a budget alert fire"
+      },
+      {
+        "id": "automation-stopped",
+        "text": "Used an action group runbook to keep spend under budget"
+      },
+      {
+        "id": "advisor-configured",
+        "text": "Changed the Advisor CPU threshold"
+      }
+    ],
+    "failureScenarios": [
+      "Expecting a budget to stop resources",
+      "Relying on near-real-time alerts",
+      "Filtering a budget by tags that resources do not carry"
+    ],
+    "cleanup": [
+      "Simulation only."
+    ],
+    "cost": "None. Budgets, cost analysis and Advisor are free."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "The budget was exceeded but resources are still running.",
+      "cause": "Budgets never stop resources.",
+      "fix": "Attach an action group with automation, or use spending limits where the offer supports them."
+    },
+    {
+      "symptom": "An alert arrived a day after a cost spike.",
+      "cause": "Cost data latency.",
+      "fix": "Add forecast alerts and anomaly alerts; for real-time control use Azure Monitor metric alerts on usage."
+    },
+    {
+      "symptom": "Cannot add an action group to a budget.",
+      "cause": "Action groups are supported only for subscription and resource group scope budgets.",
+      "fix": "Create the budget at subscription or resource group scope, or rely on email."
+    },
+    {
+      "symptom": "Cost analysis grouped by tag shows 'untagged'.",
+      "cause": "Tags exist on resource groups only, or were added after the usage occurred.",
+      "fix": "Tag the resources (Policy Modify) or enable tag inheritance in Cost Management."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS Budgets and Cost Explorer",
+      "difference": "Similar alerting on actual and forecast spend; AWS Budgets can also apply budget actions (for example IAM/SCP restrictions). Azure uses action groups and automation."
+    },
+    {
+      "service": "Azure Monitor alerts",
+      "difference": "Near-real-time metric and log alerts on resources; budget alerts are based on billing data with hours of delay."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Reaching 100% of a budget shuts down resources.",
+      "reality": "Budgets only notify; any enforcement must be automated by you."
+    },
+    {
+      "myth": "Budget alerts are near real time.",
+      "reality": "Cost data typically lags by 8–24 hours."
+    },
+    {
+      "myth": "Advisor recommendations are applied automatically.",
+      "reality": "You review and implement (or dismiss or postpone) them."
+    }
+  ],
+  "architectureDecisions": [
+    "Create budgets at several levels: management group or subscription for overall control, resource group for teams.",
+    "Combine forecast alerts for early warning with actual alerts for confirmation.",
+    "Tag resources consistently so cost can be allocated, and enforce tags with Policy.",
+    "Review Advisor cost recommendations on a regular cadence and track Advisor score."
+  ],
+  "docs": [
+    {
+      "title": "Tutorial: Create and manage budgets",
+      "url": "https://learn.microsoft.com/azure/cost-management-billing/costs/tutorial-acm-create-budgets"
+    },
+    {
+      "title": "Manage costs with budgets (action groups)",
+      "url": "https://learn.microsoft.com/azure/cost-management-billing/manage/cost-management-budget-scenario"
+    },
+    {
+      "title": "Use cost alerts to monitor usage and spending",
+      "url": "https://learn.microsoft.com/azure/cost-management-billing/costs/cost-mgt-alerts-monitor-usage-spending"
+    },
+    {
+      "title": "Quickstart: Explore and analyze costs with cost analysis",
+      "url": "https://learn.microsoft.com/azure/cost-management-billing/costs/quick-acm-cost-analysis"
+    },
+    {
+      "title": "Reduce service costs by using Azure Advisor",
+      "url": "https://learn.microsoft.com/azure/advisor/advisor-cost-recommendations"
+    },
+    {
+      "title": "Configure Advisor recommendations (VM rule)",
+      "url": "https://learn.microsoft.com/azure/advisor/advisor-get-started"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert. The simulator's forecast is linear; Azure uses a model-based forecast."
+  },
+  "walkthrough": {
+    "subtitle": "See where the money goes, get warned before it runs out, and take Azure's own savings advice.",
+    "learn": [
+      "Cost analysis",
+      "Budgets and alert thresholds",
+      "Budgets do not stop spending",
+      "Azure Advisor cost recommendations"
+    ],
+    "nodes": [
+      {
+        "id": "bill",
+        "label": "Azure bill",
+        "x": 400,
+        "y": 60,
+        "kind": "cost"
+      },
+      {
+        "id": "ca",
+        "label": "Cost analysis",
+        "x": 160,
+        "y": 200,
+        "kind": "cost",
+        "sub": "by group, tag, service"
+      },
+      {
+        "id": "bud",
+        "label": "Budget",
+        "x": 400,
+        "y": 200,
+        "kind": "cost",
+        "sub": "$50 per month"
+      },
+      {
+        "id": "mail",
+        "label": "Email alert",
+        "x": 400,
+        "y": 350,
+        "kind": "user",
+        "sub": "at 80% and 100%"
+      },
+      {
+        "id": "adv",
+        "label": "Azure Advisor",
+        "x": 640,
+        "y": 200,
+        "kind": "service",
+        "sub": "cost tips"
+      },
+      {
+        "id": "ag",
+        "label": "Action group",
+        "x": 640,
+        "y": 350,
+        "kind": "service",
+        "sub": "optional automation"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Surprise bill",
+        "title": "The bill doubled and nobody noticed",
+        "body": [
+          "A test VM was left running for a month. By the time anyone saw the invoice, the money was spent."
+        ],
+        "show": [
+          "bill"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Analyse",
+        "title": "Cost analysis shows where money goes",
+        "body": [
+          "Cost Management > Cost analysis breaks spending down by resource group, service, location or tag, and shows a forecast for the month."
+        ],
+        "show": [
+          "bill",
+          "ca"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "bill",
+            "to": "ca",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Good tags (owner, project, env) make cost analysis far more useful."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Budget",
+        "title": "A budget warns you before it is too late",
+        "body": [
+          "Create a budget for a subscription or resource group with an amount and a period. Add alert conditions on actual or forecast cost, for example 80% and 100%, and send email."
+        ],
+        "show": [
+          "bill",
+          "ca",
+          "bud",
+          "mail"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "bill",
+            "to": "ca"
+          },
+          {
+            "from": "bill",
+            "to": "bud",
+            "fresh": true
+          },
+          {
+            "from": "bud",
+            "to": "mail",
+            "label": "alert",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "A budget only alerts. It does not stop resources or spending. To act automatically, connect an action group (for example to run an automation)."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Advisor",
+        "title": "Take Azure's own advice",
+        "body": [
+          "Azure Advisor's Cost tab lists savings such as shutting down or resizing under-used VMs, deleting unattached disks, and buying reservations."
+        ],
+        "show": [
+          "bill",
+          "ca",
+          "bud",
+          "mail",
+          "adv",
+          "ag"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "bill",
+            "to": "ca"
+          },
+          {
+            "from": "bill",
+            "to": "bud"
+          },
+          {
+            "from": "bud",
+            "to": "mail",
+            "label": "alert"
+          },
+          {
+            "from": "bill",
+            "to": "adv",
+            "fresh": true
+          },
+          {
+            "from": "bud",
+            "to": "ag",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Cost control",
+        "body": [
+          "See it, get warned, act on advice."
+        ],
+        "show": [
+          "bill",
+          "ca",
+          "bud",
+          "mail",
+          "adv",
+          "ag"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "bill",
+            "to": "ca"
+          },
+          {
+            "from": "bill",
+            "to": "bud"
+          },
+          {
+            "from": "bud",
+            "to": "mail",
+            "label": "alert"
+          },
+          {
+            "from": "bill",
+            "to": "adv"
+          },
+          {
+            "from": "bud",
+            "to": "ag"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Cost analysis: break down and forecast spend",
+          "Budgets alert on actual or forecast cost",
+          "Budgets never stop resources",
+          "Action groups can automate a response",
+          "Advisor Cost: resize, shut down, reserve"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a budget with alerts and read Advisor",
+    "minutes": 15,
+    "costLevel": "free",
+    "cost": "Free. Budgets, cost analysis and Advisor cost nothing.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Cost Management' > Cost analysis. Set the scope to your subscription.",
+        "see": "A chart of this month's cost and a forecast (it may be near zero on a new account)."
+      },
+      {
+        "do": "Change 'Group by' to Resource group, then to Service name.",
+        "see": "Costs split by group, then by service."
+      },
+      {
+        "do": "Cost Management > Budgets > + Add. Name: budget-lab, reset period: Monthly, amount: 10 (in your billing currency).",
+        "see": "A chart showing the budget against your spending."
+      },
+      {
+        "do": "Next: add alert conditions: Actual 80%, Actual 100%, and Forecasted 100%. Add your email address. Create.",
+        "see": "budget-lab in the budgets list."
+      },
+      {
+        "do": "Search 'Advisor' > Recommendations > Cost.",
+        "see": "Cost recommendations, or a message that none were found for your resources."
+      }
+    ],
+    "check": [
+      "budget-lab exists with three alert conditions."
+    ],
+    "cleanup": [
+      "Keep the budget: it protects you during the whole course. Delete it later if you like."
+    ],
+    "screens": [
+      {
+        "title": "Tutorial: create and manage budgets",
+        "url": "https://learn.microsoft.com/azure/cost-management-billing/costs/tutorial-acm-create-budgets"
+      },
+      {
+        "title": "Quickstart: explore and analyse costs",
+        "url": "https://learn.microsoft.com/azure/cost-management-billing/costs/quick-acm-cost-analysis"
+      },
+      {
+        "title": "Reduce service costs with Azure Advisor",
+        "url": "https://learn.microsoft.com/azure/advisor/advisor-reference-cost-recommendations"
+      }
+    ]
+  }
+}

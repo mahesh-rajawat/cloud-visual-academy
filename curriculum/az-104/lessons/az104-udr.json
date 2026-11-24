@@ -1,0 +1,588 @@
+{
+  "id": "az104-udr",
+  "exam": "az-104",
+  "title": "User-defined routes",
+  "objectiveIds": [
+    "AZ104-4.1.4"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Create route tables and user-defined routes, associate them with subnets, and predict which route Azure selects.",
+  "prerequisites": [
+    {
+      "text": "Virtual network peering",
+      "objectiveId": "AZ104-4.1.2",
+      "lessonId": "az104-vnet-peering"
+    }
+  ],
+  "foundation": [
+    "Azure automatically routes traffic between subnets, peered VNets, on-premises and the internet using system routes.",
+    "A user-defined route (UDR) overrides that, for example to send all traffic through a firewall."
+  ],
+  "engineer": [
+    "Route table: a resource with routes (address prefix → next hop type), associated with one or more subnets (in the same region and subscription). A subnet has at most one route table.",
+    "Next hop types: Virtual appliance (an IP address of an NVA or Azure Firewall), Virtual network gateway, Virtual network, Internet, None (drop).",
+    "Selection: longest prefix match first; if prefixes are equal, user-defined routes win over BGP routes, which win over system routes.",
+    "An NVA must have IP forwarding enabled on its NIC (and forwarding in its OS) to pass traffic for other destinations.",
+    "Propagate gateway routes: disable it on a route table to stop BGP routes from on-premises being added to a subnet (for example to force everything through the firewall).",
+    "Service tags can be used as the address prefix of a route (for example Storage)."
+  ],
+  "animation": {
+    "id": "network-routing-sim",
+    "caption": "User-defined routes tab: winning route per destination and NVA forwarding."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "app",
+        "label": "snet-app",
+        "x": 40,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "rt",
+        "label": "rt-app: 0.0.0.0/0 → 10.1.0.4",
+        "x": 220,
+        "y": 20,
+        "kind": "network"
+      },
+      {
+        "id": "nva",
+        "label": "Firewall NVA 10.1.0.4",
+        "x": 300,
+        "y": 120,
+        "kind": "security"
+      },
+      {
+        "id": "db",
+        "label": "snet-db",
+        "x": 560,
+        "y": 60,
+        "kind": "storage"
+      },
+      {
+        "id": "net",
+        "label": "Internet",
+        "x": 560,
+        "y": 190,
+        "kind": "globe"
+      }
+    ],
+    "edges": [
+      {
+        "from": "rt",
+        "to": "app",
+        "label": "associated"
+      },
+      {
+        "from": "app",
+        "to": "nva"
+      },
+      {
+        "from": "nva",
+        "to": "db"
+      },
+      {
+        "from": "nva",
+        "to": "net"
+      }
+    ]
+  },
+  "example": {
+    "title": "Forced tunnelling through Azure Firewall",
+    "body": [
+      "Route table rt-spokes with 0.0.0.0/0 → Virtual appliance 10.0.1.4 (Azure Firewall private IP) is associated with every spoke subnet. Internet traffic is inspected and logged before leaving."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription and a resource group (rg-net)"
+    ],
+    "permissions": [
+      "Network Contributor on the resource group"
+    ],
+    "limits": [
+      "400 routes per route table",
+      "One route table per subnet"
+    ],
+    "portal": [
+      "Create a resource > Route table; set Propagate gateway routes.",
+      "Route table > Routes > Add: prefix 0.0.0.0/0, next hop Virtual appliance, address 10.1.0.4.",
+      "Route table > Subnets > Associate snet-app.",
+      "NVA NIC > IP configurations > IP forwarding: Enabled."
+    ],
+    "cli": "az network route-table create -g rg-net -n rt-app\naz network route-table route create -g rg-net --route-table-name rt-app -n default-to-fw --address-prefix 0.0.0.0/0 --next-hop-type VirtualAppliance --next-hop-ip-address 10.1.0.4\naz network vnet subnet update -g rg-net --vnet-name vnet-app -n snet-app --route-table rt-app\naz network nic update -g rg-net -n nva-nic --ip-forwarding true\naz network nic show-effective-route-table -g rg-net -n vm-app-nic -o table",
+    "powershell": "$rt = New-AzRouteTable -Name rt-app -ResourceGroupName rg-net -Location eastus\nAdd-AzRouteConfig -RouteTable $rt -Name default-to-fw -AddressPrefix 0.0.0.0/0 -NextHopType VirtualAppliance -NextHopIpAddress 10.1.0.4 | Set-AzRouteTable\n$vnet = Get-AzVirtualNetwork -Name vnet-app -ResourceGroupName rg-net\nSet-AzVirtualNetworkSubnetConfig -VirtualNetwork $vnet -Name snet-app -AddressPrefix 10.1.1.0/24 -RouteTable $rt | Set-AzVirtualNetwork\nGet-AzEffectiveRouteTable -NetworkInterfaceName vm-app-nic -ResourceGroupName rg-net"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "network-routing-sim",
+    "objective": "Route traffic through an NVA and predict route selection.",
+    "duration": 15,
+    "steps": [
+      "Run the default internet test and read why the NVA drops it.",
+      "Apply 'Enable IP forwarding'.",
+      "Apply 'Inspect traffic to the DB subnet' (a more specific route wins).",
+      "Apply 'Route table not associated' and 'Black-hole a prefix'."
+    ],
+    "expected": [
+      "Longest prefix wins",
+      "NVA needs IP forwarding",
+      "Route table must be associated"
+    ],
+    "validation": [
+      {
+        "id": "udr-via-nva",
+        "text": "Routed traffic through the NVA"
+      },
+      {
+        "id": "udr-delivered",
+        "text": "Saw system routing deliver traffic"
+      },
+      {
+        "id": "udr-dropped",
+        "text": "Saw traffic dropped"
+      }
+    ],
+    "failureScenarios": [
+      "IP forwarding disabled",
+      "Route table not associated",
+      "Next hop None"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Traffic doesn't go through the firewall.",
+      "cause": "Route table not associated, or a more specific system/BGP route wins.",
+      "fix": "Check Effective routes on the NIC."
+    },
+    {
+      "symptom": "Traffic reaches the NVA but goes no further.",
+      "cause": "IP forwarding disabled on the NIC or in the OS.",
+      "fix": "Enable both."
+    },
+    {
+      "symptom": "Asymmetric routing breaks connections.",
+      "cause": "Return traffic bypasses the stateful firewall.",
+      "fix": "Add matching UDRs on the return path."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS route tables",
+      "difference": "Also associated with subnets; next hops are gateways, NAT, ENIs or Transit Gateway."
+    },
+    {
+      "service": "Azure Route Server",
+      "difference": "Exchanges BGP routes with NVAs dynamically instead of static UDRs."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "A UDR always beats a system route.",
+      "reality": "Only for equal prefixes; a longer prefix always wins."
+    },
+    {
+      "myth": "Route tables apply to NICs.",
+      "reality": "They apply to subnets."
+    }
+  ],
+  "architectureDecisions": [
+    "Use Azure Firewall with 0.0.0.0/0 UDRs for centralised egress.",
+    "Keep route tables few and shared where possible.",
+    "Verify with Effective routes and Next hop after each change."
+  ],
+  "docs": [
+    {
+      "title": "Virtual network traffic routing",
+      "url": "https://learn.microsoft.com/azure/virtual-network/virtual-networks-udr-overview"
+    },
+    {
+      "title": "Create, change or delete a route table",
+      "url": "https://learn.microsoft.com/azure/virtual-network/manage-route-table"
+    },
+    {
+      "title": "Diagnose routing with next hop",
+      "url": "https://learn.microsoft.com/azure/network-watcher/next-hop-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Change where traffic goes, for example through a firewall, with your own routes.",
+    "learn": [
+      "System routes",
+      "Route tables and next hop types",
+      "Longest prefix match and priority",
+      "Routing through a network virtual appliance"
+    ],
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "App VM",
+        "x": 120,
+        "y": 220,
+        "kind": "compute",
+        "sub": "snet-app"
+      },
+      {
+        "id": "rt",
+        "label": "Route table",
+        "x": 380,
+        "y": 90,
+        "kind": "network",
+        "sub": "0.0.0.0/0 → 10.0.3.4"
+      },
+      {
+        "id": "fw",
+        "label": "Firewall / NVA",
+        "x": 380,
+        "y": 260,
+        "kind": "security",
+        "sub": "10.0.3.4"
+      },
+      {
+        "id": "net",
+        "label": "Internet",
+        "x": 660,
+        "y": 260,
+        "kind": "globe"
+      },
+      {
+        "id": "on",
+        "label": "On-premises",
+        "x": 660,
+        "y": 90,
+        "kind": "network",
+        "sub": "via VPN"
+      },
+      {
+        "id": "drop",
+        "label": "None",
+        "x": 380,
+        "y": 400,
+        "kind": "security",
+        "sub": "drops traffic"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Uninspected",
+        "title": "Traffic goes straight out to the internet",
+        "body": [
+          "Security wants every packet from the app subnet to pass through a firewall first."
+        ],
+        "show": [
+          "vm",
+          "net"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "net",
+            "label": "system route",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "System routes",
+        "title": "Azure already routes for you",
+        "body": [
+          "System routes send traffic within the VNet, to peered VNets, to VPN gateways and to the internet, automatically. You see them in a NIC's Effective routes."
+        ],
+        "show": [
+          "vm",
+          "net"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "net",
+            "label": "system route"
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Route table",
+        "title": "A route table overrides them",
+        "body": [
+          "Create a route table, add routes (address prefix + next hop), and associate it with subnets. Next hop types: Virtual appliance (an IP address), Virtual network gateway, Virtual network, Internet, or None (drop)."
+        ],
+        "show": [
+          "vm",
+          "net",
+          "rt",
+          "fw",
+          "drop"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "net",
+            "label": "system route"
+          },
+          {
+            "from": "rt",
+            "to": "vm",
+            "label": "applies to subnet",
+            "fresh": true
+          },
+          {
+            "from": "vm",
+            "to": "fw",
+            "label": "0.0.0.0/0",
+            "fresh": true
+          },
+          {
+            "from": "fw",
+            "to": "net",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Which route",
+        "title": "Which route wins?",
+        "body": [
+          "The most specific prefix wins (a /24 beats a /16). If prefixes are equal: user-defined route, then BGP route, then system route."
+        ],
+        "show": [
+          "vm",
+          "net",
+          "rt",
+          "fw",
+          "drop",
+          "on"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "net",
+            "label": "system route"
+          },
+          {
+            "from": "rt",
+            "to": "vm",
+            "label": "applies to subnet"
+          },
+          {
+            "from": "vm",
+            "to": "fw",
+            "label": "0.0.0.0/0"
+          },
+          {
+            "from": "fw",
+            "to": "net"
+          },
+          {
+            "from": "fw",
+            "to": "on",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Use Network Watcher Next hop to see which route a packet will use."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "NVA",
+        "title": "Making an appliance work",
+        "body": [
+          "Enable IP forwarding on the appliance's NIC in Azure, and inside its operating system. Remember the return path: routes are needed in both directions, or traffic becomes asymmetric and is dropped."
+        ],
+        "show": [
+          "vm",
+          "net",
+          "rt",
+          "fw",
+          "drop",
+          "on"
+        ],
+        "focus": [
+          "fw"
+        ],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "net",
+            "label": "system route"
+          },
+          {
+            "from": "rt",
+            "to": "vm",
+            "label": "applies to subnet"
+          },
+          {
+            "from": "vm",
+            "to": "fw",
+            "label": "0.0.0.0/0"
+          },
+          {
+            "from": "fw",
+            "to": "net"
+          },
+          {
+            "from": "fw",
+            "to": "on"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Route tables apply to whole subnets, not to single VMs."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "User-defined routes",
+        "body": [
+          "Your routes beat Azure's, most specific first."
+        ],
+        "show": [
+          "vm",
+          "net",
+          "rt",
+          "fw",
+          "drop",
+          "on"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "net",
+            "label": "system route"
+          },
+          {
+            "from": "rt",
+            "to": "vm",
+            "label": "applies to subnet"
+          },
+          {
+            "from": "vm",
+            "to": "fw",
+            "label": "0.0.0.0/0"
+          },
+          {
+            "from": "fw",
+            "to": "net"
+          },
+          {
+            "from": "fw",
+            "to": "on"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "System routes exist by default",
+          "Route table → routes → associate to subnets",
+          "Next hops: appliance, gateway, VNet, Internet, None",
+          "Longest prefix wins; then UDR > BGP > system",
+          "Enable IP forwarding on the NVA NIC"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Send a subnet's internet traffic nowhere, then prove it with Next hop",
+    "minutes": 20,
+    "costLevel": "low",
+    "cost": "Low. One B1s VM costs about US$0.01 per hour. Delete the same day.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A virtual network vnet-lab (10.10.0.0/16) in rg-az104-lab with a subnet snet-app (10.10.1.0/24): Virtual networks > + Create > IP addresses tab. For these labs, untick 'Enable private subnet' on snet-app so lab VMs can reach the internet (in production use a NAT gateway instead).",
+      "A small Linux VM vm-lab in snet-app of vnet-lab: Virtual machines > + Create. Image Ubuntu 24.04, size Standard_B1s, password authentication, Networking tab: vnet-lab / snet-app, public IP: None, NIC network security group: Basic, public inbound ports: None. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead."
+    ],
+    "steps": [
+      {
+        "do": "Open vm-lab > Networking > the NIC > Help > Effective routes.",
+        "see": "System routes: the VNet range with next hop Virtual network, and 0.0.0.0/0 with next hop Internet."
+      },
+      {
+        "do": "Search 'Route tables' > + Create. Group rg-az104-lab, name rt-lab, region UAE North (or any region near you). Create."
+      },
+      {
+        "do": "Open rt-lab > Settings > Routes > + Add. Name: block-internet, destination 0.0.0.0/0 (IP addresses), next hop type: None. Add.",
+        "see": "The route listed."
+      },
+      {
+        "do": "Open rt-lab > Subnets > + Associate: vnet-lab / snet-app. OK."
+      },
+      {
+        "do": "Check the NIC's Effective routes again.",
+        "see": "0.0.0.0/0 now shows source User and next hop None; the system route shows as Invalid."
+      },
+      {
+        "do": "Search 'Network Watcher' > Network diagnostic tools > Next hop. VM: vm-lab, destination IP 8.8.8.8. Next hop.",
+        "see": "Next hop type: None, and the route table rt-lab named as the reason."
+      },
+      {
+        "do": "Change the route's next hop to Virtual appliance with IP 10.10.1.100 and run Next hop again.",
+        "see": "Next hop type VirtualAppliance, 10.10.1.100."
+      }
+    ],
+    "check": [
+      "Effective routes and Next hop both show your user-defined route winning."
+    ],
+    "cleanup": [
+      "Dissociate rt-lab from the subnet, or: When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Tutorial: route network traffic with a route table",
+        "url": "https://learn.microsoft.com/azure/virtual-network/tutorial-create-route-table-portal"
+      },
+      {
+        "title": "Virtual network traffic routing",
+        "url": "https://learn.microsoft.com/azure/virtual-network/virtual-networks-udr-overview"
+      },
+      {
+        "title": "Diagnose a VM routing problem (Next hop)",
+        "url": "https://learn.microsoft.com/azure/network-watcher/diagnose-vm-network-routing-problem"
+      }
+    ]
+  }
+}

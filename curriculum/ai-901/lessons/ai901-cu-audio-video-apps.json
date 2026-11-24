@@ -1,0 +1,233 @@
+{
+  "id": "ai901-cu-audio-video-apps",
+  "exam": "ai-901",
+  "title": "Content Understanding: audio, video and building an extraction app",
+  "objectiveIds": [
+    "AI901-2.4.3",
+    "AI901-2.4.4"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Extract information from audio and video with Content Understanding, and build a lightweight application with information extraction capabilities.",
+  "prerequisites": [
+    {
+      "text": "Content Understanding for documents and images",
+      "objectiveId": "AI901-2.4.1",
+      "lessonId": "ai901-cu-documents-images"
+    }
+  ],
+  "foundation": [
+    "Content Understanding also works on recordings and videos: it transcribes speech, separates speakers, splits video into scenes, and produces fields such as a summary or a topic.",
+    "An extraction app sends files to an analyzer, waits for the result, and saves the fields: for example, a summary and sentiment for every support call."
+  ],
+  "engineer": [
+    "Audio: transcription with speaker diarization and timestamps, then generated or classified fields (summary, sentiment, topics, action items). prebuilt-audioSearch prepares audio for search; custom analyzers add your fields with Generate or Classify.",
+    "Video: segmentation into scenes or chapters, key frames, transcripts, per-segment descriptions and fields; prebuilt-videoSearch for indexing. Useful for training libraries, media archives and compliance review.",
+    "App pattern: for each file → POST :analyze with the analyzer ID → read Operation-Location → poll with a delay until Succeeded or Failed → read result.contents (markdown, fields, segments) → store fields with confidence → send low-confidence items to review.",
+    "Production design: authenticate with Microsoft Entra ID (or keys from Key Vault), process files from Blob Storage with SAS or managed identity, respect rate limits, retry transient errors, log analyzer IDs and versions, and keep personal data handling compliant (redaction and retention).",
+    "Combine with other services: index fields and transcripts in Azure AI Search for RAG, or trigger workflows (Logic Apps, Functions) when a field matches a condition."
+  ],
+  "animation": {
+    "id": "ai901-cuapp-sim",
+    "caption": "Analyze audio and video, choose Extract, Classify or Generate, and follow the app's poll loop."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "blob",
+        "label": "Recordings and videos (Blob Storage)",
+        "x": 0,
+        "y": 100,
+        "kind": "storage"
+      },
+      {
+        "id": "app",
+        "label": "Python app / Function",
+        "x": 240,
+        "y": 100,
+        "kind": "service"
+      },
+      {
+        "id": "cu",
+        "label": "Analyzer: audio or video",
+        "x": 480,
+        "y": 30,
+        "kind": "ai"
+      },
+      {
+        "id": "poll",
+        "label": "Poll Operation-Location",
+        "x": 480,
+        "y": 170,
+        "kind": "service"
+      },
+      {
+        "id": "db",
+        "label": "Fields: summary, sentiment, segments",
+        "x": 720,
+        "y": 100,
+        "kind": "storage"
+      },
+      {
+        "id": "search",
+        "label": "Azure AI Search / workflows",
+        "x": 940,
+        "y": 100,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "blob",
+        "to": "app"
+      },
+      {
+        "from": "app",
+        "to": "cu"
+      },
+      {
+        "from": "cu",
+        "to": "poll"
+      },
+      {
+        "from": "poll",
+        "to": "db"
+      },
+      {
+        "from": "db",
+        "to": "search"
+      }
+    ]
+  },
+  "example": {
+    "title": "Call-centre insights",
+    "body": [
+      "Every night an Azure Function sends the day's call recordings to a custom audio analyzer that returns a Generate summary, a Classify outcome (resolved, escalated, refund) and a Generate list of action items.",
+      "Training videos go through prebuilt-videoSearch so employees can search for 'how to reset a router' and jump to the right scene."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Audio and video duration and file-size limits apply per request",
+      "Analyzers and models are available in supported regions"
+    ],
+    "portal": [
+      "Foundry portal > your project > Content Understanding: upload a sample file.",
+      "Pick a prebuilt analyzer or define a schema (field name, type, method Extract/Classify/Generate).",
+      "Test and review fields, confidence and grounding; then build the analyzer and copy its ID."
+    ],
+    "cli": "ENDPOINT=$(az cognitiveservices account show -n contoso-ai -g rg-ai901 --query properties.endpoint -o tsv)\nKEY=$(az cognitiveservices account keys list -n contoso-ai -g rg-ai901 --query key1 -o tsv)\ncurl -i -X POST \"${ENDPOINT}contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\" \\\n  -H \"Ocp-Apim-Subscription-Key: $KEY\" -H \"Content-Type: application/json\" \\\n  -d '{\"inputs\":[{\"url\":\"https://contoso.example/invoices/inv-1001.pdf\"}]}'\n# Copy the Operation-Location header, then poll:\ncurl -H \"Ocp-Apim-Subscription-Key: $KEY\" \"<Operation-Location>\"",
+    "powershell": "$endpoint = (Get-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai).Endpoint\n$key = (Get-AzCognitiveServicesAccountKey -ResourceGroupName rg-ai901 -Name contoso-ai).Key1\n$r = Invoke-WebRequest -Method Post -Uri \"$($endpoint)contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\" `\n  -Headers @{ 'Ocp-Apim-Subscription-Key' = $key } -ContentType 'application/json' -Body '{\"inputs\":[{\"url\":\"https://contoso.example/invoices/inv-1001.pdf\"}]}'\n$op = $r.Headers['Operation-Location']\ndo { Start-Sleep 2; $res = Invoke-RestMethod -Uri \"$op\" -Headers @{ 'Ocp-Apim-Subscription-Key' = $key } } while ($res.status -notin 'Succeeded','Failed')\n$res.result.contents[0].fields",
+    "python": "# pip install requests\nimport os, time, requests\n\nendpoint = os.environ[\"CU_ENDPOINT\"].rstrip(\"/\")  # https://<resource>.services.ai.azure.com\nheaders = {\"Ocp-Apim-Subscription-Key\": os.environ[\"CU_KEY\"], \"Content-Type\": \"application/json\"}\nurl = f\"{endpoint}/contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\"\n\nresp = requests.post(url, headers=headers, json={\"inputs\": [{\"url\": \"https://contoso.example/invoices/inv-1001.pdf\"}]})\nresp.raise_for_status()  # expect 202 Accepted\noperation = resp.headers[\"Operation-Location\"]\n\nwhile True:\n    result = requests.get(operation, headers=headers).json()\n    if result[\"status\"] in (\"Succeeded\", \"Failed\"):\n        break\n    time.sleep(2)\n\nfor name, field in result[\"result\"][\"contents\"][0].get(\"fields\", {}).items():\n    print(name, field.get(\"valueString\") or field.get(\"valueNumber\") or field.get(\"valueDate\"), field.get(\"confidence\"))"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-cuapp-sim",
+    "objective": "Analyze audio and video and follow the app flow.",
+    "duration": 20,
+    "steps": [
+      "Content Understanding tab: switch input to audio and video; fix each error preset.",
+      "Content Understanding field methods tab: answer every field."
+    ],
+    "expected": [
+      "Audio and video use Generate and Classify",
+      "Apps poll until Succeeded"
+    ],
+    "validation": [
+      {
+        "id": "ai-cu-audio",
+        "text": "Analyzed audio"
+      },
+      {
+        "id": "ai-cu-video",
+        "text": "Analyzed video"
+      },
+      {
+        "id": "ai-cu-error",
+        "text": "Diagnosed an analysis error"
+      },
+      {
+        "id": "cu-method-correct",
+        "text": "Chose the right field method"
+      },
+      {
+        "id": "cu-method-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Using Extract on audio",
+      "Not handling the Failed status"
+    ],
+    "cleanup": [
+      "Simulation: use Reset.",
+      "If you ran it in Azure: az group delete --name rg-ai901 --yes (deletes the Foundry resource, projects and deployments)."
+    ],
+    "cost": "Simulation: free. Optional real run: model tokens and Foundry Tools transactions are billed per use; delete the resource group afterwards."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "App loops forever.",
+      "cause": "Poll loop doesn't stop on Failed.",
+      "fix": "Stop on Succeeded or Failed and log the error."
+    },
+    {
+      "symptom": "429 errors when processing a backlog.",
+      "cause": "Too many concurrent requests.",
+      "fix": "Throttle and retry with backoff."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Content Understanding audio vs Azure Speech batch transcription",
+      "difference": "Speech gives transcripts; Content Understanding adds fields such as summaries and classifications."
+    },
+    {
+      "service": "prebuilt-videoSearch vs custom video analyzer",
+      "difference": "Prebuilt indexes for search; custom adds your fields."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Video analysis returns one description for the whole file.",
+      "reality": "It segments into scenes with per-segment content."
+    },
+    {
+      "myth": "You must transcribe audio separately first.",
+      "reality": "The analyzer transcribes as part of analysis."
+    }
+  ],
+  "architectureDecisions": [
+    "Process files asynchronously in batches.",
+    "Store confidence with every field.",
+    "Index results for search and RAG."
+  ],
+  "docs": [
+    {
+      "title": "Content Understanding overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/content-understanding/overview"
+    },
+    {
+      "title": "Audio processing with Content Understanding",
+      "url": "https://learn.microsoft.com/azure/ai-services/content-understanding/audio/overview"
+    },
+    {
+      "title": "Video processing with Content Understanding",
+      "url": "https://learn.microsoft.com/azure/ai-services/content-understanding/video/overview"
+    },
+    {
+      "title": "Quickstart: Content Understanding REST API",
+      "url": "https://learn.microsoft.com/azure/ai-services/content-understanding/quickstart/use-rest-api"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

@@ -1,0 +1,553 @@
+{
+  "id": "az104-kql",
+  "exam": "az-104",
+  "title": "Querying logs with KQL",
+  "objectiveIds": [
+    "AZ104-5.1.3"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Write and run Kusto Query Language (KQL) queries in Log Analytics to filter, summarise and visualise monitoring data.",
+  "prerequisites": [
+    {
+      "text": "Metrics and log settings",
+      "objectiveId": "AZ104-5.1.2",
+      "lessonId": "az104-monitor-metrics-logs"
+    }
+  ],
+  "foundation": [
+    "Log Analytics stores logs in tables (Perf, Heartbeat, Event, Syslog, AzureActivity, AzureDiagnostics, StorageBlobLogs…).",
+    "A KQL query starts with a table and pipes (|) the rows through operators, like a production line."
+  ],
+  "engineer": [
+    "Core operators: where (filter), project (choose columns), extend (add calculated columns), summarize (aggregate with count(), avg(), max(), percentile() by columns or bin(TimeGenerated, 1h)), order by / sort, take / limit, top, join, render (timechart, barchart).",
+    "Time: queries use the time range picker or where TimeGenerated > ago(1h). Use bin() to group by time for charts.",
+    "Useful queries: Heartbeat | summarize LastSeen = max(TimeGenerated) by Computer | where LastSeen < ago(5m) (missing agents); AzureActivity | where OperationNameValue endswith 'DELETE'; Perf | where CounterName == '% Processor Time' | summarize avg(CounterValue) by bin(TimeGenerated, 5m), Computer | render timechart.",
+    "Scope: workspace, or resource context (only that resource's data). Save queries, pin to dashboards or workbooks, and use them in log search alerts."
+  ],
+  "animation": {
+    "id": "monitor-sim",
+    "caption": "Query logs with KQL tab: queries run over a sample Perf table."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "t",
+        "label": "Perf table",
+        "x": 20,
+        "y": 120,
+        "kind": "storage"
+      },
+      {
+        "id": "w",
+        "label": "| where",
+        "x": 200,
+        "y": 120,
+        "kind": "service"
+      },
+      {
+        "id": "s",
+        "label": "| summarize by",
+        "x": 360,
+        "y": 120,
+        "kind": "service"
+      },
+      {
+        "id": "o",
+        "label": "| order by",
+        "x": 520,
+        "y": 120,
+        "kind": "service"
+      },
+      {
+        "id": "r",
+        "label": "| render timechart",
+        "x": 680,
+        "y": 120,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "t",
+        "to": "w"
+      },
+      {
+        "from": "w",
+        "to": "s"
+      },
+      {
+        "from": "s",
+        "to": "o"
+      },
+      {
+        "from": "o",
+        "to": "r"
+      }
+    ]
+  },
+  "example": {
+    "title": "Finding the busiest VMs",
+    "body": [
+      "Perf | where CounterName == \"% Processor Time\" | summarize AvgCPU = avg(CounterValue) by Computer | order by AvgCPU desc | take 5 shows vm-db1 at the top; a timechart by bin(TimeGenerated, 1h) shows it rising all morning."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with VMs to monitor or protect"
+    ],
+    "permissions": [
+      "Log Analytics Reader on the workspace (or resource-context read on the resources)"
+    ],
+    "limits": [
+      "See Azure Monitor / Azure Backup service limits"
+    ],
+    "portal": [
+      "Monitor > Logs (or the workspace > Logs): choose scope and time range.",
+      "Write the query in KQL mode, Run, then Chart or Pin to dashboard.",
+      "Save the query to a query pack; create a log search alert from it."
+    ],
+    "cli": "az monitor log-analytics query -w <workspace-guid> --analytics-query \"Perf | where CounterName == '% Processor Time' | summarize avg(CounterValue) by Computer | order by avg_CounterValue desc\" -t P1D",
+    "powershell": "Invoke-AzOperationalInsightsQuery -WorkspaceId <workspace-guid> -Query \"Heartbeat | summarize LastSeen = max(TimeGenerated) by Computer | where LastSeen < ago(5m)\""
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "monitor-sim",
+    "objective": "Build queries that filter, summarise and order performance data.",
+    "duration": 15,
+    "steps": [
+      "Run the default (Heartbeat table) and read the semantic error.",
+      "Apply 'Busiest VMs (avg CPU)'.",
+      "Apply 'CPU samples above 80%'.",
+      "Apply 'Hourly trend for vm-db1'."
+    ],
+    "expected": [
+      "Choose the right table",
+      "summarize … by",
+      "order and take"
+    ],
+    "validation": [
+      {
+        "id": "kql-summarized",
+        "text": "Ran a summarize query"
+      },
+      {
+        "id": "kql-filtered",
+        "text": "Ran a filtered query"
+      },
+      {
+        "id": "kql-error",
+        "text": "Fixed a query error"
+      }
+    ],
+    "failureScenarios": [
+      "Wrong table",
+      "Filter that removes all rows"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Query returns no rows.",
+      "cause": "Time range too short or filters too strict, or data not collected.",
+      "fix": "Widen the range; check the table has data (… | take 10)."
+    },
+    {
+      "symptom": "Failed to resolve column.",
+      "cause": "Column doesn't exist in that table.",
+      "fix": "Check the schema pane."
+    },
+    {
+      "symptom": "Query is slow.",
+      "cause": "Scanning large tables without a time filter.",
+      "fix": "Filter on TimeGenerated first and project only needed columns."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "SQL",
+      "difference": "KQL reads top-down with pipes: Perf | where … | summarize … instead of SELECT … FROM … GROUP BY."
+    },
+    {
+      "service": "CloudWatch Logs Insights",
+      "difference": "AWS's query language for logs."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "KQL can modify data.",
+      "reality": "It's read-only for queries."
+    },
+    {
+      "myth": "summarize keeps all columns.",
+      "reality": "Only the aggregates and by-columns remain."
+    }
+  ],
+  "architectureDecisions": [
+    "Save common queries and share them in query packs.",
+    "Filter by time and table early for performance and cost."
+  ],
+  "docs": [
+    {
+      "title": "Log queries in Azure Monitor",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/logs/log-query-overview"
+    },
+    {
+      "title": "KQL tutorial",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/logs/get-started-queries"
+    },
+    {
+      "title": "KQL quick reference",
+      "url": "https://learn.microsoft.com/kusto/query/kql-quick-reference"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Ask questions of your logs with a few simple Kusto (KQL) commands.",
+    "learn": [
+      "Tables and the pipe",
+      "Filtering with where and time",
+      "Counting with summarize",
+      "Choosing columns, sorting and charts"
+    ],
+    "nodes": [
+      {
+        "id": "table",
+        "label": "Table",
+        "x": 120,
+        "y": 220,
+        "kind": "service",
+        "sub": "e.g. Heartbeat"
+      },
+      {
+        "id": "where",
+        "label": "where",
+        "x": 300,
+        "y": 220,
+        "kind": "service",
+        "sub": "filter rows"
+      },
+      {
+        "id": "sum",
+        "label": "summarize",
+        "x": 480,
+        "y": 220,
+        "kind": "service",
+        "sub": "count by"
+      },
+      {
+        "id": "out",
+        "label": "Result / chart",
+        "x": 680,
+        "y": 220,
+        "kind": "user"
+      },
+      {
+        "id": "time",
+        "label": "ago(1h)",
+        "x": 300,
+        "y": 380,
+        "kind": "service",
+        "sub": "time filter"
+      },
+      {
+        "id": "proj",
+        "label": "project / sort",
+        "x": 480,
+        "y": 380,
+        "kind": "service"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Millions of rows",
+        "title": "Which VM stopped sending heartbeats?",
+        "body": [
+          "The data is in Log Analytics, but scrolling through millions of rows is impossible. KQL asks the question for you."
+        ],
+        "show": [
+          "table"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Pipe",
+        "title": "Start with a table, then pipe",
+        "body": [
+          "A query starts with a table name, then passes rows through steps separated by |. Common tables: Heartbeat, Perf, Event, Syslog, AzureActivity, AzureDiagnostics, StorageBlobLogs."
+        ],
+        "show": [
+          "table",
+          "where",
+          "out"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "table",
+            "to": "where",
+            "label": "|",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "where",
+        "title": "Filter rows",
+        "body": [
+          "where keeps rows that match: | where Computer == \"vm-web1\" and | where TimeGenerated > ago(1h). Use contains or has to search text. take 10 shows a few sample rows."
+        ],
+        "show": [
+          "table",
+          "where",
+          "out",
+          "time"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "table",
+            "to": "where",
+            "label": "|"
+          },
+          {
+            "from": "time",
+            "to": "where",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Always filter by time first; it makes queries faster and cheaper."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "summarize",
+        "title": "Count and group",
+        "body": [
+          "summarize turns rows into totals: | summarize count() by Computer, or | summarize avg(CounterValue) by bin(TimeGenerated, 5m). bin() groups time into buckets."
+        ],
+        "show": [
+          "table",
+          "where",
+          "out",
+          "time",
+          "sum"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "table",
+            "to": "where",
+            "label": "|"
+          },
+          {
+            "from": "time",
+            "to": "where"
+          },
+          {
+            "from": "where",
+            "to": "sum",
+            "label": "|",
+            "fresh": true
+          },
+          {
+            "from": "sum",
+            "to": "out",
+            "label": "|",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Shape",
+        "title": "Shape the output",
+        "body": [
+          "project chooses columns, extend adds calculated ones, sort by or top 10 by orders rows, and render timechart draws a chart.",
+          "Example: Heartbeat | summarize LastSeen = max(TimeGenerated) by Computer | where LastSeen < ago(15m)."
+        ],
+        "show": [
+          "table",
+          "where",
+          "out",
+          "time",
+          "sum",
+          "proj"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "table",
+            "to": "where",
+            "label": "|"
+          },
+          {
+            "from": "time",
+            "to": "where"
+          },
+          {
+            "from": "where",
+            "to": "sum",
+            "label": "|"
+          },
+          {
+            "from": "sum",
+            "to": "out",
+            "label": "|"
+          },
+          {
+            "from": "sum",
+            "to": "proj",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "KQL",
+        "body": [
+          "Table | where | summarize | project | render."
+        ],
+        "show": [
+          "table",
+          "where",
+          "out",
+          "time",
+          "sum",
+          "proj"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "table",
+            "to": "where",
+            "label": "|"
+          },
+          {
+            "from": "time",
+            "to": "where"
+          },
+          {
+            "from": "where",
+            "to": "sum",
+            "label": "|"
+          },
+          {
+            "from": "sum",
+            "to": "out",
+            "label": "|"
+          },
+          {
+            "from": "sum",
+            "to": "proj"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Start with a table, chain with |",
+          "where + ago() to filter",
+          "summarize count() by ...; bin() for time buckets",
+          "project, extend, sort, top",
+          "render timechart for charts"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Write KQL against Microsoft's free demo workspace",
+    "minutes": 30,
+    "costLevel": "free",
+    "cost": "Free. The demo workspace is provided by Microsoft with sample data; nothing is created in your subscription.",
+    "before": [
+      "Signed in at portal.azure.com (any account).",
+      "Open the Log Analytics demo: https://portal.azure.com/#blade/Microsoft_Azure_Monitoring_Logs/DemoLogsBlade"
+    ],
+    "steps": [
+      {
+        "do": "In the demo, close the queries gallery. Type: Heartbeat | take 10  and select Run.",
+        "see": "Ten rows with Computer, OSType and TimeGenerated."
+      },
+      {
+        "do": "Run the query in the box.",
+        "see": "One row per computer with its heartbeat count.",
+        "code": "Heartbeat\n| where TimeGenerated > ago(1h)\n| summarize Beats = count() by Computer\n| sort by Beats desc"
+      },
+      {
+        "do": "Find machines that went quiet. Run the query in the box.",
+        "see": "Computers whose last heartbeat is older than 15 minutes (maybe none).",
+        "code": "Heartbeat\n| summarize LastSeen = max(TimeGenerated) by Computer\n| where LastSeen < ago(15m)"
+      },
+      {
+        "do": "Chart CPU. Run the query in the box.",
+        "see": "A line chart of CPU per computer.",
+        "code": "Perf\n| where TimeGenerated > ago(4h)\n| where ObjectName == \"Processor\" and CounterName == \"% Processor Time\"\n| summarize AvgCPU = avg(CounterValue) by bin(TimeGenerated, 15m), Computer\n| render timechart"
+      },
+      {
+        "do": "Top 5 events. Run the query in the box.",
+        "see": "The five most common Windows events.",
+        "code": "Event\n| where TimeGenerated > ago(1d)\n| summarize Count = count() by EventID, Source\n| top 5 by Count"
+      },
+      {
+        "do": "Pick any table on the left, expand it to see its columns, and write your own where + summarize query.",
+        "see": "Your own result."
+      }
+    ],
+    "check": [
+      "You wrote queries with where, summarize, bin, top and render."
+    ],
+    "cleanup": [
+      "Nothing to clean up."
+    ],
+    "screens": [
+      {
+        "title": "Tutorial: use Kusto queries",
+        "url": "https://learn.microsoft.com/kusto/query/tutorials/learn-common-operators"
+      },
+      {
+        "title": "Log Analytics tutorial",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-tutorial"
+      },
+      {
+        "title": "Log Analytics demo environment",
+        "url": "https://portal.azure.com/#blade/Microsoft_Azure_Monitoring_Logs/DemoLogsBlade"
+      }
+    ]
+  }
+}

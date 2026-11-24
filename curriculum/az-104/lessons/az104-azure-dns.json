@@ -1,0 +1,550 @@
+{
+  "id": "az104-azure-dns",
+  "exam": "az-104",
+  "title": "Azure DNS: public and private zones",
+  "objectiveIds": [
+    "AZ104-4.3.1"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Host public DNS zones in Azure DNS, delegate domains, manage record sets including alias records, and configure private DNS zones with virtual network links and autoregistration.",
+  "prerequisites": [
+    {
+      "text": "Virtual networks and subnets",
+      "objectiveId": "AZ104-4.1.1",
+      "lessonId": "az104-vnet-subnets"
+    }
+  ],
+  "foundation": [
+    "DNS turns names (www.contoso.com) into IP addresses. Azure DNS hosts your DNS zones on Microsoft's global name servers.",
+    "Public zones answer internet queries. Private DNS zones answer only for VNets you link to them."
+  ],
+  "engineer": [
+    "Delegation: buying a domain stays with your registrar; after creating the zone in Azure, update the domain's NS records at the registrar to the four Azure name servers shown on the zone (ns1-0x.azure-dns.com/.net/.org/.info). Child zones are delegated with NS records in the parent zone.",
+    "Record sets: A, AAAA, CNAME, MX, NS, PTR, SOA, SRV, TXT, CAA. A CNAME can't be at the zone apex (@) and can't share a name with other records. Alias records (A/AAAA/CNAME) point to Azure resources (public IP, Traffic Manager, Front Door, another record set) and can be used at the apex; they update automatically when the resource's IP changes.",
+    "TTL (seconds) controls how long resolvers cache answers; lower it before planned changes. Azure DNS doesn't sell domain names: buy them from a registrar (or App Service domains).",
+    "Private DNS zones: link to VNets with virtual network links. Autoregistration on a link creates A records for VMs in that VNet; a VNet can have autoregistration with only one private zone but can be linked (resolution) to many. Resolution needs Azure-provided DNS (168.63.129.16) or custom DNS servers that forward to it.",
+    "Azure DNS Private Resolver provides inbound/outbound endpoints for hybrid name resolution without DNS VMs."
+  ],
+  "animation": {
+    "id": "dns-lb-sim",
+    "caption": "Public DNS zone and Private DNS zone tabs."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "reg",
+        "label": "Registrar NS → Azure",
+        "x": 20,
+        "y": 40,
+        "kind": "globe"
+      },
+      {
+        "id": "zone",
+        "label": "contoso.com (Azure DNS)",
+        "x": 250,
+        "y": 40,
+        "kind": "network"
+      },
+      {
+        "id": "rec",
+        "label": "@ alias → pip-web, www CNAME",
+        "x": 500,
+        "y": 40,
+        "kind": "service"
+      },
+      {
+        "id": "pz",
+        "label": "contoso.internal (private)",
+        "x": 250,
+        "y": 200,
+        "kind": "network"
+      },
+      {
+        "id": "vnet",
+        "label": "vnet-app (link + autoreg)",
+        "x": 500,
+        "y": 200,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "reg",
+        "to": "zone",
+        "label": "delegation"
+      },
+      {
+        "from": "zone",
+        "to": "rec"
+      },
+      {
+        "from": "pz",
+        "to": "vnet",
+        "label": "virtual network link"
+      }
+    ]
+  },
+  "example": {
+    "title": "Moving contoso.com to Azure DNS",
+    "body": [
+      "The team creates the zone, recreates all records, lowers TTLs, then switches NS records at the registrar. The apex points to the web load balancer's public IP with an alias A record, so it follows IP changes automatically."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription and a resource group (rg-net)"
+    ],
+    "permissions": [
+      "DNS Zone Contributor for public zones; Private DNS Zone Contributor for private zones (plus Network Contributor on the VNet to link)"
+    ],
+    "limits": [
+      "Autoregistration: one private zone per VNet",
+      "Record sets per zone: see Azure DNS limits"
+    ],
+    "portal": [
+      "Create a resource > DNS zone: contoso.com. Note the four name servers.",
+      "Zone > + Record set: name, type, TTL, values (or alias to an Azure resource).",
+      "Private DNS zones > Create contoso.internal > Virtual network links > Add, enable auto registration."
+    ],
+    "cli": "az network dns zone create -g rg-net -n contoso.com\naz network dns zone show -g rg-net -n contoso.com --query nameServers\naz network dns record-set a add-record -g rg-net -z contoso.com -n www -a 20.10.1.5 --ttl 3600\naz network dns record-set a create -g rg-net -z contoso.com -n @ --target-resource $(az network public-ip show -g rg-net -n pip-web --query id -o tsv)\naz network private-dns zone create -g rg-net -n contoso.internal\naz network private-dns link vnet create -g rg-net -z contoso.internal -n link-app -v vnet-app -e true",
+    "powershell": "New-AzDnsZone -Name contoso.com -ResourceGroupName rg-net\nNew-AzDnsRecordSet -Name www -RecordType A -ZoneName contoso.com -ResourceGroupName rg-net -Ttl 3600 -DnsRecords (New-AzDnsRecordConfig -IPv4Address 20.10.1.5)\nNew-AzPrivateDnsZone -Name contoso.internal -ResourceGroupName rg-net\nNew-AzPrivateDnsVirtualNetworkLink -ZoneName contoso.internal -ResourceGroupName rg-net -Name link-app -VirtualNetworkId (Get-AzVirtualNetwork -Name vnet-app -ResourceGroupName rg-net).Id -EnableRegistration"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "dns-lb-sim",
+    "objective": "Delegate a public zone, add apex and www records, and resolve VM names privately.",
+    "duration": 15,
+    "steps": [
+      "Public DNS zone: run the default (CNAME at apex, not delegated).",
+      "Apply 'Delegate + alias at apex'.",
+      "Apply 'www CNAME'.",
+      "Private DNS zone: apply 'Link with autoregistration', then 'Custom DNS without forwarding'."
+    ],
+    "expected": [
+      "No CNAME at the apex: use alias",
+      "Private zones need links and Azure DNS"
+    ],
+    "validation": [
+      {
+        "id": "dns-alias",
+        "text": "Created an alias record at the apex"
+      },
+      {
+        "id": "dns-resolves",
+        "text": "Resolved a public record"
+      },
+      {
+        "id": "dns-private-resolves",
+        "text": "Resolved a private name"
+      },
+      {
+        "id": "dns-error",
+        "text": "Diagnosed a DNS error"
+      }
+    ],
+    "failureScenarios": [
+      "Forgot to update registrar NS",
+      "CNAME at the apex",
+      "VNet not linked"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Records exist in Azure but the internet sees old values.",
+      "cause": "Domain not delegated, or old TTL still cached.",
+      "fix": "Update NS at the registrar; wait for TTL."
+    },
+    {
+      "symptom": "Cannot create a CNAME at @.",
+      "cause": "DNS standard forbids it.",
+      "fix": "Use an alias record."
+    },
+    {
+      "symptom": "VMs can't resolve private zone names.",
+      "cause": "No virtual network link, or custom DNS not forwarding to 168.63.129.16.",
+      "fix": "Link the VNet; configure forwarding."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon Route 53",
+      "difference": "AWS DNS with public and private hosted zones; alias records are similar."
+    },
+    {
+      "service": "Azure-provided DNS",
+      "difference": "Resolves VM names within one VNet only; private zones span VNets with custom names."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Azure DNS makes you the domain's registrar.",
+      "reality": "You still buy the domain from a registrar (or App Service Domains)."
+    },
+    {
+      "myth": "Autoregistration can be enabled in many zones for one VNet.",
+      "reality": "Only one autoregistration zone per VNet."
+    }
+  ],
+  "architectureDecisions": [
+    "Use alias records for apex records pointing to Azure resources.",
+    "Centralise private DNS zones and link spokes.",
+    "Use DNS Private Resolver for hybrid resolution."
+  ],
+  "docs": [
+    {
+      "title": "What is Azure DNS?",
+      "url": "https://learn.microsoft.com/azure/dns/dns-overview"
+    },
+    {
+      "title": "Delegate a domain to Azure DNS",
+      "url": "https://learn.microsoft.com/azure/dns/dns-delegate-domain-azure-dns"
+    },
+    {
+      "title": "Alias records",
+      "url": "https://learn.microsoft.com/azure/dns/dns-alias"
+    },
+    {
+      "title": "Private DNS zones",
+      "url": "https://learn.microsoft.com/azure/dns/private-dns-overview"
+    },
+    {
+      "title": "Private DNS autoregistration",
+      "url": "https://learn.microsoft.com/azure/dns/private-dns-autoregistration"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Host your domain's DNS in Azure, and give VMs friendly private names.",
+    "learn": [
+      "Public DNS zones and records",
+      "Delegating a domain to Azure DNS",
+      "Private DNS zones and VNet links",
+      "Auto-registration and alias records"
+    ],
+    "nodes": [
+      {
+        "id": "user",
+        "label": "Internet user",
+        "x": 120,
+        "y": 90,
+        "kind": "user"
+      },
+      {
+        "id": "reg",
+        "label": "Domain registrar",
+        "x": 380,
+        "y": 90,
+        "kind": "service",
+        "sub": "NS → Azure"
+      },
+      {
+        "id": "pub",
+        "label": "Public zone",
+        "x": 640,
+        "y": 90,
+        "kind": "network",
+        "sub": "contoso.com"
+      },
+      {
+        "id": "vm",
+        "label": "VM in VNet",
+        "x": 120,
+        "y": 330,
+        "kind": "compute"
+      },
+      {
+        "id": "priv",
+        "label": "Private zone",
+        "x": 380,
+        "y": 330,
+        "kind": "network",
+        "sub": "contoso.internal"
+      },
+      {
+        "id": "link",
+        "label": "VNet link",
+        "x": 640,
+        "y": 330,
+        "kind": "network",
+        "sub": "auto-registration"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Names",
+        "title": "People and apps use names, not IPs",
+        "body": [
+          "Customers type contoso.com. VMs should find db01 by name, and the names must update when IPs change."
+        ],
+        "show": [
+          "user"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Public zone",
+        "title": "Public DNS zones",
+        "body": [
+          "A public zone holds the records for a domain: A and AAAA (addresses), CNAME (alias name), MX (mail), TXT (verification), plus NS and SOA created automatically. Azure DNS hosts the zone; it does not sell domains."
+        ],
+        "show": [
+          "user",
+          "pub"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Delegate",
+        "title": "Delegate the domain to Azure",
+        "body": [
+          "At your registrar, replace the domain's name servers with the four Azure name servers shown on the zone. For a subdomain, add NS records in the parent zone."
+        ],
+        "show": [
+          "user",
+          "pub",
+          "reg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "reg",
+            "label": "who serves contoso.com?",
+            "fresh": true
+          },
+          {
+            "from": "reg",
+            "to": "pub",
+            "label": "NS records",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Private zone",
+        "title": "Private DNS zones for VNets",
+        "body": [
+          "A private zone resolves names only inside VNets that are linked to it. Turn on auto-registration on a link and VMs' names are added and updated automatically (one auto-registration zone per VNet)."
+        ],
+        "show": [
+          "user",
+          "pub",
+          "reg",
+          "vm",
+          "priv",
+          "link"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "reg",
+            "label": "who serves contoso.com?"
+          },
+          {
+            "from": "reg",
+            "to": "pub",
+            "label": "NS records"
+          },
+          {
+            "from": "vm",
+            "to": "priv",
+            "label": "db01.contoso.internal",
+            "fresh": true
+          },
+          {
+            "from": "link",
+            "to": "priv",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Alias",
+        "title": "Alias records follow Azure resources",
+        "body": [
+          "An alias record points at an Azure resource (public IP, Traffic Manager, Front Door) instead of a fixed address, and updates when the resource changes. It can also be used at the zone apex, where CNAMEs are not allowed."
+        ],
+        "show": [
+          "user",
+          "pub",
+          "reg",
+          "vm",
+          "priv",
+          "link"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "reg",
+            "label": "who serves contoso.com?"
+          },
+          {
+            "from": "reg",
+            "to": "pub",
+            "label": "NS records"
+          },
+          {
+            "from": "vm",
+            "to": "priv",
+            "label": "db01.contoso.internal"
+          },
+          {
+            "from": "link",
+            "to": "priv"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Azure-provided DNS (168.63.129.16) is what VMs use by default."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Azure DNS",
+        "body": [
+          "Public zones for the internet; private zones for VNets."
+        ],
+        "show": [
+          "user",
+          "pub",
+          "reg",
+          "vm",
+          "priv",
+          "link"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "reg",
+            "label": "who serves contoso.com?"
+          },
+          {
+            "from": "reg",
+            "to": "pub",
+            "label": "NS records"
+          },
+          {
+            "from": "vm",
+            "to": "priv",
+            "label": "db01.contoso.internal"
+          },
+          {
+            "from": "link",
+            "to": "priv"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Records: A, AAAA, CNAME, MX, TXT, NS, SOA",
+          "Delegate by changing NS at the registrar",
+          "Private zones work only in linked VNets",
+          "Auto-registration adds VM records",
+          "Alias records track Azure resources, even at the apex"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create public and private DNS zones and query them",
+    "minutes": 25,
+    "costLevel": "low",
+    "cost": "Low. One B1s VM costs about US$0.01 per hour. Delete the same day. Each DNS zone costs about US$0.50 per month.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A virtual network vnet-lab (10.10.0.0/16) in rg-az104-lab with a subnet snet-app (10.10.1.0/24): Virtual networks > + Create > IP addresses tab. For these labs, untick 'Enable private subnet' on snet-app so lab VMs can reach the internet (in production use a NAT gateway instead).",
+      "A small Linux VM vm-lab in snet-app of vnet-lab: Virtual machines > + Create. Image Ubuntu 24.04, size Standard_B1s, password authentication, Networking tab: vnet-lab / snet-app, public IP: None, NIC network security group: Basic, public inbound ports: None. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead."
+    ],
+    "steps": [
+      {
+        "do": "Search 'DNS zones' > + Create. Group rg-az104-lab, name lab<yourinitials>.com (any name; you do not need to own it). Create.",
+        "see": "The zone with four name servers like ns1-01.azure-dns.com."
+      },
+      {
+        "do": "Open the zone > + Record set. Name www, type A, IP 203.0.113.10, TTL 1 hour. Add.",
+        "see": "www listed with the IP."
+      },
+      {
+        "do": "Cloud Shell: nslookup www.lab<yourinitials>.com <first name server from the zone>",
+        "see": "The answer 203.0.113.10, straight from Azure DNS."
+      },
+      {
+        "do": "Search 'Private DNS zones' > + Create. Group rg-az104-lab, name contoso.internal. Create."
+      },
+      {
+        "do": "Open contoso.internal > DNS Management > Virtual network links > + Add. Name link-lab, VNet vnet-lab, tick 'Enable auto registration'. Create."
+      },
+      {
+        "do": "Open contoso.internal > Recordsets after a minute.",
+        "see": "An A record for vm-lab with its private IP, added automatically."
+      },
+      {
+        "do": "Run a command without SSH: open the VM > Operations > Run command > RunShellScript, type the command, Run. Run: nslookup vm-lab.contoso.internal",
+        "see": "The VM's private IP, resolved by Azure-provided DNS."
+      }
+    ],
+    "check": [
+      "The public zone answers for www; the private zone auto-registered the VM."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: create a DNS zone and record in the portal",
+        "url": "https://learn.microsoft.com/azure/dns/dns-getstarted-portal"
+      },
+      {
+        "title": "Quickstart: create a private DNS zone in the portal",
+        "url": "https://learn.microsoft.com/azure/dns/private-dns-getstarted-portal"
+      },
+      {
+        "title": "Delegate a domain to Azure DNS",
+        "url": "https://learn.microsoft.com/azure/dns/dns-delegate-domain-azure-dns"
+      }
+    ]
+  }
+}

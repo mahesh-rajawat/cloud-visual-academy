@@ -1,0 +1,227 @@
+{
+  "id": "az900-cloud-models",
+  "exam": "az-900",
+  "title": "Public, private, hybrid and multicloud",
+  "objectiveIds": [
+    "AZ900-1.1.3",
+    "AZ900-1.1.4"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Define public, private and hybrid cloud (and multicloud), and choose the right model for a scenario.",
+  "prerequisites": [
+    {
+      "text": "Cloud computing basics",
+      "objectiveId": "AZ900-1.1.1",
+      "lessonId": "az900-cloud-basics"
+    }
+  ],
+  "foundation": [
+    "Public cloud: a provider (such as Microsoft) owns and runs the infrastructure and sells services to anyone over the internet. No hardware to buy; you can start in minutes.",
+    "Private cloud: cloud capabilities (self-service, automation) used by one organisation only, usually in its own datacenter. Full control, but you buy and run everything.",
+    "Hybrid cloud: public and private cloud connected so they work together. Keep some systems on-premises and use the public cloud for the rest or for extra capacity.",
+    "Multicloud: using more than one public cloud provider (for example Azure and AWS) at the same time."
+  ],
+  "engineer": [
+    "Public cloud strengths: no capital expense, fast provisioning, global reach, pay per use, elastic scale. Trade-off: less control over hardware and exact location within a region.",
+    "Private cloud strengths: complete control of hardware, security and location; can meet strict rules. Trade-offs: up-front hardware cost (CapEx), you staff and maintain it, and capacity is limited to what you bought.",
+    "Hybrid cloud strengths: flexibility. Keep regulated data or legacy apps on-premises, burst to the cloud at peak, or migrate step by step. The organisation decides where each workload runs.",
+    "Azure tools for hybrid and multicloud: Azure Arc (manage servers, Kubernetes and data services anywhere through Azure), Azure VMware Solution (run VMware workloads in Azure), Azure Local (Azure-managed infrastructure in your datacenter, formerly Azure Stack HCI), and VPN Gateway or ExpressRoute to connect networks.",
+    "Use-case signals: 'no hardware, start today, variable demand' → public. 'Must own and operate the hardware' → private. 'Keep X on-premises but use the cloud for Y' → hybrid. 'Use services from two providers' → multicloud."
+  ],
+  "animation": {
+    "id": "az900-cloud-models-sim",
+    "caption": "Choose a cloud model for each scenario, then the Azure option that supports hybrid needs."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "onp",
+        "label": "On-premises / private cloud",
+        "x": 0,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "vpn",
+        "label": "VPN Gateway or ExpressRoute",
+        "x": 230,
+        "y": 60,
+        "kind": "network"
+      },
+      {
+        "id": "az",
+        "label": "Azure (public cloud)",
+        "x": 460,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "aws",
+        "label": "Another public cloud",
+        "x": 460,
+        "y": 180,
+        "kind": "compute"
+      },
+      {
+        "id": "arc",
+        "label": "Azure Arc: one management plane",
+        "x": 230,
+        "y": 180,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "onp",
+        "to": "vpn"
+      },
+      {
+        "from": "vpn",
+        "to": "az"
+      },
+      {
+        "from": "arc",
+        "to": "onp",
+        "label": "manages"
+      },
+      {
+        "from": "arc",
+        "to": "aws",
+        "label": "manages"
+      },
+      {
+        "from": "arc",
+        "to": "az"
+      }
+    ]
+  },
+  "example": {
+    "title": "A bank's mixed estate",
+    "body": [
+      "A bank's core ledger must stay in its own datacenter (private cloud). Its mobile app back end runs in Azure and scales on payday (public cloud). An ExpressRoute circuit links the two: a hybrid cloud.",
+      "After acquiring a company that runs on AWS, the bank uses Azure Arc to apply the same policies to both: multicloud management."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Azure Arc > Machines > Add/Create: onboard an on-premises server (generates a script).",
+      "Virtual network gateways and ExpressRoute circuits: connect on-premises networks.",
+      "Azure VMware Solution: private clouds created in Azure."
+    ],
+    "cli": "az connectedmachine list -o table\naz network vnet-gateway list -g <rg> -o table",
+    "powershell": "Get-AzConnectedMachine\nGet-AzVirtualNetworkGateway -ResourceGroupName <rg>"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-cloud-models-sim",
+    "objective": "Choose cloud models and hybrid tools.",
+    "duration": 15,
+    "steps": [
+      "Cloud models tab: answer every scenario.",
+      "Hybrid and multicloud tools tab: match each need to an Azure option."
+    ],
+    "expected": [
+      "Hybrid = on-premises + public cloud working together",
+      "Arc manages resources outside Azure"
+    ],
+    "validation": [
+      {
+        "id": "cloud-model-correct",
+        "text": "Chose the right cloud model"
+      },
+      {
+        "id": "cloud-model-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "hybrid-tools-correct",
+        "text": "Chose the right hybrid tool"
+      },
+      {
+        "id": "hybrid-tools-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Calling two public clouds 'hybrid'",
+      "Assuming private cloud has no up-front cost"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Policies are applied in Azure but not on on-premises servers.",
+      "cause": "On-premises servers aren't connected to Azure Resource Manager.",
+      "fix": "Onboard them with Azure Arc."
+    },
+    {
+      "symptom": "A burst-to-cloud design fails at peak.",
+      "cause": "Network link between on-premises and Azure is too small or missing.",
+      "fix": "Size the VPN/ExpressRoute connection and test failover."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Hybrid vs multicloud",
+      "difference": "Hybrid mixes on-premises/private with public; multicloud uses several public providers. An organisation can be both."
+    },
+    {
+      "service": "Private cloud vs on-premises",
+      "difference": "Private cloud adds cloud features (self-service, automation) to dedicated infrastructure."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Hybrid cloud means two public clouds.",
+      "reality": "That is multicloud."
+    },
+    {
+      "myth": "Public cloud is always less secure than private cloud.",
+      "reality": "Security depends on configuration; public providers invest heavily in security."
+    },
+    {
+      "myth": "Private cloud removes all capital expense.",
+      "reality": "You still buy and maintain the hardware."
+    }
+  ],
+  "architectureDecisions": [
+    "Default to public cloud for new, variable workloads.",
+    "Use hybrid when regulation, latency or legacy dependencies keep systems on-premises.",
+    "Use Azure Arc to manage hybrid and multicloud estates consistently."
+  ],
+  "docs": [
+    {
+      "title": "Describe cloud computing (Learn: cloud models)",
+      "url": "https://learn.microsoft.com/training/modules/describe-cloud-compute/"
+    },
+    {
+      "title": "Azure Arc overview",
+      "url": "https://learn.microsoft.com/azure/azure-arc/overview"
+    },
+    {
+      "title": "What is hybrid cloud?",
+      "url": "https://azure.microsoft.com/resources/cloud-computing-dictionary/what-is-hybrid-cloud-computing"
+    },
+    {
+      "title": "Azure VMware Solution",
+      "url": "https://learn.microsoft.com/azure/azure-vmware/introduction"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

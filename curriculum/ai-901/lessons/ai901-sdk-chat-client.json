@@ -1,0 +1,223 @@
+{
+  "id": "ai901-sdk-chat-client",
+  "exam": "ai-901",
+  "title": "Build a chat client with the Foundry SDK",
+  "objectiveIds": [
+    "AI901-2.1.3"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Create a lightweight chat client application with the Foundry SDK (azure-ai-projects) and the Responses API.",
+  "prerequisites": [
+    {
+      "text": "Deploy a model in the portal",
+      "objectiveId": "AI901-2.1.2",
+      "lessonId": "ai901-portal-deploy"
+    }
+  ],
+  "foundation": [
+    "The Foundry SDK for Python (azure-ai-projects) connects your code to your Foundry project. It gives you an OpenAI-compatible client to call your deployed models.",
+    "You need three things: the project endpoint, a credential (your Azure sign-in), and the deployment name.",
+    "A chat client sends the conversation so far plus the new message, and prints the reply. Keeping the history is what makes it a conversation."
+  ],
+  "engineer": [
+    "Install: pip install \"azure-ai-projects>=2.3.0\" azure-identity. Create AIProjectClient(endpoint=FOUNDRY_PROJECT_ENDPOINT, credential=DefaultAzureCredential()). The endpoint looks like https://<resource>.services.ai.azure.com/api/projects/<project>.",
+    "DefaultAzureCredential uses az login locally and managed identity in Azure, so no keys are stored in code. The identity needs a role such as Azure AI User on the project or resource.",
+    "openai = project.get_openai_client(); response = openai.responses.create(model='<deployment>', instructions='<system prompt>', input=<text or message list>); print(response.output_text). response.usage shows input and output tokens.",
+    "Conversation state: append each user and assistant message to a list and send it as input, or use the conversations API to store history server-side. Trim or summarise history to stay within the context window.",
+    "azure-ai-projects 2.x isn't compatible with 1.x code; older samples using azure-ai-inference or AzureOpenAI clients are superseded by this approach. Handle errors: 401/403 (credential or role), 404 (deployment name), 429 (rate limit, retry with backoff)."
+  ],
+  "animation": {
+    "id": "ai901-sdk-sim",
+    "caption": "Configure endpoint, credential and deployment name, then diagnose common SDK errors."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Python app",
+        "x": 0,
+        "y": 100,
+        "kind": "user"
+      },
+      {
+        "id": "cred",
+        "label": "DefaultAzureCredential (Entra ID)",
+        "x": 240,
+        "y": 0,
+        "kind": "identity"
+      },
+      {
+        "id": "client",
+        "label": "AIProjectClient(project endpoint)",
+        "x": 240,
+        "y": 110,
+        "kind": "service"
+      },
+      {
+        "id": "oai",
+        "label": "get_openai_client()",
+        "x": 480,
+        "y": 110,
+        "kind": "service"
+      },
+      {
+        "id": "dep",
+        "label": "responses.create(model=deployment)",
+        "x": 720,
+        "y": 110,
+        "kind": "ai"
+      }
+    ],
+    "edges": [
+      {
+        "from": "app",
+        "to": "client"
+      },
+      {
+        "from": "cred",
+        "to": "client"
+      },
+      {
+        "from": "client",
+        "to": "oai"
+      },
+      {
+        "from": "oai",
+        "to": "dep"
+      },
+      {
+        "from": "dep",
+        "to": "app",
+        "label": "output_text"
+      }
+    ]
+  },
+  "example": {
+    "title": "A terminal chat helper",
+    "body": [
+      "A developer builds a 30-line Python chat client for the returns assistant: AIProjectClient with DefaultAzureCredential, a history list, and responses.create with the system prompt as instructions.",
+      "It failed first with 404 because the code used the model family name instead of the deployment name 'chat-model'."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Project Overview: copy the project endpoint.",
+      "Access control (IAM) on the Foundry resource: assign Azure AI User to your account or app identity.",
+      "Set FOUNDRY_PROJECT_ENDPOINT, run az login, run the script."
+    ],
+    "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name chat-model --model-name gpt-5-mini --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50\n# Give your user access to the project\naz role assignment create --assignee <user-or-identity> --role \"Azure AI User\" \\\n  --scope $(az cognitiveservices account show -n contoso-ai -g rg-ai901 --query id -o tsv)",
+    "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI\nNew-AzRoleAssignment -SignInName user@contoso.com -RoleDefinitionName 'Azure AI User' -Scope (Get-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai).Id",
+    "python": "# pip install \"azure-ai-projects>=2.3.0\" azure-identity\nimport os\nfrom azure.identity import DefaultAzureCredential\nfrom azure.ai.projects import AIProjectClient\n\nproject = AIProjectClient(\n    endpoint=os.environ[\"FOUNDRY_PROJECT_ENDPOINT\"],  # https://<resource>.services.ai.azure.com/api/projects/<project>\n    credential=DefaultAzureCredential(),\n)\nopenai = project.get_openai_client()\n\nhistory = []\nwhile True:\n    text = input(\"You: \")\n    if not text:\n        break\n    history.append({\"role\": \"user\", \"content\": text})\n    response = openai.responses.create(\n        model=\"chat-model\",  # your deployment name\n        instructions=\"You are Contoso's returns assistant. Answer in at most three sentences.\",\n        input=history,\n    )\n    print(\"Assistant:\", response.output_text)\n    history.append({\"role\": \"assistant\", \"content\": response.output_text})\n"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-sdk-sim",
+    "objective": "Make the chat client work.",
+    "duration": 15,
+    "steps": [
+      "Chat client with the Foundry SDK tab: fix each error in the default until RESPONSE RECEIVED.",
+      "Fix the chat client tab: answer every symptom."
+    ],
+    "expected": [
+      "Project endpoint + credential + deployment name",
+      "Errors map to specific fixes"
+    ],
+    "validation": [
+      {
+        "id": "ai-sdk-ok",
+        "text": "Got a response"
+      },
+      {
+        "id": "ai-sdk-error",
+        "text": "Diagnosed a client error"
+      },
+      {
+        "id": "sdk-error-correct",
+        "text": "Chose the right fix"
+      },
+      {
+        "id": "sdk-error-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Hard-coding keys in source code",
+      "Using an *.openai.azure.com endpoint with AIProjectClient"
+    ],
+    "cleanup": [
+      "Simulation: use Reset.",
+      "If you ran it in Azure: az group delete --name rg-ai901 --yes (deletes the Foundry resource, projects and deployments)."
+    ],
+    "cost": "Simulation: free. Optional real run: model tokens and Foundry Tools transactions are billed per use; delete the resource group afterwards."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "DefaultAzureCredential failed to retrieve a token.",
+      "cause": "Not signed in and no managed identity.",
+      "fix": "Run az login or configure a managed identity."
+    },
+    {
+      "symptom": "Answers ignore earlier messages.",
+      "cause": "History isn't sent.",
+      "fix": "Append messages to the input list or use conversations."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Responses API vs Chat Completions",
+      "difference": "Responses is the newer API used by Foundry samples, with built-in tools and conversations; Chat Completions is the older message-list API."
+    },
+    {
+      "service": "Keys vs Entra ID",
+      "difference": "Entra ID avoids storing secrets and supports RBAC."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "You need the model's API key in code.",
+      "reality": "DefaultAzureCredential and RBAC are preferred."
+    },
+    {
+      "myth": "The model remembers past calls.",
+      "reality": "Each call is stateless unless you send history or use conversations."
+    }
+  ],
+  "architectureDecisions": [
+    "Use Entra ID authentication.",
+    "Keep the endpoint and deployment name in configuration.",
+    "Retry 429s with exponential backoff."
+  ],
+  "docs": [
+    {
+      "title": "Azure AI Projects client library for Python",
+      "url": "https://learn.microsoft.com/python/api/overview/azure/ai-projects-readme"
+    },
+    {
+      "title": "Quickstart: get started with Foundry (code)",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/quickstarts/get-started-code"
+    },
+    {
+      "title": "Role-based access control for Foundry",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/concepts/rbac-azure-ai-foundry"
+    },
+    {
+      "title": "What is Microsoft Foundry?",
+      "url": "https://learn.microsoft.com/azure/foundry/what-is-foundry"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

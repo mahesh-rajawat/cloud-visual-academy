@@ -1,0 +1,641 @@
+{
+  "id": "clf-compute",
+  "exam": "aws-clf-c02",
+  "title": "AWS compute services",
+  "objectiveIds": [
+    "CLFC02-3.3.1",
+    "CLFC02-3.3.2",
+    "CLFC02-3.3.3",
+    "CLFC02-3.3.4",
+    "CLFC02-3.3.5",
+    "CLFC02-3.3.6"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Identify EC2 instance types, container options (ECS, EKS), serverless compute (Fargate, Lambda), Auto Scaling for elasticity, and load balancers.",
+  "prerequisites": [
+    {
+      "text": "Global infrastructure",
+      "objectiveId": "CLFC02-3.2.2",
+      "lessonId": "clf-global-infrastructure"
+    }
+  ],
+  "foundation": [
+    "Amazon EC2 provides virtual servers (instances) in many types and sizes.",
+    "Containers run on Amazon ECS or Amazon EKS (Kubernetes); AWS Fargate runs them without managing servers. AWS Lambda runs code on events with no servers to manage.",
+    "Auto Scaling adds and removes instances with demand (elasticity), and Elastic Load Balancing spreads traffic across them."
+  ],
+  "engineer": [
+    "EC2 instance families: general purpose (M, T: balanced, burstable), compute optimized (C: CPU-heavy, batch, gaming, HPC), memory optimized (R, X: in-memory databases, analytics), accelerated computing (P, G, Inf, Trn: ML, graphics), storage optimized (I, D, H: high local I/O, data warehouses), HPC optimized. Also Graviton (Arm) instances.",
+    "Containers: Amazon ECS (AWS-native orchestration), Amazon EKS (managed Kubernetes), Amazon ECR (registry). Both run on EC2 or on AWS Fargate (serverless containers).",
+    "Serverless: AWS Lambda (event-driven functions, pay per request and duration, max 15-minute runs), AWS Fargate. Other compute: AWS Batch, Amazon Lightsail (simple bundles), AWS Elastic Beanstalk (PaaS-like deployment), AWS Outposts.",
+    "Amazon EC2 Auto Scaling: groups with min/desired/max, scaling policies (target tracking, step, scheduled), health replacement. AWS Auto Scaling spans multiple services.",
+    "Elastic Load Balancing: Application Load Balancer (HTTP/HTTPS, layer 7 routing), Network Load Balancer (TCP/UDP, ultra-low latency, layer 4), Gateway Load Balancer (third-party appliances). Load balancers distribute traffic, run health checks and support multi-AZ."
+  ],
+  "animation": {
+    "id": "aws-tech-sim",
+    "caption": "Open 'Compute choice'."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "alb",
+        "label": "Application Load Balancer",
+        "x": 220,
+        "y": 0,
+        "kind": "network"
+      },
+      {
+        "id": "asg",
+        "label": "Auto Scaling group (EC2, 2 AZs)",
+        "x": 0,
+        "y": 130,
+        "kind": "compute"
+      },
+      {
+        "id": "ecs",
+        "label": "ECS on Fargate",
+        "x": 220,
+        "y": 130,
+        "kind": "compute"
+      },
+      {
+        "id": "lam",
+        "label": "Lambda functions",
+        "x": 440,
+        "y": 130,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "alb",
+        "to": "asg"
+      },
+      {
+        "from": "alb",
+        "to": "ecs"
+      },
+      {
+        "from": "alb",
+        "to": "lam"
+      }
+    ]
+  },
+  "example": {
+    "title": "Picking compute per component",
+    "body": [
+      "The storefront runs on EC2 M-family instances in an Auto Scaling group behind an ALB; the order API runs on ECS with Fargate; image thumbnails are made by Lambda when files land in S3; nightly reports run on AWS Batch."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "EC2 > Instance types.",
+      "EC2 > Auto Scaling groups.",
+      "Lambda > Create function."
+    ],
+    "cli": "aws ec2 describe-instance-types --filters Name=instance-type,Values=c7g.* --query 'InstanceTypes[].InstanceType'\naws autoscaling describe-auto-scaling-groups\naws lambda list-functions",
+    "powershell": "Get-EC2InstanceType\nGet-ASAutoScalingGroup\nGet-LMFunctionList"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-tech-sim",
+    "objective": "Practise choosing the right compute option.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Compute choice' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-compute-correct",
+        "text": "Chose a correct compute option"
+      },
+      {
+        "id": "aws-compute-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Lambda times out on long jobs.",
+      "cause": "Maximum 15-minute duration.",
+      "fix": "Use Fargate, Batch or Step Functions."
+    },
+    {
+      "symptom": "Traffic hits unhealthy instances.",
+      "cause": "No load balancer health checks.",
+      "fix": "Use ELB health checks with Auto Scaling."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure",
+      "difference": "EC2 ≈ VMs; ECS/EKS ≈ Container Apps/AKS; Lambda ≈ Functions; ALB ≈ Application Gateway; NLB ≈ Load Balancer."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Fargate is a separate orchestrator.",
+      "reality": "Fargate is a serverless launch type for ECS and EKS."
+    },
+    {
+      "myth": "Auto Scaling is only for scaling out.",
+      "reality": "It scales in and replaces unhealthy instances too."
+    }
+  ],
+  "architectureDecisions": [
+    "Prefer serverless (Lambda/Fargate) when it fits; use EC2 for full control."
+  ],
+  "docs": [
+    {
+      "title": "Amazon EC2 instance types",
+      "url": "https://aws.amazon.com/ec2/instance-types/"
+    },
+    {
+      "title": "Amazon ECS",
+      "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html"
+    },
+    {
+      "title": "Amazon EKS",
+      "url": "https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html"
+    },
+    {
+      "title": "AWS Fargate",
+      "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html"
+    },
+    {
+      "title": "AWS Lambda",
+      "url": "https://docs.aws.amazon.com/lambda/latest/dg/welcome.html"
+    },
+    {
+      "title": "Amazon EC2 Auto Scaling",
+      "url": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/what-is-amazon-ec2-auto-scaling.html"
+    },
+    {
+      "title": "Elastic Load Balancing",
+      "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/what-is-load-balancing.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Run one shop app as servers, as containers, then as serverless functions, and scale it.",
+    "learn": [
+      "Amazon EC2 and instance families",
+      "Containers: ECS and EKS",
+      "Serverless: Fargate and Lambda",
+      "Auto Scaling gives elasticity",
+      "What load balancers do"
+    ],
+    "nodes": [
+      {
+        "id": "users",
+        "label": "Users",
+        "x": 90,
+        "y": 210,
+        "kind": "user"
+      },
+      {
+        "id": "elb",
+        "label": "Elastic Load Balancing",
+        "x": 290,
+        "y": 210,
+        "kind": "network",
+        "sub": "spreads traffic"
+      },
+      {
+        "id": "asg",
+        "label": "Auto Scaling group",
+        "x": 510,
+        "y": 70,
+        "kind": "compute",
+        "sub": "adds / removes"
+      },
+      {
+        "id": "ec2",
+        "label": "EC2 instances",
+        "x": 510,
+        "y": 210,
+        "kind": "compute",
+        "sub": "virtual servers"
+      },
+      {
+        "id": "ecs",
+        "label": "ECS / EKS",
+        "x": 710,
+        "y": 140,
+        "kind": "compute",
+        "sub": "run containers"
+      },
+      {
+        "id": "far",
+        "label": "AWS Fargate",
+        "x": 710,
+        "y": 280,
+        "kind": "compute",
+        "sub": "no servers to run"
+      },
+      {
+        "id": "lam",
+        "label": "AWS Lambda",
+        "x": 510,
+        "y": 370,
+        "kind": "compute",
+        "sub": "functions on events"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Run the app",
+        "title": "Where does the code run?",
+        "body": [
+          "Your shop has a website, a checkout service and a job that resizes uploaded images. Each part has different needs.",
+          "AWS has several ways to run code. Pick the one that fits each part."
+        ],
+        "show": [
+          "users"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "EC2",
+        "title": "Amazon EC2: virtual servers you control",
+        "body": [
+          "EC2 gives you virtual servers (instances). You choose the OS, size and instance family, and you manage the OS.",
+          "Families: general purpose (balanced), compute optimized (CPU-heavy, such as batch jobs or game servers), memory optimized (big in-memory databases), storage optimized (high disk I/O), and accelerated computing (GPUs for ML and graphics)."
+        ],
+        "show": [
+          "users",
+          "ec2"
+        ],
+        "focus": [
+          "ec2"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "ec2",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Load balancer",
+        "title": "A load balancer spreads the traffic",
+        "body": [
+          "Elastic Load Balancing receives every request and sends it to a healthy instance, across AZs. It checks the health of each target and stops sending traffic to failed ones.",
+          "Users see one address however many servers are behind it."
+        ],
+        "show": [
+          "users",
+          "ec2",
+          "elb"
+        ],
+        "focus": [
+          "elb"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "ec2"
+          },
+          {
+            "from": "users",
+            "to": "elb",
+            "fresh": true
+          },
+          {
+            "from": "elb",
+            "to": "ec2",
+            "label": "healthy targets",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          4
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Auto Scaling",
+        "title": "Auto Scaling adds and removes servers",
+        "body": [
+          "Amazon EC2 Auto Scaling keeps the right number of instances: it adds them when CPU or requests rise and removes them when load drops. It also replaces instances that fail.",
+          "That is elasticity: capacity that follows demand."
+        ],
+        "show": [
+          "users",
+          "ec2",
+          "elb",
+          "asg"
+        ],
+        "focus": [
+          "asg"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "ec2"
+          },
+          {
+            "from": "users",
+            "to": "elb"
+          },
+          {
+            "from": "elb",
+            "to": "ec2",
+            "label": "healthy targets"
+          },
+          {
+            "from": "asg",
+            "to": "ec2",
+            "label": "scale out / in",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Containers",
+        "title": "Containers: ECS or EKS",
+        "body": [
+          "Containers package an app with everything it needs. Amazon ECS is AWS's own container orchestrator: simple and AWS-native. Amazon EKS runs Kubernetes, which suits teams that already use Kubernetes or need portability.",
+          "Both can run containers on EC2 instances you manage, or on Fargate."
+        ],
+        "show": [
+          "users",
+          "ec2",
+          "elb",
+          "asg",
+          "ecs"
+        ],
+        "focus": [
+          "ecs"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "ec2"
+          },
+          {
+            "from": "users",
+            "to": "elb"
+          },
+          {
+            "from": "elb",
+            "to": "ec2",
+            "label": "healthy targets"
+          },
+          {
+            "from": "asg",
+            "to": "ec2",
+            "label": "scale out / in"
+          },
+          {
+            "from": "elb",
+            "to": "ecs",
+            "label": "checkout service",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Fargate",
+        "title": "Fargate: containers without servers",
+        "body": [
+          "With AWS Fargate you don't provision or patch any instances. You say how much CPU and memory each container needs and pay for that.",
+          "Fargate is a serverless way to run ECS or EKS containers."
+        ],
+        "show": [
+          "users",
+          "ec2",
+          "elb",
+          "asg",
+          "ecs",
+          "far"
+        ],
+        "focus": [
+          "far"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "ec2"
+          },
+          {
+            "from": "users",
+            "to": "elb"
+          },
+          {
+            "from": "elb",
+            "to": "ec2",
+            "label": "healthy targets"
+          },
+          {
+            "from": "asg",
+            "to": "ec2",
+            "label": "scale out / in"
+          },
+          {
+            "from": "elb",
+            "to": "ecs",
+            "label": "checkout service"
+          },
+          {
+            "from": "ecs",
+            "to": "far",
+            "label": "runs on",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Lambda",
+        "title": "Lambda: code that runs on events",
+        "body": [
+          "AWS Lambda runs a function when something happens, for example a photo uploaded to S3 or an API request. It scales automatically, and you pay per request and per millisecond of run time, nothing when idle.",
+          "That makes it ideal for the image-resize job."
+        ],
+        "show": [
+          "users",
+          "ec2",
+          "elb",
+          "asg",
+          "ecs",
+          "far",
+          "lam"
+        ],
+        "focus": [
+          "lam"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "ec2"
+          },
+          {
+            "from": "users",
+            "to": "elb"
+          },
+          {
+            "from": "elb",
+            "to": "ec2",
+            "label": "healthy targets"
+          },
+          {
+            "from": "asg",
+            "to": "ec2",
+            "label": "scale out / in"
+          },
+          {
+            "from": "elb",
+            "to": "ecs",
+            "label": "checkout service"
+          },
+          {
+            "from": "ecs",
+            "to": "far",
+            "label": "runs on"
+          },
+          {
+            "from": "ec2",
+            "to": "lam",
+            "label": "upload event",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Lambda = functions, short tasks (max 15 minutes). Fargate = containers without managing servers. EC2 = full control."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "The right compute for each part",
+        "body": [
+          "Control on one side, less to manage on the other."
+        ],
+        "show": [
+          "users",
+          "ec2",
+          "elb",
+          "asg",
+          "ecs",
+          "far",
+          "lam"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "ec2"
+          },
+          {
+            "from": "users",
+            "to": "elb"
+          },
+          {
+            "from": "elb",
+            "to": "ec2",
+            "label": "healthy targets"
+          },
+          {
+            "from": "asg",
+            "to": "ec2",
+            "label": "scale out / in"
+          },
+          {
+            "from": "elb",
+            "to": "ecs",
+            "label": "checkout service"
+          },
+          {
+            "from": "ecs",
+            "to": "far",
+            "label": "runs on"
+          },
+          {
+            "from": "ec2",
+            "to": "lam",
+            "label": "upload event"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "EC2: virtual servers; pick the instance family for the workload",
+          "ELB: one entry point, health checks, spread across AZs",
+          "Auto Scaling: elasticity",
+          "ECS (AWS-native) or EKS (Kubernetes) for containers",
+          "Fargate: serverless containers; Lambda: event-driven functions"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,232 @@
+{
+  "id": "ai901-choose-model",
+  "exam": "ai-901",
+  "title": "Choosing an AI model by capability",
+  "objectiveIds": [
+    "AI901-1.2.2"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Identify an appropriate AI model based on its capabilities: chat, reasoning, small, multimodal, embedding, image and speech models, and their trade-offs.",
+  "prerequisites": [
+    {
+      "text": "How generative AI works",
+      "objectiveId": "AI901-1.2.1",
+      "lessonId": "ai901-how-genai-works"
+    }
+  ],
+  "foundation": [
+    "There's no single best model. Pick the one whose capabilities match your task, at a cost and speed you can accept.",
+    "Chat models converse and write. Reasoning models think step by step for hard problems. Small language models are cheap and fast. Multimodal models accept images or audio. Embedding models turn text into vectors for search. Image models create pictures. Speech models transcribe or speak.",
+    "The Foundry model catalog lists thousands of models from Microsoft, OpenAI, Meta, Mistral, DeepSeek and others, with model cards and benchmarks to compare them."
+  ],
+  "engineer": [
+    "Large chat models (for example GPT-family models): broad language ability, instruction following, tool calling. Reasoning models: spend extra compute 'thinking' before answering; best for complex maths, code, planning; slower and more expensive per request.",
+    "Small language models (for example Phi): lower cost and latency, can run on edge devices; good for focused tasks such as classification or extraction, often after fine-tuning.",
+    "Multimodal models accept image (and some audio) input alongside text; some produce audio (realtime/voice models). Embedding models (for example text-embedding-3) produce vectors for semantic search, clustering and RAG. Image generation models (for example gpt-image-1) create and edit images.",
+    "Selection criteria: required input and output modalities; quality on your task (benchmarks, leaderboards, your own evaluations); context window size; latency; cost per token; tool-calling and structured-output support; region and deployment-type availability; licence and data considerations; fine-tuning support.",
+    "Model catalog: filter by task, publisher, inference task and deployment option; read the model card (intended use, limitations, training data); compare models in leaderboards; test in the playground before committing."
+  ],
+  "animation": {
+    "id": "ai901-model-sim",
+    "caption": "Pick a model type for each requirement, then balance capability against cost and speed."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "task",
+        "label": "Your task: modality, quality, latency, cost",
+        "x": 0,
+        "y": 100,
+        "kind": "user"
+      },
+      {
+        "id": "cat",
+        "label": "Foundry model catalog: cards, benchmarks",
+        "x": 260,
+        "y": 100,
+        "kind": "storage"
+      },
+      {
+        "id": "chat",
+        "label": "Chat / reasoning",
+        "x": 520,
+        "y": 0,
+        "kind": "ai"
+      },
+      {
+        "id": "slm",
+        "label": "Small model",
+        "x": 520,
+        "y": 80,
+        "kind": "ai"
+      },
+      {
+        "id": "mm",
+        "label": "Multimodal",
+        "x": 520,
+        "y": 160,
+        "kind": "ai"
+      },
+      {
+        "id": "emb",
+        "label": "Embedding / image / speech",
+        "x": 520,
+        "y": 240,
+        "kind": "ai"
+      }
+    ],
+    "edges": [
+      {
+        "from": "task",
+        "to": "cat"
+      },
+      {
+        "from": "cat",
+        "to": "chat"
+      },
+      {
+        "from": "cat",
+        "to": "slm"
+      },
+      {
+        "from": "cat",
+        "to": "mm"
+      },
+      {
+        "from": "cat",
+        "to": "emb"
+      }
+    ]
+  },
+  "example": {
+    "title": "An insurer's AI toolbox",
+    "body": [
+      "Claim photos go to a multimodal model to describe damage. A small model classifies incoming emails by type at high volume and low cost.",
+      "An embedding model powers search over policy documents, and a reasoning model is used only for complex fraud investigations where accuracy matters more than speed."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Foundry portal > Model catalog: filter by inference task (chat completion, embeddings, text to image).",
+      "Open a model card; compare in Model leaderboards.",
+      "Deploy two candidates and test the same prompts in the playground."
+    ],
+    "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name chat-model --model-name gpt-5-mini --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50",
+    "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI",
+    "python": "response = openai.responses.create(\n    model=\"chat-model\",\n    input=\"Suggest three names for a cat cafe.\",\n    temperature=1.0,        # more creative\n    max_output_tokens=100,  # cap the answer length\n)\nprint(response.output_text, response.usage.input_tokens, response.usage.output_tokens)"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-model-sim",
+    "objective": "Choose models by capability and trade-off.",
+    "duration": 15,
+    "steps": [
+      "Choose a model tab: answer every requirement.",
+      "Capability vs cost and speed tab: answer every requirement."
+    ],
+    "expected": [
+      "Image input needs a multimodal model",
+      "High-volume simple tasks suit small models"
+    ],
+    "validation": [
+      {
+        "id": "ai-model-correct",
+        "text": "Chose the right model type"
+      },
+      {
+        "id": "ai-model-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "model-tradeoff-correct",
+        "text": "Chose the right model"
+      },
+      {
+        "id": "model-tradeoff-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Using a reasoning model for simple, high-volume tasks",
+      "Using a chat model for vector search"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Responses are too slow and expensive for simple classification.",
+      "cause": "Model too large for the task.",
+      "fix": "Try a smaller model or fine-tune a small one."
+    },
+    {
+      "symptom": "Model can't read attached images.",
+      "cause": "Not a vision-capable model.",
+      "fix": "Deploy a multimodal model."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Reasoning vs chat model",
+      "difference": "Reasoning models think longer and are better at complex problems; chat models are faster and cheaper for everyday tasks."
+    },
+    {
+      "service": "Embedding vs chat model",
+      "difference": "Embeddings produce vectors for search; chat models produce text."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "The biggest model is always best.",
+      "reality": "Cost, latency and fit matter."
+    },
+    {
+      "myth": "Embedding models answer questions.",
+      "reality": "They produce vectors used for retrieval."
+    },
+    {
+      "myth": "Benchmarks guarantee results on your data.",
+      "reality": "Evaluate on your own tasks."
+    }
+  ],
+  "architectureDecisions": [
+    "Start with a capable general model, then optimise to smaller models.",
+    "Evaluate candidate models on your own data.",
+    "Match modalities first."
+  ],
+  "docs": [
+    {
+      "title": "Explore the Foundry model catalog",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/how-to/model-catalog-overview"
+    },
+    {
+      "title": "What is Microsoft Foundry?",
+      "url": "https://learn.microsoft.com/azure/foundry/what-is-foundry"
+    },
+    {
+      "title": "Model leaderboards and benchmarks",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/concepts/model-benchmarks"
+    },
+    {
+      "title": "AI-901 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/ai-901"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

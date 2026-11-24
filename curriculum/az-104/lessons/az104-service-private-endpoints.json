@@ -1,0 +1,611 @@
+{
+  "id": "az104-service-private-endpoints",
+  "exam": "az-104",
+  "title": "Service endpoints and private endpoints for PaaS",
+  "objectiveIds": [
+    "AZ104-4.2.4",
+    "AZ104-4.2.5"
+  ],
+  "estimatedMinutes": 50,
+  "learningObjective": "Configure service endpoints and private endpoints for Azure PaaS services, including firewall rules and private DNS, and choose between them.",
+  "prerequisites": [
+    {
+      "text": "Storage network access",
+      "objectiveId": "AZ104-2.1.1",
+      "lessonId": "az104-storage-network"
+    }
+  ],
+  "foundation": [
+    "PaaS services like Azure Storage and Azure SQL have public endpoints. You can restrict who reaches them from your VNets in two ways.",
+    "Service endpoint: your subnet reaches the service's public endpoint over the Azure backbone, and the service can allow only that subnet.",
+    "Private endpoint: the service gets a private IP address inside your VNet, so traffic never uses the public endpoint."
+  ],
+  "engineer": [
+    "Service endpoints: enable per subnet per service (Microsoft.Storage, Microsoft.Sql, Microsoft.KeyVault…), then add a virtual network rule on the resource's firewall. The source IP seen by the service becomes the VM's private IP, so existing IP rules for the VNet's public IPs stop matching. They don't work from on-premises or (generally) peered VNets. Service endpoint policies can restrict traffic to specific storage accounts. Free.",
+    "Private endpoints: a NIC with a private IP in a subnet, connected to one sub-resource (for example blob, file, sqlServer). Works from peered VNets and on-premises over VPN/ExpressRoute. You can then disable public network access. Billed per hour and per GB.",
+    "DNS is the usual problem: the public name (stcontoso.blob.core.windows.net) gets a CNAME to stcontoso.privatelink.blob.core.windows.net. A private DNS zone privatelink.blob.core.windows.net linked to the VNet returns the private IP. On-premises needs a DNS forwarder (for example Azure DNS Private Resolver).",
+    "Private endpoint connections can be auto-approved (same permissions) or require manual approval by the resource owner. Network policies (NSG/UDR support) for private endpoints can be enabled on the subnet."
+  ],
+  "animation": {
+    "id": "network-access-sim",
+    "caption": "Service endpoints vs private endpoints tab: DNS, path and firewall."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "VM 10.1.1.4",
+        "x": 20,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "se",
+        "label": "Service endpoint (subnet)",
+        "x": 230,
+        "y": 40,
+        "kind": "network"
+      },
+      {
+        "id": "pe",
+        "label": "Private endpoint 10.1.3.5",
+        "x": 230,
+        "y": 200,
+        "kind": "network"
+      },
+      {
+        "id": "dns",
+        "label": "privatelink DNS zone",
+        "x": 430,
+        "y": 200,
+        "kind": "service"
+      },
+      {
+        "id": "st",
+        "label": "Storage account",
+        "x": 620,
+        "y": 120,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "vm",
+        "to": "se",
+        "label": "backbone, public endpoint"
+      },
+      {
+        "from": "se",
+        "to": "st"
+      },
+      {
+        "from": "vm",
+        "to": "pe",
+        "label": "private IP"
+      },
+      {
+        "from": "pe",
+        "to": "st",
+        "label": "Private Link"
+      },
+      {
+        "from": "dns",
+        "to": "pe"
+      }
+    ]
+  },
+  "example": {
+    "title": "Locking down a storage account",
+    "body": [
+      "Phase 1: the team enables a Microsoft.Storage service endpoint on snet-app and adds a VNet rule; the IP rule for the old NAT IP stops working for those VMs, as expected.",
+      "Phase 2: for on-premises access they add a private endpoint for blob, a linked privatelink DNS zone and a DNS Private Resolver, then set public network access to Disabled."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription and a resource group (rg-net)"
+    ],
+    "permissions": [
+      "Network Contributor on the resource group"
+    ],
+    "limits": [
+      "Private endpoints are billed per hour and per GB processed",
+      "One private endpoint per sub-resource type you need (blob, file, queue…)"
+    ],
+    "portal": [
+      "Subnet > Service endpoints: add Microsoft.Storage. Storage account > Networking > Firewalls and virtual networks: add the VNet/subnet.",
+      "Storage account > Networking > Private endpoint connections > + Private endpoint: choose sub-resource blob, VNet/subnet, and integrate with a private DNS zone.",
+      "Storage account > Networking > Public network access: Disabled."
+    ],
+    "cli": "# Service endpoint\naz network vnet subnet update -g rg-net --vnet-name vnet-app -n snet-app --service-endpoints Microsoft.Storage\naz storage account network-rule add -g rg-net --account-name stcontoso --vnet-name vnet-app --subnet snet-app\naz storage account update -g rg-net -n stcontoso --default-action Deny\n# Private endpoint + DNS\naz network private-endpoint create -g rg-net -n pe-st-blob --vnet-name vnet-app --subnet snet-pe --private-connection-resource-id $(az storage account show -n stcontoso -g rg-net --query id -o tsv) --group-id blob --connection-name st-blob\naz network private-dns zone create -g rg-net -n privatelink.blob.core.windows.net\naz network private-dns link vnet create -g rg-net -z privatelink.blob.core.windows.net -n link-app -v vnet-app -e false\naz network private-endpoint dns-zone-group create -g rg-net --endpoint-name pe-st-blob -n default --private-dns-zone privatelink.blob.core.windows.net --zone-name blob\naz storage account update -g rg-net -n stcontoso --public-network-access Disabled",
+    "powershell": "$vnet = Get-AzVirtualNetwork -Name vnet-app -ResourceGroupName rg-net\nSet-AzVirtualNetworkSubnetConfig -VirtualNetwork $vnet -Name snet-app -AddressPrefix 10.1.1.0/24 -ServiceEndpoint Microsoft.Storage | Set-AzVirtualNetwork\n$st = Get-AzStorageAccount -ResourceGroupName rg-net -Name stcontoso\n$conn = New-AzPrivateLinkServiceConnection -Name st-blob -PrivateLinkServiceId $st.Id -GroupId blob\nNew-AzPrivateEndpoint -ResourceGroupName rg-net -Name pe-st-blob -Location eastus -Subnet ($vnet.Subnets | ? Name -eq snet-pe) -PrivateLinkServiceConnection $conn"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "network-access-sim",
+    "objective": "Give a VM private access to storage two ways and lock down the public endpoint.",
+    "duration": 20,
+    "steps": [
+      "Run the default (service endpoint not enabled, IP rule only).",
+      "Apply 'Service endpoint done right'.",
+      "Apply 'Private endpoint without DNS zone' and read the DNS failure.",
+      "Apply 'Private endpoint with DNS zone'."
+    ],
+    "expected": [
+      "Service endpoint changes the source IP",
+      "Private endpoints need private DNS"
+    ],
+    "validation": [
+      {
+        "id": "se-vnet-rule",
+        "text": "Allowed a subnet through a service endpoint"
+      },
+      {
+        "id": "pe-private-ip",
+        "text": "Reached storage through a private endpoint"
+      },
+      {
+        "id": "endpoint-error",
+        "text": "Diagnosed an endpoint error"
+      }
+    ],
+    "failureScenarios": [
+      "Missing VNet rule",
+      "Missing privatelink DNS zone",
+      "Disabling public access while using service endpoints"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "After enabling a service endpoint, VMs get 403 from storage.",
+      "cause": "Source is now the private IP; the old IP rule no longer matches.",
+      "fix": "Add a virtual network rule."
+    },
+    {
+      "symptom": "Private endpoint created but the name resolves to a public IP.",
+      "cause": "Private DNS zone not linked or record missing.",
+      "fix": "Link privatelink.blob.core.windows.net to the VNet and add a DNS zone group."
+    },
+    {
+      "symptom": "On-premises clients can't use the private endpoint.",
+      "cause": "On-premises DNS doesn't resolve the privatelink zone.",
+      "fix": "Forward to Azure DNS Private Resolver."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS VPC gateway endpoints and interface endpoints",
+      "difference": "Gateway endpoints resemble service endpoints (S3/DynamoDB); interface endpoints (PrivateLink) resemble private endpoints."
+    },
+    {
+      "service": "Private Link service",
+      "difference": "Exposes your own service behind a Standard load balancer to consumers through private endpoints."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Service endpoints give the service a private IP.",
+      "reality": "The service keeps its public IP; only the source and path change."
+    },
+    {
+      "myth": "Private endpoints need no DNS changes.",
+      "reality": "Clients must resolve the name to the private IP."
+    }
+  ],
+  "architectureDecisions": [
+    "Use private endpoints for on-premises access, data-exfiltration protection and to disable public access.",
+    "Use service endpoints for simple, free subnet restriction within a region.",
+    "Centralise privatelink DNS zones in the hub."
+  ],
+  "docs": [
+    {
+      "title": "Virtual network service endpoints",
+      "url": "https://learn.microsoft.com/azure/virtual-network/virtual-network-service-endpoints-overview"
+    },
+    {
+      "title": "What is a private endpoint?",
+      "url": "https://learn.microsoft.com/azure/private-link/private-endpoint-overview"
+    },
+    {
+      "title": "Private endpoint DNS configuration",
+      "url": "https://learn.microsoft.com/azure/private-link/private-endpoint-dns"
+    },
+    {
+      "title": "Configure Azure Storage firewalls and virtual networks",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-network-security"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Reach Azure services like Storage and SQL privately from your VNet.",
+    "learn": [
+      "Service endpoints",
+      "Private endpoints and Private Link",
+      "Private DNS for private endpoints",
+      "Choosing between them"
+    ],
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "VM in subnet",
+        "x": 120,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "se",
+        "label": "Service endpoint",
+        "x": 380,
+        "y": 90,
+        "kind": "network",
+        "sub": "on the subnet"
+      },
+      {
+        "id": "pe",
+        "label": "Private endpoint",
+        "x": 380,
+        "y": 330,
+        "kind": "network",
+        "sub": "10.10.1.5"
+      },
+      {
+        "id": "sa",
+        "label": "Storage account",
+        "x": 660,
+        "y": 220,
+        "kind": "storage",
+        "sub": "public endpoint"
+      },
+      {
+        "id": "dns",
+        "label": "Private DNS zone",
+        "x": 660,
+        "y": 380,
+        "kind": "network",
+        "sub": "privatelink.blob..."
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Public path",
+        "title": "The VM reaches Storage over its public endpoint",
+        "body": [
+          "Security wants storage reachable only from your network, and ideally not over the internet at all."
+        ],
+        "show": [
+          "vm",
+          "sa"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "sa",
+            "label": "public endpoint",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Service endpoint",
+        "title": "Service endpoints: trusted subnet",
+        "body": [
+          "Enable a service endpoint (for example Microsoft.Storage) on a subnet. Traffic to that service goes over the Azure backbone with the subnet's identity, and the storage firewall can allow just that subnet. The service still uses its public IP address. Free."
+        ],
+        "show": [
+          "vm",
+          "sa",
+          "se"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "sa",
+            "label": "public endpoint"
+          },
+          {
+            "from": "vm",
+            "to": "se",
+            "fresh": true
+          },
+          {
+            "from": "se",
+            "to": "sa",
+            "label": "VNet rule",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Private endpoint",
+        "title": "Private endpoints: a private IP for the service",
+        "body": [
+          "A private endpoint is a NIC in your subnet with a private IP that maps to one resource (for example the blob service of one account). It works from peered VNets and on-premises too, and you can then disable public access completely. Billed per hour and per GB."
+        ],
+        "show": [
+          "vm",
+          "sa",
+          "se",
+          "pe"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "sa",
+            "label": "public endpoint"
+          },
+          {
+            "from": "vm",
+            "to": "se"
+          },
+          {
+            "from": "se",
+            "to": "sa",
+            "label": "VNet rule"
+          },
+          {
+            "from": "vm",
+            "to": "pe",
+            "fresh": true
+          },
+          {
+            "from": "pe",
+            "to": "sa",
+            "label": "Private Link",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "DNS",
+        "title": "Make the name point to the private IP",
+        "body": [
+          "The account name must resolve to the private IP. A private DNS zone such as privatelink.blob.core.windows.net, linked to the VNet, does this; the portal can create it for you."
+        ],
+        "show": [
+          "vm",
+          "sa",
+          "se",
+          "pe",
+          "dns"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "sa",
+            "label": "public endpoint"
+          },
+          {
+            "from": "vm",
+            "to": "se"
+          },
+          {
+            "from": "se",
+            "to": "sa",
+            "label": "VNet rule"
+          },
+          {
+            "from": "vm",
+            "to": "pe"
+          },
+          {
+            "from": "pe",
+            "to": "sa",
+            "label": "Private Link"
+          },
+          {
+            "from": "dns",
+            "to": "pe",
+            "label": "A record",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Private endpoint created but traffic still goes public? Almost always DNS."
+        }
+      },
+      {
+        "kind": "case",
+        "label": "Choose",
+        "title": "Which one?",
+        "body": [
+          "Need on-premises or peered access, or no public endpoint at all: private endpoint. Simple and free subnet restriction: service endpoint."
+        ],
+        "show": [
+          "vm",
+          "sa",
+          "se",
+          "pe",
+          "dns"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "sa",
+            "label": "public endpoint"
+          },
+          {
+            "from": "vm",
+            "to": "se"
+          },
+          {
+            "from": "se",
+            "to": "sa",
+            "label": "VNet rule"
+          },
+          {
+            "from": "vm",
+            "to": "pe"
+          },
+          {
+            "from": "pe",
+            "to": "sa",
+            "label": "Private Link"
+          },
+          {
+            "from": "dns",
+            "to": "pe",
+            "label": "A record"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Endpoints",
+        "body": [
+          "Service endpoint: trusted subnet. Private endpoint: private IP."
+        ],
+        "show": [
+          "vm",
+          "sa",
+          "se",
+          "pe",
+          "dns"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "sa",
+            "label": "public endpoint"
+          },
+          {
+            "from": "vm",
+            "to": "se"
+          },
+          {
+            "from": "se",
+            "to": "sa",
+            "label": "VNet rule"
+          },
+          {
+            "from": "vm",
+            "to": "pe"
+          },
+          {
+            "from": "pe",
+            "to": "sa",
+            "label": "Private Link"
+          },
+          {
+            "from": "dns",
+            "to": "pe",
+            "label": "A record"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Service endpoint: per subnet, free, public IP still used",
+          "Private endpoint: private IP for one resource",
+          "Private DNS zone privatelink.* must resolve the name",
+          "Private endpoints work from peered VNets and on-premises",
+          "Disable public access once private"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Add a private endpoint to a storage account and check DNS",
+    "minutes": 30,
+    "costLevel": "low",
+    "cost": "Low. One B1s VM costs about US$0.01 per hour. Delete the same day. A private endpoint costs about US$0.01 per hour.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A virtual network vnet-lab (10.10.0.0/16) in rg-az104-lab with a subnet snet-app (10.10.1.0/24): Virtual networks > + Create > IP addresses tab. For these labs, untick 'Enable private subnet' on snet-app so lab VMs can reach the internet (in production use a NAT gateway instead).",
+      "A small Linux VM vm-lab in snet-app of vnet-lab: Virtual machines > + Create. Image Ubuntu 24.04, size Standard_B1s, password authentication, Networking tab: vnet-lab / snet-app, public IP: None, NIC network security group: Basic, public inbound ports: None. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead.",
+      "A storage account in rg-az104-lab."
+    ],
+    "steps": [
+      {
+        "do": "Run a command without SSH: open the VM > Operations > Run command > RunShellScript, type the command, Run. Run: nslookup <storageaccount>.blob.core.windows.net",
+        "see": "A public IP address in the answer."
+      },
+      {
+        "do": "Open vnet-lab > Subnets > snet-app. Under Service endpoints add Microsoft.Storage. Save."
+      },
+      {
+        "do": "Open the storage account > Networking > 'Enabled from selected virtual networks and IP addresses' > + Add existing virtual network: vnet-lab / snet-app. Save.",
+        "see": "The subnet listed with endpoint status Enabled."
+      },
+      {
+        "do": "Open the storage account > Networking > Private endpoint connections > + Private endpoint. Name pe-blob, target sub-resource: blob, VNet vnet-lab, subnet snet-app, integrate with private DNS zone: Yes. Create.",
+        "see": "Deployment creates a private endpoint, a NIC and a private DNS zone privatelink.blob.core.windows.net."
+      },
+      {
+        "do": "Repeat the nslookup Run command on vm-lab.",
+        "see": "The name now resolves through privatelink.blob.core.windows.net to a private 10.10.1.x address."
+      },
+      {
+        "do": "Open the private DNS zone > Recordsets.",
+        "see": "An A record for your storage account pointing to the private IP."
+      },
+      {
+        "do": "On the storage account Networking page set Public network access to Disabled. Save.",
+        "see": "Only the private endpoint can reach it now; the portal's data browser from your PC will be blocked."
+      }
+    ],
+    "check": [
+      "The storage name resolves to a private IP from inside the VNet."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Tutorial: connect to a storage account using a private endpoint",
+        "url": "https://learn.microsoft.com/azure/private-link/tutorial-private-endpoint-storage-portal"
+      },
+      {
+        "title": "Virtual network service endpoints",
+        "url": "https://learn.microsoft.com/azure/virtual-network/virtual-network-service-endpoints-overview"
+      },
+      {
+        "title": "Private endpoint DNS configuration",
+        "url": "https://learn.microsoft.com/azure/private-link/private-endpoint-dns"
+      }
+    ]
+  }
+}

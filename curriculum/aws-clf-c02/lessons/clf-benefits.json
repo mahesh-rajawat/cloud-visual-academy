@@ -1,0 +1,645 @@
+{
+  "id": "clf-benefits",
+  "exam": "aws-clf-c02",
+  "title": "Benefits of the AWS Cloud",
+  "objectiveIds": [
+    "CLFC02-1.1.1",
+    "CLFC02-1.1.2",
+    "CLFC02-1.1.3"
+  ],
+  "estimatedMinutes": 25,
+  "learningObjective": "Explain the AWS Cloud value proposition and the benefits of its global infrastructure, high availability, elasticity and agility.",
+  "prerequisites": [
+    {
+      "text": "Basic IT concepts"
+    }
+  ],
+  "foundation": [
+    "AWS lets you use IT resources on demand over the internet and pay only for what you use, instead of buying and running data centers.",
+    "Its global infrastructure lets you deploy in many locations worldwide in minutes, close to your users.",
+    "High availability keeps applications running when parts fail; elasticity adds and removes capacity automatically; agility means teams can experiment and launch faster."
+  ],
+  "engineer": [
+    "AWS's six advantages of cloud computing: trade fixed expense for variable expense; benefit from massive economies of scale; stop guessing capacity; increase speed and agility; stop spending money running and maintaining data centers; go global in minutes.",
+    "Global infrastructure: Regions with multiple isolated Availability Zones, plus edge locations for CloudFront, Route 53 and Global Accelerator; Local Zones and Wavelength Zones extend closer to users.",
+    "High availability: design across multiple AZs with load balancing and Auto Scaling; elasticity: Auto Scaling matches capacity to demand; agility: provision in minutes and automate with IaC."
+  ],
+  "animation": {
+    "id": "aws-concepts-sim",
+    "caption": "Explore cloud economics and Well-Architected decisions."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "r",
+        "label": "Region",
+        "x": 200,
+        "y": 0,
+        "kind": "globe"
+      },
+      {
+        "id": "az1",
+        "label": "AZ a",
+        "x": 0,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "az2",
+        "label": "AZ b",
+        "x": 200,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "az3",
+        "label": "AZ c",
+        "x": 400,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "edge",
+        "label": "Edge locations (CloudFront)",
+        "x": 620,
+        "y": 0,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "r",
+        "to": "az1"
+      },
+      {
+        "from": "r",
+        "to": "az2"
+      },
+      {
+        "from": "r",
+        "to": "az3"
+      },
+      {
+        "from": "edge",
+        "to": "r",
+        "label": "caches"
+      }
+    ]
+  },
+  "example": {
+    "title": "Launching in a new country",
+    "body": [
+      "A retailer launches in Japan by deploying its stack to the Tokyo Region with CloudFormation in an afternoon, uses Auto Scaling for the launch spike, and serves images from CloudFront edge locations."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "AWS Management Console > Region selector: see available Regions.",
+      "EC2 > Auto Scaling groups to see elasticity settings."
+    ],
+    "cli": "aws ec2 describe-regions --output table\naws ec2 describe-availability-zones --region eu-west-1 --output table",
+    "powershell": "Get-EC2Region\nGet-EC2AvailabilityZone -Region eu-west-1"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-concepts-sim",
+    "objective": "Compare fixed and variable cost models.",
+    "duration": 10,
+    "steps": [
+      "Open 'Cloud economics' and run it.",
+      "Apply 'Rightsize and automate'."
+    ],
+    "expected": [
+      "Variable costs track use"
+    ],
+    "validation": [
+      {
+        "id": "aws-economics",
+        "text": "Compared costs"
+      },
+      {
+        "id": "aws-rightsized",
+        "text": "Applied rightsizing"
+      }
+    ],
+    "failureScenarios": [
+      "Buying for peak"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Users far away see slow responses.",
+      "cause": "Content served from one distant Region.",
+      "fix": "Use CloudFront or deploy to a nearer Region."
+    },
+    {
+      "symptom": "Paying for idle servers.",
+      "cause": "No elasticity.",
+      "fix": "Use Auto Scaling and rightsizing."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Microsoft Azure",
+      "difference": "Same benefits; regions/zones and CDN (Front Door) are equivalent concepts."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Elasticity and high availability are the same.",
+      "reality": "Elasticity matches capacity to demand; HA survives failures."
+    },
+    {
+      "myth": "Going global requires building data centers.",
+      "reality": "Deploy to existing Regions in minutes."
+    }
+  ],
+  "architectureDecisions": [
+    "Deploy across multiple AZs by default; add Regions for latency, DR or data residency."
+  ],
+  "docs": [
+    {
+      "title": "Overview of Amazon Web Services: six advantages",
+      "url": "https://docs.aws.amazon.com/whitepapers/latest/aws-overview/six-advantages-of-cloud-computing.html"
+    },
+    {
+      "title": "AWS global infrastructure",
+      "url": "https://aws.amazon.com/about-aws/global-infrastructure/"
+    },
+    {
+      "title": "What is cloud computing?",
+      "url": "https://aws.amazon.com/what-is-cloud-computing/"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Follow one product launch and see why companies rent IT from AWS instead of buying it.",
+    "learn": [
+      "The AWS value proposition: pay for what you use",
+      "Economies of scale",
+      "Going global in minutes",
+      "High availability vs elasticity vs agility",
+      "Case: a launch-day traffic spike"
+    ],
+    "nodes": [
+      {
+        "id": "team",
+        "label": "Your team",
+        "x": 90,
+        "y": 220,
+        "kind": "user",
+        "sub": "launching an app"
+      },
+      {
+        "id": "dc",
+        "label": "Own data center",
+        "x": 230,
+        "y": 70,
+        "kind": "cost",
+        "sub": "buy, rack, power"
+      },
+      {
+        "id": "aws",
+        "label": "AWS Region",
+        "x": 400,
+        "y": 220,
+        "kind": "globe",
+        "sub": "on demand"
+      },
+      {
+        "id": "az1",
+        "label": "AZ a",
+        "x": 600,
+        "y": 110,
+        "kind": "compute"
+      },
+      {
+        "id": "az2",
+        "label": "AZ b",
+        "x": 600,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "az3",
+        "label": "AZ c",
+        "x": 600,
+        "y": 330,
+        "kind": "compute"
+      },
+      {
+        "id": "edge",
+        "label": "Edge location",
+        "x": 400,
+        "y": 380,
+        "kind": "network",
+        "sub": "near your users"
+      },
+      {
+        "id": "asg",
+        "label": "Auto Scaling",
+        "x": 400,
+        "y": 70,
+        "kind": "compute",
+        "sub": "adds/removes servers"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Buy servers?",
+        "title": "Your team needs servers for a launch",
+        "body": [
+          "The old way: guess how much traffic you will get, order servers, wait weeks for delivery, then rack, power and cool them.",
+          "Guess too low and the site falls over. Guess too high and the servers sit idle, but you already paid."
+        ],
+        "show": [
+          "team",
+          "dc"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "team",
+            "to": "dc",
+            "label": "weeks of lead time",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Rent instead",
+        "title": "Rent IT on demand and pay as you go",
+        "body": [
+          "With AWS you request servers, storage and databases over the internet and get them in minutes. You pay only while you use them.",
+          "This trades a big up-front (fixed) expense for a variable one that follows your real usage."
+        ],
+        "show": [
+          "team",
+          "dc",
+          "aws"
+        ],
+        "focus": [
+          "aws"
+        ],
+        "edges": [
+          {
+            "from": "team",
+            "to": "dc",
+            "label": "weeks of lead time"
+          },
+          {
+            "from": "team",
+            "to": "aws",
+            "label": "minutes, pay per use",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "key",
+          "text": "The core value proposition: no up-front hardware, no guessing capacity, pay only for what you use."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Scale prices",
+        "title": "AWS buys at huge scale and shares the savings",
+        "body": [
+          "AWS buys hardware, power and network for millions of customers. That scale lowers its cost per server, and AWS passes those savings on as lower prices over time.",
+          "You also stop spending money running data centers, so your people can work on your product instead."
+        ],
+        "show": [
+          "team",
+          "aws"
+        ],
+        "focus": [
+          "aws"
+        ],
+        "edges": [
+          {
+            "from": "team",
+            "to": "aws",
+            "label": "minutes, pay per use"
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "AWS lists six advantages of the cloud: variable expense, economies of scale, stop guessing capacity, speed and agility, stop running data centers, and go global in minutes."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Go global",
+        "title": "Go global in minutes",
+        "body": [
+          "Your launch is doing well in Europe and now you want Asia too. Instead of building a data center there, you deploy the same stack to another AWS Region in minutes.",
+          "Edge locations cache your images and videos close to users, so pages load faster."
+        ],
+        "show": [
+          "team",
+          "aws",
+          "edge"
+        ],
+        "focus": [
+          "edge"
+        ],
+        "edges": [
+          {
+            "from": "team",
+            "to": "aws",
+            "label": "minutes, pay per use"
+          },
+          {
+            "from": "aws",
+            "to": "edge",
+            "label": "cached copies",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "High availability",
+        "title": "Keep running when parts fail",
+        "body": [
+          "A Region contains several Availability Zones (AZs): separate data centers with their own power and network. Run copies of your app in more than one AZ.",
+          "If one AZ has a problem, the others keep serving users. That is high availability."
+        ],
+        "show": [
+          "team",
+          "aws",
+          "edge",
+          "az1",
+          "az2",
+          "az3"
+        ],
+        "focus": [
+          "az1",
+          "az2",
+          "az3"
+        ],
+        "edges": [
+          {
+            "from": "team",
+            "to": "aws",
+            "label": "minutes, pay per use"
+          },
+          {
+            "from": "aws",
+            "to": "edge",
+            "label": "cached copies"
+          },
+          {
+            "from": "aws",
+            "to": "az1",
+            "fresh": true
+          },
+          {
+            "from": "aws",
+            "to": "az2",
+            "fresh": true
+          },
+          {
+            "from": "aws",
+            "to": "az3",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Elasticity",
+        "title": "Match capacity to demand automatically",
+        "body": [
+          "Elasticity means adding capacity when demand rises and removing it when demand falls, automatically. On AWS, Auto Scaling does this for you.",
+          "You are not paying for peak capacity at 3 a.m."
+        ],
+        "show": [
+          "team",
+          "aws",
+          "edge",
+          "az1",
+          "az2",
+          "az3",
+          "asg"
+        ],
+        "focus": [
+          "asg"
+        ],
+        "edges": [
+          {
+            "from": "team",
+            "to": "aws",
+            "label": "minutes, pay per use"
+          },
+          {
+            "from": "aws",
+            "to": "edge",
+            "label": "cached copies"
+          },
+          {
+            "from": "aws",
+            "to": "az1"
+          },
+          {
+            "from": "aws",
+            "to": "az2"
+          },
+          {
+            "from": "aws",
+            "to": "az3"
+          },
+          {
+            "from": "asg",
+            "to": "aws",
+            "label": "scale out / in",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Elasticity is not high availability. Elasticity follows demand; high availability survives failures."
+        }
+      },
+      {
+        "kind": "case",
+        "label": "Launch day",
+        "title": "Case: the launch-day spike",
+        "body": [
+          "At 9:00 a TV advert sends traffic up ten times. Auto Scaling adds servers in all three AZs within minutes. At 11:00 traffic drops and the extra servers are removed.",
+          "The team tried a new checkout page the same afternoon and deleted it the next day. Fast, cheap experiments like this are what AWS calls agility."
+        ],
+        "show": [
+          "team",
+          "aws",
+          "edge",
+          "az1",
+          "az2",
+          "az3",
+          "asg"
+        ],
+        "focus": [
+          "asg",
+          "az1",
+          "az2",
+          "az3"
+        ],
+        "edges": [
+          {
+            "from": "team",
+            "to": "aws",
+            "label": "minutes, pay per use"
+          },
+          {
+            "from": "aws",
+            "to": "edge",
+            "label": "cached copies"
+          },
+          {
+            "from": "aws",
+            "to": "az1"
+          },
+          {
+            "from": "aws",
+            "to": "az2"
+          },
+          {
+            "from": "aws",
+            "to": "az3"
+          },
+          {
+            "from": "asg",
+            "to": "aws",
+            "label": "scale out / in"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "stats": [
+          {
+            "label": "Before",
+            "value": "4 servers"
+          },
+          {
+            "label": "Peak",
+            "value": "40 servers"
+          },
+          {
+            "label": "After",
+            "value": "4 servers"
+          }
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "What the cloud gives you",
+        "body": [
+          "You rented instead of bought, and every benefit followed from that."
+        ],
+        "show": [
+          "team",
+          "aws",
+          "edge",
+          "az1",
+          "az2",
+          "az3",
+          "asg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "team",
+            "to": "aws",
+            "label": "minutes, pay per use"
+          },
+          {
+            "from": "aws",
+            "to": "edge",
+            "label": "cached copies"
+          },
+          {
+            "from": "aws",
+            "to": "az1"
+          },
+          {
+            "from": "aws",
+            "to": "az2"
+          },
+          {
+            "from": "aws",
+            "to": "az3"
+          },
+          {
+            "from": "asg",
+            "to": "aws",
+            "label": "scale out / in"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Variable expense instead of up-front hardware",
+          "Lower prices from AWS's economies of scale",
+          "Global reach: Regions plus edge locations",
+          "High availability = survive failures (multiple AZs)",
+          "Elasticity = follow demand (Auto Scaling)",
+          "Agility = experiment fast and cheaply"
+        ]
+      }
+    ]
+  }
+}

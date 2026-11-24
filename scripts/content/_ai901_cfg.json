@@ -1,0 +1,162 @@
+{
+ "ai901-content-understanding": {
+  "prerequisites": [
+   "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+  ],
+  "permissions": [
+   "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+  ],
+  "limits": [
+   "Model availability differs by region and deployment type",
+   "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+  ],
+  "portal": [
+   "Foundry portal > your project > Content Understanding: upload a sample file.",
+   "Pick a prebuilt analyzer or define a schema (field name, type, method Extract/Classify/Generate).",
+   "Test and review fields, confidence and grounding; then build the analyzer and copy its ID."
+  ],
+  "cli": "ENDPOINT=$(az cognitiveservices account show -n contoso-ai -g rg-ai901 --query properties.endpoint -o tsv)\nKEY=$(az cognitiveservices account keys list -n contoso-ai -g rg-ai901 --query key1 -o tsv)\ncurl -i -X POST \"${ENDPOINT}contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\" \\\n  -H \"Ocp-Apim-Subscription-Key: $KEY\" -H \"Content-Type: application/json\" \\\n  -d '{\"inputs\":[{\"url\":\"https://contoso.example/invoices/inv-1001.pdf\"}]}'\n# Copy the Operation-Location header, then poll:\ncurl -H \"Ocp-Apim-Subscription-Key: $KEY\" \"<Operation-Location>\"",
+  "powershell": "$endpoint = (Get-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai).Endpoint\n$key = (Get-AzCognitiveServicesAccountKey -ResourceGroupName rg-ai901 -Name contoso-ai).Key1\n$r = Invoke-WebRequest -Method Post -Uri \"$($endpoint)contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\" `\n  -Headers @{ 'Ocp-Apim-Subscription-Key' = $key } -ContentType 'application/json' -Body '{\"inputs\":[{\"url\":\"https://contoso.example/invoices/inv-1001.pdf\"}]}'\n$op = $r.Headers['Operation-Location']\ndo { Start-Sleep 2; $res = Invoke-RestMethod -Uri \"$op\" -Headers @{ 'Ocp-Apim-Subscription-Key' = $key } } while ($res.status -notin 'Succeeded','Failed')\n$res.result.contents[0].fields",
+  "python": "# pip install requests\nimport os, time, requests\n\nendpoint = os.environ[\"CU_ENDPOINT\"].rstrip(\"/\")  # https://<resource>.services.ai.azure.com\nheaders = {\"Ocp-Apim-Subscription-Key\": os.environ[\"CU_KEY\"], \"Content-Type\": \"application/json\"}\nurl = f\"{endpoint}/contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\"\n\nresp = requests.post(url, headers=headers, json={\"inputs\": [{\"url\": \"https://contoso.example/invoices/inv-1001.pdf\"}]})\nresp.raise_for_status()  # expect 202 Accepted\noperation = resp.headers[\"Operation-Location\"]\n\nwhile True:\n    result = requests.get(operation, headers=headers).json()\n    if result[\"status\"] in (\"Succeeded\", \"Failed\"):\n        break\n    time.sleep(2)\n\nfor name, field in result[\"result\"][\"contents\"][0].get(\"fields\", {}).items():\n    print(name, field.get(\"valueString\") or field.get(\"valueNumber\") or field.get(\"valueDate\"), field.get(\"confidence\"))"
+ },
+ "ai901-generative-models": {
+  "prerequisites": [
+   "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+  ],
+  "permissions": [
+   "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+  ],
+  "limits": [
+   "Model availability differs by region and deployment type",
+   "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+  ],
+  "portal": [
+   "ai.azure.com > your project > Models + endpoints (or Model catalog) > choose a model > Deploy.",
+   "Choose the deployment type, deployment name, model version, rate limit (TPM) and content filter.",
+   "Open the deployment in the playground; set temperature, top_p and max tokens under parameters."
+  ],
+  "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name chat-model --model-name gpt-5-mini --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50",
+  "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI",
+  "python": "response = openai.responses.create(\n    model=\"chat-model\",\n    input=\"Suggest three names for a cat cafe.\",\n    temperature=1.0,        # more creative\n    max_output_tokens=100,  # cap the answer length\n)\nprint(response.output_text, response.usage.input_tokens, response.usage.output_tokens)"
+ },
+ "ai901-prompts-portal": {
+  "prerequisites": [
+   "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+  ],
+  "permissions": [
+   "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+  ],
+  "limits": [
+   "Model availability differs by region and deployment type",
+   "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+  ],
+  "portal": [
+   "Sign in at ai.azure.com and create a project (this creates or uses a Foundry resource).",
+   "Model catalog > pick a chat model > Use this model / Deploy > choose Global Standard, set the deployment name and TPM.",
+   "Open the Chat playground, write the system message (Instructions), adjust temperature and max tokens, chat.",
+   "Select View code to copy the Python sample for the deployment."
+  ],
+  "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name chat-model --model-name gpt-5-mini --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50",
+  "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI",
+  "python": "response = openai.responses.create(\n    model=\"chat-model\",\n    instructions=(\n        \"You are Contoso's returns assistant. Answer only from the policy between ### markers. \"\n        \"If the answer is not there, say you don't know. Use at most three bullet points.\"\n    ),\n    input=\"###\\nReturns are accepted within 30 days with a receipt.\\n###\\nCan I return shoes after 40 days?\",\n)\nprint(response.output_text)"
+ },
+ "ai901-responsible-ai": {
+  "prerequisites": [
+   "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+  ],
+  "permissions": [
+   "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+  ],
+  "limits": [
+   "Model availability differs by region and deployment type",
+   "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+  ],
+  "portal": [
+   "In the Foundry portal, open Guardrails + controls to review content filter policies.",
+   "Open the model card to read intended uses and limitations.",
+   "Use Evaluation to test a model or agent for quality and safety metrics before release."
+  ],
+  "cli": "# Responsible AI is mostly design and process; content filters are set per deployment in the portal\naz cognitiveservices account deployment show --name contoso-ai --resource-group rg-ai901 --deployment-name chat-model",
+  "powershell": "Get-AzCognitiveServicesAccountDeployment -ResourceGroupName rg-ai901 -AccountName contoso-ai -Name chat-model"
+ },
+ "ai901-sdk-agents": {
+  "prerequisites": [
+   "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+  ],
+  "permissions": [
+   "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+  ],
+  "limits": [
+   "Model availability differs by region and deployment type",
+   "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+  ],
+  "portal": [
+   "Foundry portal > your project > Agents > New agent: choose the model deployment, write instructions.",
+   "Add tools: File search (upload documents), Code interpreter, Web search or functions.",
+   "Test in the agent playground; review the thread and tool calls.",
+   "Copy the project endpoint from the project Overview page."
+  ],
+  "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name chat-model --model-name gpt-5-mini --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50\n# Give your user access to the project\naz role assignment create --assignee <user-or-identity> --role \"Azure AI User\" \\\n  --scope $(az cognitiveservices account show -n contoso-ai -g rg-ai901 --query id -o tsv)",
+  "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI\nNew-AzRoleAssignment -SignInName user@contoso.com -RoleDefinitionName 'Azure AI User' -Scope (Get-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai).Id",
+  "python": "# pip install \"azure-ai-projects>=2.3.0\" azure-identity\nimport os\nfrom azure.identity import DefaultAzureCredential\nfrom azure.ai.projects import AIProjectClient\n\nproject = AIProjectClient(\n    endpoint=os.environ[\"FOUNDRY_PROJECT_ENDPOINT\"],  # https://<resource>.services.ai.azure.com/api/projects/<project>\n    credential=DefaultAzureCredential(),\n)\nopenai = project.get_openai_client()\n\nhistory = []\nwhile True:\n    text = input(\"You: \")\n    if not text:\n        break\n    history.append({\"role\": \"user\", \"content\": text})\n    response = openai.responses.create(\n        model=\"chat-model\",  # your deployment name\n        instructions=\"You are Contoso's returns assistant. Answer in at most three sentences.\",\n        input=history,\n    )\n    print(\"Assistant:\", response.output_text)\n    history.append({\"role\": \"assistant\", \"content\": response.output_text})\n\n# ---- Agent: create once, then chat with it\nfrom azure.ai.projects.models import PromptAgentDefinition\n\nagent = project.agents.create_version(\n    agent_name=\"policy-agent\",\n    definition=PromptAgentDefinition(model=\"chat-model\", instructions=\"Answer HR questions briefly. Say when you are unsure.\"),\n)\nagent_client = project.get_openai_client(agent_name=\"policy-agent\")\nconversation = agent_client.conversations.create()\nreply = agent_client.responses.create(conversation=conversation.id, input=\"How many vacation days do new staff get?\")\nprint(reply.output_text)"
+ },
+ "ai901-text-speech": {
+  "prerequisites": [
+   "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+  ],
+  "permissions": [
+   "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+  ],
+  "limits": [
+   "Model availability differs by region and deployment type",
+   "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+  ],
+  "portal": [
+   "Foundry portal > your project > Speech playground: try real-time speech to text and the voice gallery.",
+   "Language playground: run sentiment analysis and NER on sample text.",
+   "Copy the resource key and endpoint (or use Entra ID) from the resource's Keys and Endpoint page."
+  ],
+  "cli": "az cognitiveservices account keys list --name contoso-ai --resource-group rg-ai901\naz cognitiveservices account show --name contoso-ai --resource-group rg-ai901 --query properties.endpoint -o tsv",
+  "powershell": "Get-AzCognitiveServicesAccountKey -ResourceGroupName rg-ai901 -Name contoso-ai",
+  "python": "# pip install azure-cognitiveservices-speech azure-ai-textanalytics\nimport os\nimport azure.cognitiveservices.speech as speechsdk\nfrom azure.ai.textanalytics import TextAnalyticsClient\nfrom azure.core.credentials import AzureKeyCredential\n\nspeech_config = speechsdk.SpeechConfig(subscription=os.environ[\"SPEECH_KEY\"], endpoint=os.environ[\"ENDPOINT\"])\nspeech_config.speech_recognition_language = \"en-US\"\nrecognizer = speechsdk.SpeechRecognizer(speech_config=speech_config,\n                                        audio_config=speechsdk.audio.AudioConfig(use_default_microphone=True))\nresult = recognizer.recognize_once_async().get()\nif result.reason == speechsdk.ResultReason.RecognizedSpeech:\n    text = result.text\n    language = TextAnalyticsClient(os.environ[\"ENDPOINT\"], AzureKeyCredential(os.environ[\"SPEECH_KEY\"]))\n    sentiment = language.analyze_sentiment([text])[0]\n    print(text, \"->\", sentiment.sentiment, sentiment.confidence_scores)\n\n    speech_config.speech_synthesis_voice_name = \"en-US-Ava:DragonHDLatestNeural\"\n    speechsdk.SpeechSynthesizer(speech_config=speech_config).speak_text_async(f\"You sounded {sentiment.sentiment}.\").get()\nelse:\n    print(\"No speech recognized:\", result.reason)"
+ },
+ "ai901-vision": {
+  "prerequisites": [
+   "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+  ],
+  "permissions": [
+   "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+  ],
+  "limits": [
+   "Model availability differs by region and deployment type",
+   "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+  ],
+  "portal": [
+   "Deploy a vision-capable chat model and gpt-image-1 from the model catalog.",
+   "Chat playground: attach an image and ask about it.",
+   "Images playground: write a prompt, choose size and quality, generate."
+  ],
+  "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name image-model --model-name gpt-image-1 --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50",
+  "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI",
+  "python": "import base64\n# Describe an image (openai = project.get_openai_client())\nwith open(\"car.jpg\", \"rb\") as f:\n    data_uri = \"data:image/jpeg;base64,\" + base64.b64encode(f.read()).decode()\nresponse = openai.responses.create(\n    model=\"chat-model\",  # a vision-capable deployment\n    input=[{\"role\": \"user\", \"content\": [\n        {\"type\": \"input_text\", \"text\": \"List the damaged parts and rate severity low/medium/high as JSON.\"},\n        {\"type\": \"input_image\", \"image_url\": data_uri},\n    ]}],\n)\nprint(response.output_text)\n\n# Generate an image\nimage = openai.images.generate(model=\"image-model\", prompt=\"Flat illustration of a friendly claims adjuster\", size=\"1024x1024\", n=1)\nwith open(\"adjuster.png\", \"wb\") as f:\n    f.write(base64.b64decode(image.data[0].b64_json))"
+ },
+ "ai901-workloads": {
+  "prerequisites": [
+   "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+  ],
+  "permissions": [
+   "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+  ],
+  "limits": [
+   "Model availability differs by region and deployment type",
+   "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+  ],
+  "portal": [
+   "Foundry portal > your project > Build (or AI Services): try Language, Speech, Vision and Content Understanding playgrounds.",
+   "Language playground: paste text and run sentiment analysis, NER and key phrases.",
+   "Speech playground: real-time speech to text and voice gallery."
+  ],
+  "cli": "# One Foundry (AIServices) resource exposes Language, Speech, Vision and Content Understanding\naz cognitiveservices account show --name contoso-ai --resource-group rg-ai901 --query properties.endpoints",
+  "powershell": "(Get-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai).Properties.Endpoints"
+ }
+}

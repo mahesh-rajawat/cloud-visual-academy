@@ -1,0 +1,621 @@
+{
+  "id": "az104-monitor-metrics-logs",
+  "exam": "az-104",
+  "title": "Azure Monitor metrics and log settings",
+  "objectiveIds": [
+    "AZ104-5.1.1",
+    "AZ104-5.1.2"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Interpret metrics in Metrics explorer and configure the right collection (activity log, diagnostic settings, Azure Monitor Agent with data collection rules) and destinations.",
+  "prerequisites": [
+    {
+      "text": "Basic familiarity with VMs and storage accounts"
+    }
+  ],
+  "foundation": [
+    "Azure Monitor collects two main kinds of data: metrics (numbers over time, such as CPU %) and logs (records of events with many fields).",
+    "Platform metrics are collected automatically for most resources. Logs from inside resources need configuration.",
+    "A chart only shows what its aggregation and time grain reveal: a 1-hour average can hide a 3-minute spike."
+  ],
+  "engineer": [
+    "Metrics: platform metrics every minute, kept 93 days; Metrics explorer chooses scope, metric, aggregation (Average, Min, Max, Sum, Count), time range and granularity; split or filter by dimensions (for example per disk LUN or per API name). Pin charts to dashboards or workbooks.",
+    "Activity log: subscription-level control-plane events (create, delete, role changes, service health), kept 90 days. Export with a diagnostic setting for longer retention or KQL.",
+    "Resource logs (data-plane: Key Vault access, storage reads, NSG events) are not collected until you create a diagnostic setting choosing categories and destinations: Log Analytics workspace (query/alert), Storage account (archive), Event Hubs (stream to SIEM), partner solutions. Up to 5 diagnostic settings per resource.",
+    "Guest OS data (performance counters, Windows events, Syslog, text logs) needs the Azure Monitor Agent plus a data collection rule (DCR) that says what to collect and where to send it. The legacy Log Analytics agent is retired.",
+    "Log Analytics workspace settings: region, access control mode (resource-context or workspace), table plans and retention (interactive retention plus long-term retention up to 12 years), daily cap."
+  ],
+  "animation": {
+    "id": "monitor-sim",
+    "caption": "Interpret metrics, and Log settings and data sources tabs."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "res",
+        "label": "Azure resources",
+        "x": 20,
+        "y": 60,
+        "kind": "service"
+      },
+      {
+        "id": "vm",
+        "label": "VM guest (AMA + DCR)",
+        "x": 20,
+        "y": 200,
+        "kind": "compute"
+      },
+      {
+        "id": "m",
+        "label": "Metrics store (93 days)",
+        "x": 300,
+        "y": 20,
+        "kind": "storage"
+      },
+      {
+        "id": "ds",
+        "label": "Diagnostic settings",
+        "x": 300,
+        "y": 120,
+        "kind": "security"
+      },
+      {
+        "id": "law",
+        "label": "Log Analytics",
+        "x": 560,
+        "y": 60,
+        "kind": "storage"
+      },
+      {
+        "id": "st",
+        "label": "Storage archive",
+        "x": 560,
+        "y": 160,
+        "kind": "storage"
+      },
+      {
+        "id": "eh",
+        "label": "Event Hubs → SIEM",
+        "x": 560,
+        "y": 240,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "res",
+        "to": "m",
+        "label": "automatic"
+      },
+      {
+        "from": "res",
+        "to": "ds",
+        "label": "resource logs"
+      },
+      {
+        "from": "ds",
+        "to": "law"
+      },
+      {
+        "from": "ds",
+        "to": "st"
+      },
+      {
+        "from": "ds",
+        "to": "eh"
+      },
+      {
+        "from": "vm",
+        "to": "law",
+        "label": "DCR"
+      }
+    ]
+  },
+  "example": {
+    "title": "A slow website",
+    "body": [
+      "The 1-hour average CPU chart looks fine, but switching to Maximum at 1-minute granularity reveals 97% spikes every evening during backups.",
+      "To investigate requests, the team adds a diagnostic setting on the App Service sending HTTP logs to Log Analytics."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with VMs to monitor or protect"
+    ],
+    "permissions": [
+      "Monitoring Contributor (alerts, diagnostic settings) or Backup Contributor (vaults, policies)"
+    ],
+    "limits": [
+      "See Azure Monitor / Azure Backup service limits"
+    ],
+    "portal": [
+      "Monitor > Metrics: select scope, metric, aggregation; set time range and granularity; Apply splitting.",
+      "Resource > Diagnostic settings > + Add: choose categories and destinations.",
+      "Monitor > Data collection rules > Create: choose VMs (installs AMA), data sources and the workspace.",
+      "Monitor > Activity log: filter and export."
+    ],
+    "cli": "az monitor metrics list --resource $VM_ID --metric \"Percentage CPU\" --aggregation Maximum --interval PT1M\naz monitor log-analytics workspace create -g rg-mon -n law-ops --retention-time 90\naz monitor diagnostic-settings create -n to-law --resource $KV_ID --workspace law-ops --logs '[{\"categoryGroup\":\"allLogs\",\"enabled\":true}]' --metrics '[{\"category\":\"AllMetrics\",\"enabled\":true}]'\naz monitor data-collection rule create -g rg-mon -n dcr-windows --location eastus --rule-file dcr.json\naz monitor activity-log list --offset 1d --query \"[?operationName.value=='Microsoft.Resources/subscriptions/resourceGroups/delete']\"",
+    "powershell": "Get-AzMetric -ResourceId $vmId -MetricName 'Percentage CPU' -AggregationType Maximum -TimeGrain 00:01:00\nNew-AzOperationalInsightsWorkspace -ResourceGroupName rg-mon -Name law-ops -Location eastus -Sku PerGB2018\n$log = New-AzDiagnosticSettingLogSettingsObject -CategoryGroup allLogs -Enabled $true\nNew-AzDiagnosticSetting -Name to-law -ResourceId $kvId -WorkspaceId $lawId -Log $log\nGet-AzActivityLog -StartTime (Get-Date).AddDays(-1)"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "monitor-sim",
+    "objective": "Find a hidden spike and choose the right collection for each data source.",
+    "duration": 15,
+    "steps": [
+      "Interpret metrics: run the default (Average, 1 hour).",
+      "Apply 'Maximum at 1 minute'.",
+      "Log settings and data sources: answer every requirement."
+    ],
+    "expected": [
+      "Aggregation and grain change what you see",
+      "Resource logs need diagnostic settings",
+      "Guest data needs AMA + DCR"
+    ],
+    "validation": [
+      {
+        "id": "metrics-spike-found",
+        "text": "Revealed the spike with the right aggregation"
+      },
+      {
+        "id": "metrics-spike-hidden",
+        "text": "Saw aggregation hide a spike"
+      },
+      {
+        "id": "mon-data-correct",
+        "text": "Chose the right collection/destination"
+      }
+    ],
+    "failureScenarios": [
+      "Using a 1-hour average",
+      "Expecting resource logs without a diagnostic setting",
+      "Using the retired Log Analytics agent"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Log Analytics has no Key Vault logs.",
+      "cause": "No diagnostic setting.",
+      "fix": "Create one with the AuditEvent/allLogs category."
+    },
+    {
+      "symptom": "Perf table is empty for a VM.",
+      "cause": "No Azure Monitor Agent or DCR.",
+      "fix": "Associate a DCR (installs the agent)."
+    },
+    {
+      "symptom": "Can't see who deleted a resource 4 months ago.",
+      "cause": "Activity log keeps 90 days.",
+      "fix": "Export the activity log to a workspace or storage."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon CloudWatch",
+      "difference": "Metrics, logs and alarms; CloudTrail is the activity log equivalent."
+    },
+    {
+      "service": "Application Insights",
+      "difference": "Application performance monitoring (requests, dependencies, traces) built on Azure Monitor."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Azure collects all logs automatically.",
+      "reality": "Only platform metrics and the activity log; resource and guest logs need configuration."
+    },
+    {
+      "myth": "The average shows the worst case.",
+      "reality": "Use Maximum for peaks."
+    }
+  ],
+  "architectureDecisions": [
+    "Send logs to one central workspace per environment unless data residency or access requires more.",
+    "Use Azure Policy to deploy diagnostic settings and DCRs at scale.",
+    "Set retention and table plans to control cost."
+  ],
+  "docs": [
+    {
+      "title": "Azure Monitor overview",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/overview"
+    },
+    {
+      "title": "Azure Monitor metrics",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/essentials/data-platform-metrics"
+    },
+    {
+      "title": "Diagnostic settings",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/essentials/diagnostic-settings"
+    },
+    {
+      "title": "Azure Monitor Agent",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/agents/azure-monitor-agent-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Know what Azure collects for you automatically, and what you must switch on.",
+    "learn": [
+      "Metrics: numbers over time",
+      "Reading charts: aggregation and granularity",
+      "Activity log vs resource logs",
+      "Diagnostic settings and destinations",
+      "Guest OS data with Azure Monitor Agent"
+    ],
+    "nodes": [
+      {
+        "id": "res",
+        "label": "Azure resource",
+        "x": 120,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "met",
+        "label": "Platform metrics",
+        "x": 380,
+        "y": 80,
+        "kind": "service",
+        "sub": "automatic, 93 days"
+      },
+      {
+        "id": "act",
+        "label": "Activity log",
+        "x": 380,
+        "y": 220,
+        "kind": "service",
+        "sub": "who did what, 90 days"
+      },
+      {
+        "id": "diag",
+        "label": "Diagnostic setting",
+        "x": 380,
+        "y": 360,
+        "kind": "service",
+        "sub": "you switch it on"
+      },
+      {
+        "id": "law",
+        "label": "Log Analytics",
+        "x": 650,
+        "y": 220,
+        "kind": "service",
+        "sub": "query with KQL"
+      },
+      {
+        "id": "stor",
+        "label": "Storage / Event Hubs",
+        "x": 650,
+        "y": 360,
+        "kind": "storage"
+      },
+      {
+        "id": "ama",
+        "label": "Azure Monitor Agent",
+        "x": 120,
+        "y": 380,
+        "kind": "service",
+        "sub": "inside the VM"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "What happened?",
+        "title": "The app was slow last night. Why?",
+        "body": [
+          "To answer, you need data that was already being collected. Some of it Azure keeps automatically; some you must turn on beforehand."
+        ],
+        "show": [
+          "res"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Metrics",
+        "title": "Metrics are collected automatically",
+        "body": [
+          "Every resource sends platform metrics (CPU, transactions, latency) every minute, kept for 93 days, free. View them in Metrics explorer.",
+          "Pick the aggregation carefully: Avg, Min, Max, Sum or Count, over a time granularity such as 1 minute or 1 hour. Split or filter by dimensions, for example by API name."
+        ],
+        "show": [
+          "res",
+          "met"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "res",
+            "to": "met",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "A 1-hour average hides a 5-minute spike. Use Max and a small granularity to find spikes."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Logs",
+        "title": "Two kinds of logs",
+        "body": [
+          "The activity log records control-plane operations on the subscription: who created, changed or deleted what. Kept 90 days, free.",
+          "Resource logs record what happens inside a resource (for example every blob read). They are not collected until you create a diagnostic setting."
+        ],
+        "show": [
+          "res",
+          "met",
+          "act",
+          "diag"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "res",
+            "to": "met"
+          },
+          {
+            "from": "res",
+            "to": "act",
+            "fresh": true
+          },
+          {
+            "from": "res",
+            "to": "diag",
+            "label": "resource logs",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Destinations",
+        "title": "Where a diagnostic setting sends data",
+        "body": [
+          "Send to a Log Analytics workspace (to query and alert), a storage account (cheap archive) or Event Hubs (to stream to other tools), or a partner solution. One resource can have several diagnostic settings."
+        ],
+        "show": [
+          "res",
+          "met",
+          "act",
+          "diag",
+          "law",
+          "stor"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "res",
+            "to": "met"
+          },
+          {
+            "from": "res",
+            "to": "act"
+          },
+          {
+            "from": "res",
+            "to": "diag",
+            "label": "resource logs"
+          },
+          {
+            "from": "diag",
+            "to": "law",
+            "fresh": true
+          },
+          {
+            "from": "diag",
+            "to": "stor",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Guest OS",
+        "title": "Inside the VM: Azure Monitor Agent",
+        "body": [
+          "Platform metrics only see the VM from outside. For memory, disk space, Windows events or Syslog, install the Azure Monitor Agent and create a data collection rule (DCR) that says what to collect and where to send it. The old Log Analytics agent is retired."
+        ],
+        "show": [
+          "res",
+          "met",
+          "act",
+          "diag",
+          "law",
+          "stor",
+          "ama"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "res",
+            "to": "met"
+          },
+          {
+            "from": "res",
+            "to": "act"
+          },
+          {
+            "from": "res",
+            "to": "diag",
+            "label": "resource logs"
+          },
+          {
+            "from": "diag",
+            "to": "law"
+          },
+          {
+            "from": "diag",
+            "to": "stor"
+          },
+          {
+            "from": "ama",
+            "to": "law",
+            "label": "DCR",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Metrics and logs",
+        "body": [
+          "Metrics and activity log are free and automatic; the rest you switch on."
+        ],
+        "show": [
+          "res",
+          "met",
+          "act",
+          "diag",
+          "law",
+          "stor",
+          "ama"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "res",
+            "to": "met"
+          },
+          {
+            "from": "res",
+            "to": "act"
+          },
+          {
+            "from": "res",
+            "to": "diag",
+            "label": "resource logs"
+          },
+          {
+            "from": "diag",
+            "to": "law"
+          },
+          {
+            "from": "diag",
+            "to": "stor"
+          },
+          {
+            "from": "ama",
+            "to": "law",
+            "label": "DCR"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Platform metrics: automatic, 93 days",
+          "Choose aggregation and granularity with care",
+          "Activity log = who did what (90 days)",
+          "Resource logs need a diagnostic setting",
+          "Guest OS data: Azure Monitor Agent + DCR"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Read metrics and send storage logs to Log Analytics",
+    "minutes": 25,
+    "costLevel": "free",
+    "cost": "Cents. A small Log Analytics workspace with a few log entries costs almost nothing.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A storage account in rg-az104-lab with a container and one uploaded file."
+    ],
+    "steps": [
+      {
+        "do": "Open the storage account > Monitoring > Metrics. Metric: Transactions, aggregation: Sum. Time range: last hour.",
+        "see": "A chart of transactions."
+      },
+      {
+        "do": "Select 'Apply splitting' and split by API name.",
+        "see": "Separate lines for operations such as GetBlob or ListBlobs."
+      },
+      {
+        "do": "Search 'Log Analytics workspaces' > + Create. Group rg-az104-lab, name law-lab, region your region. Create."
+      },
+      {
+        "do": "Open the storage account > Monitoring > Diagnostic settings > blob > + Add diagnostic setting. Name diag-blob, tick StorageRead, StorageWrite, StorageDelete and Transaction, destination: law-lab. Save.",
+        "see": "diag-blob listed for the blob service."
+      },
+      {
+        "do": "Upload and download a couple of files in the container to create activity."
+      },
+      {
+        "do": "Search 'Activity log'. Filter Resource group: rg-az104-lab.",
+        "see": "Entries such as 'Create or Update Diagnostic Setting' with who did it and when."
+      },
+      {
+        "do": "After 5–10 minutes open law-lab > Logs and run: StorageBlobLogs | take 20",
+        "see": "Rows for your blob operations, with caller IP and status."
+      },
+      {
+        "do": "Open the storage account > Monitoring > Diagnostic settings again and read the 'Storage account' level option (account metrics only)."
+      }
+    ],
+    "check": [
+      "StorageBlobLogs returns your operations in law-lab."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Analyse metrics with Metrics explorer",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/essentials/analyze-metrics"
+      },
+      {
+        "title": "Create diagnostic settings",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/essentials/create-diagnostic-settings"
+      },
+      {
+        "title": "Azure activity log",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/essentials/activity-log"
+      },
+      {
+        "title": "Azure Monitor Agent overview",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/agents/azure-monitor-agent-overview"
+      }
+    ]
+  }
+}

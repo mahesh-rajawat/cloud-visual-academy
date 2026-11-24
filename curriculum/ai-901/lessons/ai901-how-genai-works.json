@@ -1,0 +1,241 @@
+{
+  "id": "ai901-how-genai-works",
+  "exam": "ai-901",
+  "title": "How generative AI models work",
+  "objectiveIds": [
+    "AI901-1.2.1"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Describe how generative AI models work: tokens, embeddings, attention, next-token prediction, the context window, sampling parameters, and why grounding matters.",
+  "prerequisites": [
+    {
+      "text": "No prior AI knowledge needed"
+    }
+  ],
+  "foundation": [
+    "A large language model (LLM) is trained on huge amounts of text to predict the next piece of text. Given 'The cat sat on the', it predicts 'mat' is likely.",
+    "Text is split into tokens: whole words or pieces of words, about 4 characters of English each. Models read and write tokens, and you pay per token.",
+    "To answer, the model calculates a probability for every possible next token, picks one, adds it, and repeats until it's done. That's why answers stream word by word.",
+    "Models aren't databases. They can produce fluent answers that are wrong ('hallucinations'). Grounding, which means giving the model your data in the prompt, makes answers more accurate."
+  ],
+  "engineer": [
+    "Transformer architecture: tokens become embeddings (vectors that capture meaning); self-attention lets each token weigh every other token in the context; stacked layers produce a probability distribution over the vocabulary for the next token.",
+    "Training: pre-training on large text corpora learns language patterns; instruction tuning and reinforcement learning from human feedback make chat models follow instructions and refuse unsafe requests. Fine-tuning adapts a model further with your examples.",
+    "Context window: the maximum tokens (system prompt + history + grounding data + the answer) in one request. Exceed it and older content must be dropped or summarised. Input and output tokens are both billed.",
+    "Sampling: temperature (higher = more random and creative; near 0 = most likely tokens, more consistent), top_p (sample only from the smallest set of tokens whose probabilities sum to p), max_output_tokens (caps the answer; finish reason 'length' means it was cut off). Adjust temperature or top_p, not both. Some reasoning models don't accept these and use a reasoning-effort setting instead.",
+    "Multimodal generative models also accept or produce images and audio; image models generate pixels from text through diffusion or similar techniques.",
+    "Grounding / retrieval-augmented generation (RAG): retrieve relevant content (often with embeddings and vector search) and add it to the prompt so the model answers from it, with citations."
+  ],
+  "animation": {
+    "id": "ai901-genai-sim",
+    "caption": "Step through tokenise, context window, sampling and filtering; then match generative AI vocabulary."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "p",
+        "label": "Prompt (system + user)",
+        "x": 0,
+        "y": 80,
+        "kind": "user"
+      },
+      {
+        "id": "tok",
+        "label": "Tokens → embeddings",
+        "x": 200,
+        "y": 80,
+        "kind": "service"
+      },
+      {
+        "id": "att",
+        "label": "Transformer layers (attention)",
+        "x": 400,
+        "y": 80,
+        "kind": "ai"
+      },
+      {
+        "id": "prob",
+        "label": "Next-token probabilities",
+        "x": 600,
+        "y": 80,
+        "kind": "ai"
+      },
+      {
+        "id": "samp",
+        "label": "Sample (temperature, top_p)",
+        "x": 600,
+        "y": 210,
+        "kind": "security"
+      },
+      {
+        "id": "out",
+        "label": "Output tokens, streamed",
+        "x": 400,
+        "y": 210,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "p",
+        "to": "tok"
+      },
+      {
+        "from": "tok",
+        "to": "att"
+      },
+      {
+        "from": "att",
+        "to": "prob"
+      },
+      {
+        "from": "prob",
+        "to": "samp"
+      },
+      {
+        "from": "samp",
+        "to": "out"
+      },
+      {
+        "from": "out",
+        "to": "att",
+        "label": "append and repeat"
+      }
+    ]
+  },
+  "example": {
+    "title": "Why the FAQ bot varied its answers",
+    "body": [
+      "A company FAQ bot gave different wording each time and once invented a refund rule. With temperature 1.0 it sampled less likely tokens; with no grounding it relied on training data.",
+      "The team set temperature to 0.2, added the refund policy to the prompt (grounding), and raised max_output_tokens because long answers were ending with finish reason 'length'."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Foundry portal > Playground > Parameters: temperature, top_p, max tokens.",
+      "Compare answers at temperature 0 and 1 for the same prompt.",
+      "Watch the token counts in the response details."
+    ],
+    "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name chat-model --model-name gpt-5-mini --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50",
+    "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI",
+    "python": "response = openai.responses.create(\n    model=\"chat-model\",\n    input=\"Suggest three names for a cat cafe.\",\n    temperature=1.0,        # more creative\n    max_output_tokens=100,  # cap the answer length\n)\nprint(response.output_text, response.usage.input_tokens, response.usage.output_tokens)"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-genai-sim",
+    "objective": "See how parameters and limits change generation.",
+    "duration": 15,
+    "steps": [
+      "How a model generates text tab: run the default, then each preset; set temperature to 0.",
+      "Generative AI vocabulary tab: answer every description."
+    ],
+    "expected": [
+      "Temperature 0 is the most predictable",
+      "finish_reason 'length' means truncated"
+    ],
+    "validation": [
+      {
+        "id": "ai-completed",
+        "text": "Completed a generation"
+      },
+      {
+        "id": "ai-truncated",
+        "text": "Saw a truncated answer"
+      },
+      {
+        "id": "ai-temperature-zero",
+        "text": "Generated with temperature 0"
+      },
+      {
+        "id": "genai-terms-correct",
+        "text": "Chose the right term"
+      },
+      {
+        "id": "genai-terms-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Raising temperature to fix wrong facts",
+      "Ignoring the context window in long chats"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Answers stop mid-sentence.",
+      "cause": "max_output_tokens reached (finish reason 'length').",
+      "fix": "Raise the limit or ask for shorter answers."
+    },
+    {
+      "symptom": "The model states false facts confidently.",
+      "cause": "No grounding; hallucination.",
+      "fix": "Add retrieved data to the prompt and ask for citations."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Generative model vs search engine",
+      "difference": "A model generates text from patterns; search retrieves existing documents. RAG combines them."
+    },
+    {
+      "service": "Temperature vs top_p",
+      "difference": "Both control randomness: temperature reshapes probabilities; top_p truncates the candidate list."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Models look up answers in a database.",
+      "reality": "They predict tokens from learned patterns."
+    },
+    {
+      "myth": "Temperature 0 makes answers correct.",
+      "reality": "It makes them more consistent, not more truthful."
+    },
+    {
+      "myth": "One token equals one word.",
+      "reality": "Tokens are often parts of words."
+    }
+  ],
+  "architectureDecisions": [
+    "Use low temperature for factual tasks, higher for creative ones.",
+    "Ground answers in your data for accuracy.",
+    "Budget tokens: prompt size and answer length drive cost and latency."
+  ],
+  "docs": [
+    {
+      "title": "What is Microsoft Foundry?",
+      "url": "https://learn.microsoft.com/azure/foundry/what-is-foundry"
+    },
+    {
+      "title": "Prompt engineering techniques",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/concepts/prompt-engineering"
+    },
+    {
+      "title": "Retrieval augmented generation in Foundry",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/concepts/retrieval-augmented-generation"
+    },
+    {
+      "title": "AI-901 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/ai-901"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

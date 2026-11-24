@@ -1,0 +1,648 @@
+{
+  "id": "az104-nsg-asg",
+  "exam": "az-104",
+  "title": "Network security groups, application security groups and effective rules",
+  "objectiveIds": [
+    "AZ104-4.2.1",
+    "AZ104-4.2.2"
+  ],
+  "estimatedMinutes": 75,
+  "learningObjective": "Create NSGs and ASGs, associate them with subnets and NICs, predict whether a given flow is allowed, and prove it with effective security rules and IP flow verify.",
+  "prerequisites": [
+    {
+      "text": "VNets, subnets and private IP addressing",
+      "lessonId": "az104-vnet-subnets",
+      "objectiveId": "AZ104-4.1.1"
+    },
+    {
+      "text": "TCP/UDP ports and the idea of a stateful firewall"
+    },
+    {
+      "text": "Public vs private endpoints (AZ-900)",
+      "objectiveId": "AZ900-2.2.6"
+    }
+  ],
+  "foundation": [
+    "A network security group (NSG) is a list of allow and deny rules that Azure checks for traffic going into or out of a subnet or a single network interface (NIC).",
+    "Each rule has a priority number. Azure reads the rules from the lowest number to the highest and stops at the first rule that matches. That one rule decides the outcome.",
+    "Every NSG already contains default rules: traffic inside the virtual network is allowed, Azure Load Balancer health probes are allowed, and everything else coming in is denied. Outbound internet traffic is allowed by default.",
+    "You can attach an NSG to a subnet, to a NIC, or to both. When both exist, traffic must pass both of them.",
+    "An application security group (ASG) is a label you put on VM network interfaces (for example 'web' or 'db'). Rules can then say 'allow 1433 from web to db' instead of listing IP addresses."
+  ],
+  "engineer": [
+    "Processing order: inbound traffic is evaluated by the subnet NSG first and then by the NIC NSG; outbound traffic is evaluated by the NIC NSG first and then the subnet NSG. A deny at the first level means the second level is never consulted.",
+    "Custom rule priorities range from 100 to 4096. Default rules use 65000 (AllowVnetInBound / AllowVnetOutBound), 65001 (AllowAzureLoadBalancerInBound / AllowInternetOutBound) and 65500 (DenyAllInBound / DenyAllOutBound). Default rules cannot be deleted but can be overridden by a higher-priority (lower number) custom rule.",
+    "Matching is a 5-tuple: source, source port, destination, destination port and protocol (TCP, UDP, ICMP or Any). Sources and destinations can be IP prefixes, service tags (Internet, VirtualNetwork, AzureLoadBalancer, Storage.WestEurope …) or ASGs.",
+    "NSGs are stateful. If an inbound flow on 443 is allowed, the response traffic is allowed automatically; you do not write a matching outbound rule. Existing flows are not interrupted immediately when a rule changes for connections already established.",
+    "The VirtualNetwork service tag covers the VNet address space, peered VNets and on-premises ranges connected through a gateway, so AllowVnetInBound is wider than many people assume.",
+    "A Standard SKU public IP is secure by default: inbound traffic is blocked unless an NSG on the subnet or NIC allows it. (Basic SKU public IPs were open by default and were retired in September 2025.)",
+    "ASG rules require that all NICs in an ASG are in the same virtual network, and a rule that uses ASGs on both source and destination requires both ASGs to be in that same VNet.",
+    "Effective security rules (portal: VM > Networking > Effective security rules, or Get-AzEffectiveNetworkSecurityGroup) merge the subnet and NIC NSGs and expand service tags into prefixes. The VM must be running to read effective rules. Network Watcher IP flow verify tests one 5-tuple and returns the deciding rule."
+  ],
+  "animation": {
+    "id": "nsg-packet-sim",
+    "caption": "Send packets from the internet to a VM and watch each NSG level evaluate them rule by rule."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "client",
+        "label": "Client 203.0.113.10",
+        "x": 0,
+        "y": 80,
+        "kind": "user"
+      },
+      {
+        "id": "pip",
+        "label": "Standard public IP",
+        "x": 200,
+        "y": 80,
+        "kind": "network"
+      },
+      {
+        "id": "snsg",
+        "label": "Subnet NSG (nsg-web-subnet)",
+        "x": 400,
+        "y": 80,
+        "kind": "security"
+      },
+      {
+        "id": "nnsg",
+        "label": "NIC NSG (optional)",
+        "x": 620,
+        "y": 80,
+        "kind": "security"
+      },
+      {
+        "id": "vm",
+        "label": "vm-web-01 10.0.1.4 (ASG: web)",
+        "x": 840,
+        "y": 80,
+        "kind": "compute"
+      },
+      {
+        "id": "db",
+        "label": "vm-db-01 10.0.2.4 (ASG: db)",
+        "x": 840,
+        "y": 220,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "client",
+        "to": "pip",
+        "label": "TCP 443"
+      },
+      {
+        "from": "pip",
+        "to": "snsg",
+        "label": "inbound: subnet first"
+      },
+      {
+        "from": "snsg",
+        "to": "nnsg",
+        "label": "then NIC"
+      },
+      {
+        "from": "nnsg",
+        "to": "vm"
+      },
+      {
+        "from": "vm",
+        "to": "db",
+        "label": "1433 web→db via ASG rule"
+      }
+    ]
+  },
+  "example": {
+    "title": "Three-tier app without IP lists",
+    "body": [
+      "Contoso runs web VMs and SQL VMs in separate subnets of vnet-prod. Their NICs are tagged with ASGs asg-web and asg-db.",
+      "The subnet NSG for snet-web allows TCP 443 from Internet to asg-web (priority 200). The subnet NSG for snet-db allows TCP 1433 from asg-web to asg-db (priority 200) and denies TCP 1433 from VirtualNetwork (priority 300) so that only web servers reach SQL, even though AllowVnetInBound would otherwise allow every VNet source.",
+      "When the web tier scales out, new NICs join asg-web and inherit the rules. Nobody edits IP prefixes."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "A resource group and a VNet with subnets",
+      "NSG and its VNet/NIC must be in the same region and subscription"
+    ],
+    "permissions": [
+      "Network Contributor (or Microsoft.Network/networkSecurityGroups/* ) to create and edit NSGs",
+      "Microsoft.Network/networkSecurityGroups/join/action to associate an NSG with a subnet or NIC",
+      "Microsoft.Network/virtualNetworks/subnets/write on the subnet when associating at subnet level"
+    ],
+    "limits": [
+      "Custom rule priority 100–4096; default limit of 1000 rules per NSG",
+      "One NSG per subnet and one per NIC; one NSG can be associated with many subnets and NICs",
+      "ASGs: NICs in one ASG must belong to the same VNet"
+    ],
+    "portal": [
+      "Network security groups > Create: choose subscription, resource group, name and region.",
+      "Open the NSG > Inbound security rules > Add: Source = Service Tag 'Internet', Destination = Application security group 'asg-web', Service = HTTPS, Action = Allow, Priority = 200.",
+      "NSG > Subnets > Associate: choose vnet-prod / snet-web.",
+      "VM > Networking > Application security groups > Configure: add asg-web to the NIC.",
+      "VM > Networking > Effective security rules (VM must be running) to verify the merged result.",
+      "Network Watcher > IP flow verify to test a single flow and read the deciding rule."
+    ],
+    "cli": "az network nsg create -g rg-web -n nsg-web-subnet -l westeurope\naz network asg create -g rg-web -n asg-web -l westeurope\naz network nsg rule create -g rg-web --nsg-name nsg-web-subnet -n Allow-HTTPS-Web \\\n  --priority 200 --direction Inbound --access Allow --protocol Tcp \\\n  --source-address-prefixes Internet --destination-asgs asg-web --destination-port-ranges 443\naz network vnet subnet update -g rg-web --vnet-name vnet-prod -n snet-web --network-security-group nsg-web-subnet\naz network nic ip-config update -g rg-web --nic-name vm-web-01-nic -n ipconfig1 --application-security-groups asg-web\naz network nic list-effective-nsg -g rg-web -n vm-web-01-nic\naz network watcher test-ip-flow -g rg-web --vm vm-web-01 --direction Inbound --protocol TCP \\\n  --local 10.0.1.4:443 --remote 203.0.113.10:50123",
+    "powershell": "$asg  = New-AzApplicationSecurityGroup -ResourceGroupName rg-web -Name asg-web -Location westeurope\n$rule = New-AzNetworkSecurityRuleConfig -Name Allow-HTTPS-Web -Priority 200 -Direction Inbound -Access Allow `\n          -Protocol Tcp -SourceAddressPrefix Internet -SourcePortRange * `\n          -DestinationApplicationSecurityGroup $asg -DestinationPortRange 443\n$nsg  = New-AzNetworkSecurityGroup -ResourceGroupName rg-web -Name nsg-web-subnet -Location westeurope -SecurityRules $rule\n$vnet = Get-AzVirtualNetwork -ResourceGroupName rg-web -Name vnet-prod\nSet-AzVirtualNetworkSubnetConfig -VirtualNetwork $vnet -Name snet-web -AddressPrefix 10.0.1.0/24 -NetworkSecurityGroup $nsg | Set-AzVirtualNetwork\nGet-AzEffectiveNetworkSecurityGroup -NetworkInterfaceName vm-web-01-nic -ResourceGroupName rg-web",
+    "bicep": "resource asgWeb 'Microsoft.Network/applicationSecurityGroups@2023-09-01' = {\n  name: 'asg-web'\n  location: location\n}\n\nresource nsg 'Microsoft.Network/networkSecurityGroups@2023-09-01' = {\n  name: 'nsg-web-subnet'\n  location: location\n  properties: {\n    securityRules: [\n      {\n        name: 'Allow-HTTPS-Web'\n        properties: {\n          priority: 200\n          direction: 'Inbound'\n          access: 'Allow'\n          protocol: 'Tcp'\n          sourceAddressPrefix: 'Internet'\n          sourcePortRange: '*'\n          destinationApplicationSecurityGroups: [ { id: asgWeb.id } ]\n          destinationPortRange: '443'\n        }\n      }\n    ]\n  }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "nsg-packet-sim",
+    "objective": "Diagnose why SSH and HTTPS fail to reach vm-web-01, then fix the configuration with the smallest change.",
+    "duration": 20,
+    "steps": [
+      "Send an HTTPS (443) packet with only the default rules in the subnet NSG and observe which rule denies it.",
+      "Add an inbound Allow rule for TCP 443 from Internet with priority 200 and resend.",
+      "Enable the NIC NSG (it has only default rules) and resend HTTPS. Explain why it now fails again.",
+      "Add the same allow rule to the NIC NSG, or remove the NIC NSG, and confirm the packet arrives.",
+      "Send SSH (22) and confirm it stays blocked: least privilege."
+    ],
+    "expected": [
+      "HTTPS initially denied by DenyAllInBound (65500) in the subnet NSG.",
+      "After the fix, allowed by your priority-200 rule.",
+      "With a NIC NSG containing only defaults, denied again at the NIC level."
+    ],
+    "validation": [
+      {
+        "id": "observed-default-deny",
+        "text": "Observed a packet denied by DenyAllInBound"
+      },
+      {
+        "id": "allowed-https",
+        "text": "Allowed HTTPS with a custom rule"
+      },
+      {
+        "id": "observed-nic-deny",
+        "text": "Observed a NIC-level deny after the subnet allowed the packet"
+      }
+    ],
+    "failureScenarios": [
+      "Priority 4000 allow placed below a priority 300 deny: the deny wins.",
+      "Allow rule written as Outbound instead of Inbound.",
+      "Rule targets port 3389 while the client connects on 22."
+    ],
+    "cleanup": [
+      "Simulation only: use Restart to reset the rule set."
+    ],
+    "cost": "None. Runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Cannot RDP/SSH to a VM with a public IP; no NSG errors visible.",
+      "cause": "Standard SKU public IP and no NSG allowing the port: secure by default.",
+      "fix": "Add an inbound allow rule for the port (preferably from your IP only), or better, use Azure Bastion."
+    },
+    {
+      "symptom": "Subnet NSG allows 443 but the site still times out.",
+      "cause": "A NIC-level NSG denies the traffic (inbound passes subnet first, then NIC).",
+      "fix": "Check Effective security rules on the NIC; align or remove the NIC NSG."
+    },
+    {
+      "symptom": "Database reachable from every subnet despite a 'web only' rule.",
+      "cause": "AllowVnetInBound (65000) allows all VirtualNetwork sources; your allow rule does not restrict others.",
+      "fix": "Add an explicit deny for the port from VirtualNetwork with a priority below 65000 but after the ASG allow."
+    },
+    {
+      "symptom": "Effective security rules are greyed out.",
+      "cause": "The VM is stopped (deallocated).",
+      "fix": "Start the VM, or use IP flow verify from Network Watcher."
+    },
+    {
+      "symptom": "Load balancer backend marked unhealthy after adding a deny-all rule.",
+      "cause": "A custom deny at a priority lower than 65001 blocks the AzureLoadBalancer health probe source.",
+      "fix": "Add an allow from the AzureLoadBalancer service tag above the deny."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Firewall",
+      "difference": "Central, stateful, fully managed firewall with FQDN filtering, threat intelligence and logging; NSGs are distributed 5-tuple filters at subnet/NIC level. They are complementary."
+    },
+    {
+      "service": "AWS security groups",
+      "difference": "Attach to ENIs and contain allow rules only (no deny, no priority). NSGs support both allow and deny with priorities."
+    },
+    {
+      "service": "AWS network ACLs",
+      "difference": "Stateless subnet filters with numbered rules; NSGs are stateful."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "The rule with the most specific match wins.",
+      "reality": "Priority order wins. The first matching rule by lowest priority number decides, regardless of how specific later rules are."
+    },
+    {
+      "myth": "You need an outbound rule for responses to allowed inbound traffic.",
+      "reality": "NSGs are stateful; return traffic for an allowed flow is permitted automatically."
+    },
+    {
+      "myth": "A subnet NSG allow overrides a NIC NSG deny.",
+      "reality": "Both levels must allow inbound traffic. Either one can block it."
+    },
+    {
+      "myth": "You can delete DenyAllInBound.",
+      "reality": "Default rules cannot be removed; you override them with lower-numbered custom rules."
+    }
+  ],
+  "architectureDecisions": [
+    "Prefer subnet-level NSGs as the baseline and avoid NIC NSGs unless a VM needs an exception; two layers double the troubleshooting surface.",
+    "Use ASGs instead of IP lists so autoscaled VMs pick up rules automatically.",
+    "Do not open 22/3389 to the internet; use Azure Bastion or just-in-time VM access."
+  ],
+  "docs": [
+    {
+      "title": "Network security groups overview",
+      "url": "https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview"
+    },
+    {
+      "title": "How network security groups filter network traffic",
+      "url": "https://learn.microsoft.com/azure/virtual-network/network-security-group-how-it-works"
+    },
+    {
+      "title": "Application security groups",
+      "url": "https://learn.microsoft.com/azure/virtual-network/application-security-groups"
+    },
+    {
+      "title": "Diagnose a VM network traffic filter problem (effective rules)",
+      "url": "https://learn.microsoft.com/azure/virtual-network/diagnose-network-traffic-filter-problem"
+    },
+    {
+      "title": "IP flow verify overview",
+      "url": "https://learn.microsoft.com/azure/network-watcher/ip-flow-verify-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Allow only the traffic you need, and understand exactly which rule wins.",
+    "learn": [
+      "NSG rules: priority, source, destination, port, action",
+      "Default rules",
+      "Subnet NSG plus NIC NSG",
+      "Application security groups and service tags"
+    ],
+    "nodes": [
+      {
+        "id": "net",
+        "label": "Internet",
+        "x": 110,
+        "y": 90,
+        "kind": "globe"
+      },
+      {
+        "id": "sub",
+        "label": "Subnet NSG",
+        "x": 360,
+        "y": 90,
+        "kind": "security",
+        "sub": "checked 1st inbound"
+      },
+      {
+        "id": "nic",
+        "label": "NIC NSG",
+        "x": 600,
+        "y": 90,
+        "kind": "security",
+        "sub": "checked 2nd inbound"
+      },
+      {
+        "id": "web",
+        "label": "Web VMs",
+        "x": 600,
+        "y": 240,
+        "kind": "compute",
+        "sub": "ASG: asg-web"
+      },
+      {
+        "id": "db",
+        "label": "DB VMs",
+        "x": 600,
+        "y": 380,
+        "kind": "database",
+        "sub": "ASG: asg-db"
+      },
+      {
+        "id": "rule",
+        "label": "Rule 200",
+        "x": 260,
+        "y": 300,
+        "kind": "security",
+        "sub": "asg-web → asg-db 1433"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Open ports",
+        "title": "Every port open to everyone",
+        "body": [
+          "A VM with RDP open to the internet is attacked within minutes. You need a firewall at the network level."
+        ],
+        "show": [
+          "net",
+          "web"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "web",
+            "label": "any port",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Rules",
+        "title": "How an NSG rule works",
+        "body": [
+          "Each rule has a priority (100–4096, lower number is checked first), source, destination, protocol, port range and action (Allow or Deny). The first matching rule wins; later rules are ignored. NSGs are stateful: replies to allowed traffic are allowed automatically."
+        ],
+        "show": [
+          "net",
+          "web",
+          "sub"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "web",
+            "label": "any port"
+          },
+          {
+            "from": "net",
+            "to": "sub",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Defaults",
+        "title": "Default rules you cannot delete",
+        "body": [
+          "Inbound: allow within the VNet (65000), allow the Azure load balancer (65001), deny everything else (65500). Outbound: allow within the VNet, allow the internet, deny everything else. Override them with lower-numbered rules."
+        ],
+        "show": [
+          "net",
+          "web",
+          "sub"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "web",
+            "label": "any port"
+          },
+          {
+            "from": "net",
+            "to": "sub"
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Default inbound denies the internet. Default outbound allows the internet."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Two NSGs",
+        "title": "Subnet and NIC NSGs together",
+        "body": [
+          "You can attach an NSG to a subnet and another to a NIC. Inbound traffic is checked by the subnet NSG, then the NIC NSG; outbound in the reverse order. Both must allow it."
+        ],
+        "show": [
+          "net",
+          "web",
+          "sub",
+          "nic"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "web",
+            "label": "any port"
+          },
+          {
+            "from": "net",
+            "to": "sub"
+          },
+          {
+            "from": "sub",
+            "to": "nic",
+            "fresh": true
+          },
+          {
+            "from": "nic",
+            "to": "web",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Effective security rules shows both together."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "ASGs",
+        "title": "Rules by role, not by IP",
+        "body": [
+          "An application security group (ASG) is a label for NICs, such as asg-web. Use ASGs as rule sources and destinations: 'asg-web may reach asg-db on 1433'. New VMs just join the ASG. Service tags (Internet, VirtualNetwork, Storage, AzureLoadBalancer) stand for Microsoft-managed ranges."
+        ],
+        "show": [
+          "net",
+          "web",
+          "sub",
+          "nic",
+          "db",
+          "rule"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "web",
+            "label": "any port"
+          },
+          {
+            "from": "net",
+            "to": "sub"
+          },
+          {
+            "from": "sub",
+            "to": "nic"
+          },
+          {
+            "from": "nic",
+            "to": "web"
+          },
+          {
+            "from": "web",
+            "to": "db",
+            "label": "1433 only",
+            "fresh": true
+          },
+          {
+            "from": "rule",
+            "to": "db",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "NSGs",
+        "body": [
+          "Lowest number first; both NSGs must agree."
+        ],
+        "show": [
+          "net",
+          "web",
+          "sub",
+          "nic",
+          "db",
+          "rule"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "web",
+            "label": "any port"
+          },
+          {
+            "from": "net",
+            "to": "sub"
+          },
+          {
+            "from": "sub",
+            "to": "nic"
+          },
+          {
+            "from": "nic",
+            "to": "web"
+          },
+          {
+            "from": "web",
+            "to": "db",
+            "label": "1433 only"
+          },
+          {
+            "from": "rule",
+            "to": "db"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Priority 100–4096; first match wins; stateful",
+          "Defaults: deny inbound internet, allow outbound internet",
+          "Subnet then NIC inbound; NIC then subnet outbound",
+          "ASGs group NICs by role",
+          "Service tags for Azure ranges"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Write NSG rules with an ASG and read the effective rules",
+    "minutes": 30,
+    "costLevel": "low",
+    "cost": "Low. One B1s VM costs about US$0.01 per hour. Delete the same day.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A virtual network vnet-lab (10.10.0.0/16) in rg-az104-lab with a subnet snet-app (10.10.1.0/24): Virtual networks > + Create > IP addresses tab. For these labs, untick 'Enable private subnet' on snet-app so lab VMs can reach the internet (in production use a NAT gateway instead).",
+      "A small Linux VM vm-lab in snet-app of vnet-lab: Virtual machines > + Create. Image Ubuntu 24.04, size Standard_B1s, password authentication, Networking tab: vnet-lab / snet-app, public IP: None, NIC network security group: Basic, public inbound ports: None. If the VM cannot reach the internet later, its subnet is private (the default for new networks): open the virtual network > Subnets, untick 'Enable private subnet', save, then stop and start the VM. In production use a NAT gateway instead."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Application security groups' > + Create. Group rg-az104-lab, name asg-web, region UAE North (or any region near you). Create."
+      },
+      {
+        "do": "Open vm-lab > Networking > Application security groups > Add application security groups > asg-web. Save.",
+        "see": "asg-web listed on the VM's NIC."
+      },
+      {
+        "do": "Open the VM's NIC NSG (vm-lab-nsg) > Inbound security rules > + Add. Source: Any, destination: Application security group asg-web, port 80, TCP, Allow, priority 200, name allow-http-web. Add."
+      },
+      {
+        "do": "Add another rule: destination asg-web, port 80, TCP, Deny, priority 100, name deny-http-test."
+      },
+      {
+        "do": "Open Network Watcher > IP flow verify: vm-lab, inbound, TCP, local port 80, remote IP 198.51.100.1, port 40000.",
+        "see": "Denied by deny-http-test: priority 100 is checked before 200."
+      },
+      {
+        "do": "Delete deny-http-test and run IP flow verify again.",
+        "see": "Allowed by allow-http-web."
+      },
+      {
+        "do": "Create an NSG nsg-subnet in rg-az104-lab and associate it with snet-app (NSG > Subnets > Associate). Run IP flow verify again.",
+        "see": "Denied: the subnet NSG has only default rules, so it blocks port 80 before the NIC NSG is checked."
+      },
+      {
+        "do": "Open vm-lab > Networking > Effective security rules.",
+        "see": "Two sections, one for the subnet NSG and one for the NIC NSG."
+      }
+    ],
+    "check": [
+      "You saw priority order and the two-NSG rule in action."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Create, change or delete an NSG",
+        "url": "https://learn.microsoft.com/azure/virtual-network/manage-network-security-group"
+      },
+      {
+        "title": "Filter network traffic with an NSG (with ASGs)",
+        "url": "https://learn.microsoft.com/azure/virtual-network/tutorial-filter-network-traffic"
+      },
+      {
+        "title": "How network security groups filter traffic",
+        "url": "https://learn.microsoft.com/azure/virtual-network/network-security-group-how-it-works"
+      }
+    ]
+  }
+}

@@ -1,0 +1,700 @@
+{
+  "id": "clf-economics",
+  "exam": "aws-clf-c02",
+  "title": "Cloud economics",
+  "objectiveIds": [
+    "CLFC02-1.4.1",
+    "CLFC02-1.4.2",
+    "CLFC02-1.4.3",
+    "CLFC02-1.4.4",
+    "CLFC02-1.4.5",
+    "CLFC02-1.4.6",
+    "CLFC02-1.4.7",
+    "CLFC02-1.4.8"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Explain fixed vs variable costs, on-premises cost components, licensing strategies, rightsizing, automation and economies of scale.",
+  "prerequisites": [
+    {
+      "text": "Cloud benefits",
+      "objectiveId": "CLFC02-1.1.1",
+      "lessonId": "clf-benefits"
+    }
+  ],
+  "foundation": [
+    "On-premises IT has big fixed costs: you buy servers, space, power and staff up front, whether you use them or not.",
+    "In AWS you mostly pay variable costs that rise and fall with use.",
+    "You save more by choosing the right size of resources (rightsizing), automating tasks, and benefiting from AWS's huge scale, which lowers prices."
+  ],
+  "engineer": [
+    "Fixed vs variable: capital expenditure (CapEx) for hardware vs operational expenditure (OpEx) for consumption. Variable cost reduces waste from over-provisioning.",
+    "On-premises costs (total cost of ownership): servers, storage, network gear, data center space, power and cooling, software licences, hardware maintenance, refresh cycles and staff time.",
+    "Licensing: license-included (cost in the hourly price, for example Windows or SQL Server on EC2/RDS) vs Bring Your Own License (BYOL), which may require Dedicated Hosts for some licence terms; AWS License Manager tracks usage.",
+    "Rightsizing: match instance types and sizes to measured utilisation (AWS Compute Optimizer, Cost Explorer rightsizing recommendations).",
+    "Automation: IaC, scheduling start/stop, Auto Scaling and managed services reduce labour and errors.",
+    "Economies of scale: AWS's aggregated usage lowers per-unit costs, passed on as lower prices."
+  ],
+  "animation": {
+    "id": "aws-concepts-sim",
+    "caption": "Open 'Cloud economics' and compare TCO with rightsizing, automation and BYOL."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "onp",
+        "label": "On-prem fixed costs: hardware, space, power, staff",
+        "x": 0,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "aws",
+        "label": "AWS variable costs",
+        "x": 300,
+        "y": 60,
+        "kind": "globe"
+      },
+      {
+        "id": "opt",
+        "label": "Rightsize + automate",
+        "x": 560,
+        "y": 60,
+        "kind": "service"
+      }
+    ],
+    "edges": [
+      {
+        "from": "onp",
+        "to": "aws",
+        "label": "migrate"
+      },
+      {
+        "from": "aws",
+        "to": "opt",
+        "label": "optimise"
+      }
+    ]
+  },
+  "example": {
+    "title": "Cutting idle capacity",
+    "body": [
+      "A company's servers average 15% CPU. After migrating, Compute Optimizer recommendations rightsize most instances and dev environments are stopped nights and weekends by automation, reducing compute spend substantially compared with the on-premises estate."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "AWS Compute Optimizer > Recommendations.",
+      "Cost Explorer > Rightsizing recommendations.",
+      "AWS License Manager > Licence configurations."
+    ],
+    "cli": "aws compute-optimizer get-ec2-instance-recommendations\naws ce get-rightsizing-recommendation --service AmazonEC2",
+    "powershell": "Get-COEC2InstanceRecommendation"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-concepts-sim",
+    "objective": "See how fixed costs, rightsizing, automation and licensing change total cost.",
+    "duration": 10,
+    "steps": [
+      "Run 'Cloud economics' with defaults.",
+      "Enable rightsizing and automation; switch licensing."
+    ],
+    "expected": [
+      "Variable, rightsized costs are lower"
+    ],
+    "validation": [
+      {
+        "id": "aws-economics",
+        "text": "Compared cost models"
+      },
+      {
+        "id": "aws-rightsized",
+        "text": "Rightsized"
+      }
+    ],
+    "failureScenarios": [
+      "Lift-and-shift without rightsizing"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Cloud bill higher than on-premises.",
+      "cause": "Over-sized, always-on resources.",
+      "fix": "Rightsize, schedule, use commitments for steady usage."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Hybrid Benefit",
+      "difference": "Azure's licensing benefit, comparable to BYOL on AWS."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "The cloud is always cheaper with no changes.",
+      "reality": "Savings come from rightsizing, elasticity and automation."
+    },
+    {
+      "myth": "BYOL is always cheaper.",
+      "reality": "Depends on licence terms and possible Dedicated Host requirements."
+    }
+  ],
+  "architectureDecisions": [
+    "Measure utilisation before and after migration; automate scheduling of non-production."
+  ],
+  "docs": [
+    {
+      "title": "Cloud economics",
+      "url": "https://aws.amazon.com/economics/"
+    },
+    {
+      "title": "AWS Compute Optimizer",
+      "url": "https://docs.aws.amazon.com/compute-optimizer/latest/ug/what-is-compute-optimizer.html"
+    },
+    {
+      "title": "AWS License Manager",
+      "url": "https://docs.aws.amazon.com/license-manager/latest/userguide/license-manager.html"
+    },
+    {
+      "title": "Six advantages of cloud computing",
+      "url": "https://docs.aws.amazon.com/whitepapers/latest/aws-overview/six-advantages-of-cloud-computing.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Compare one year of running an app on-premises and on AWS and see where the money goes (illustrative numbers).",
+    "learn": [
+      "Fixed costs vs variable costs",
+      "The hidden costs of on-premises",
+      "Licensing: BYOL vs licence included",
+      "Rightsizing and automation",
+      "Economies of scale"
+    ],
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Your app",
+        "x": 400,
+        "y": 40,
+        "kind": "service",
+        "sub": "busy 2 months/year"
+      },
+      {
+        "id": "dc",
+        "label": "On-premises",
+        "x": 180,
+        "y": 170,
+        "kind": "cost",
+        "sub": "sized for peak"
+      },
+      {
+        "id": "hidden",
+        "label": "Hidden costs",
+        "x": 180,
+        "y": 320,
+        "kind": "cost",
+        "sub": "power, space, staff"
+      },
+      {
+        "id": "aws",
+        "label": "AWS",
+        "x": 620,
+        "y": 170,
+        "kind": "globe",
+        "sub": "pay per use"
+      },
+      {
+        "id": "lic",
+        "label": "Licences",
+        "x": 400,
+        "y": 220,
+        "kind": "cost",
+        "sub": "BYOL or included"
+      },
+      {
+        "id": "right",
+        "label": "Rightsizing",
+        "x": 620,
+        "y": 320,
+        "kind": "compute",
+        "sub": "smaller instance"
+      },
+      {
+        "id": "auto",
+        "label": "Automation",
+        "x": 400,
+        "y": 380,
+        "kind": "service",
+        "sub": "scripts, schedules"
+      },
+      {
+        "id": "scale",
+        "label": "Economies of scale",
+        "x": 650,
+        "y": 50,
+        "kind": "globe",
+        "sub": "lower unit prices"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Pay for peak",
+        "title": "You pay for the peak all year",
+        "body": [
+          "Your app is busy two months a year. On-premises you must buy enough servers for that peak, and the servers sit mostly idle for the other ten months.",
+          "That money is spent up front, whether you use the capacity or not."
+        ],
+        "show": [
+          "app",
+          "dc"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "dc",
+            "fresh": true
+          }
+        ],
+        "learned": [],
+        "stats": [
+          {
+            "label": "On-prem",
+            "value": "€120k / yr"
+          },
+          {
+            "label": "Used",
+            "value": "~30%"
+          }
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Fixed vs variable",
+        "title": "Fixed costs vs variable costs",
+        "body": [
+          "Fixed costs stay the same however much you use: servers you bought, a data center lease. Variable costs go up and down with use: pay-as-you-go cloud resources.",
+          "On AWS you run many servers in the busy months and few in the quiet ones, and the bill follows."
+        ],
+        "show": [
+          "app",
+          "dc",
+          "aws"
+        ],
+        "focus": [
+          "aws"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "dc"
+          },
+          {
+            "from": "app",
+            "to": "aws",
+            "label": "scale with demand",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "stats": [
+          {
+            "label": "On-prem",
+            "value": "€120k / yr"
+          },
+          {
+            "label": "AWS",
+            "value": "€55k / yr"
+          }
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Hidden costs",
+        "title": "On-premises costs more than the servers",
+        "body": [
+          "The server price is only part of it. You also pay for power, cooling, floor space, physical security, network gear, hardware refreshes every few years, and the people who run all of it.",
+          "Compare total cost of ownership (TCO), not just the server price."
+        ],
+        "show": [
+          "app",
+          "dc",
+          "aws",
+          "hidden"
+        ],
+        "focus": [
+          "hidden"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "dc"
+          },
+          {
+            "from": "app",
+            "to": "aws",
+            "label": "scale with demand"
+          },
+          {
+            "from": "dc",
+            "to": "hidden",
+            "label": "plus",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "stats": [
+          {
+            "label": "On-prem TCO",
+            "value": "€180k / yr"
+          },
+          {
+            "label": "AWS",
+            "value": "€55k / yr"
+          }
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Licensing",
+        "title": "Bring your own licence, or use one that's included",
+        "body": [
+          "If you already own software licences (for example Windows Server or SQL Server), you may be able to bring them (BYOL), often on Dedicated Hosts. Otherwise choose licence-included instances, where the licence is part of the hourly price.",
+          "BYOL reuses what you have already paid for; licence-included is simpler and flexible."
+        ],
+        "show": [
+          "app",
+          "dc",
+          "aws",
+          "hidden",
+          "lic"
+        ],
+        "focus": [
+          "lic"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "dc"
+          },
+          {
+            "from": "app",
+            "to": "aws",
+            "label": "scale with demand"
+          },
+          {
+            "from": "dc",
+            "to": "hidden",
+            "label": "plus"
+          },
+          {
+            "from": "lic",
+            "to": "aws",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Rightsizing",
+        "title": "Rightsize: match the size to the load",
+        "body": [
+          "Monitoring shows your servers running at 10% CPU. Rightsizing means switching to a smaller instance type, or fewer instances, that still meets the need.",
+          "On AWS that is a quick change, not a new hardware purchase."
+        ],
+        "show": [
+          "app",
+          "dc",
+          "aws",
+          "hidden",
+          "lic",
+          "right"
+        ],
+        "focus": [
+          "right"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "dc"
+          },
+          {
+            "from": "app",
+            "to": "aws",
+            "label": "scale with demand"
+          },
+          {
+            "from": "dc",
+            "to": "hidden",
+            "label": "plus"
+          },
+          {
+            "from": "lic",
+            "to": "aws"
+          },
+          {
+            "from": "aws",
+            "to": "right",
+            "label": "smaller size",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "stats": [
+          {
+            "label": "On-prem TCO",
+            "value": "€180k / yr"
+          },
+          {
+            "label": "AWS",
+            "value": "€41k / yr"
+          }
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Automation",
+        "title": "Automate the routine work",
+        "body": [
+          "Scripts and infrastructure as code start and stop environments on a schedule, deploy the same way every time, and replace manual steps.",
+          "Fewer manual hours and fewer mistakes both save money. Turning test servers off at night alone can cut their cost by more than half."
+        ],
+        "show": [
+          "app",
+          "dc",
+          "aws",
+          "hidden",
+          "lic",
+          "right",
+          "auto"
+        ],
+        "focus": [
+          "auto"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "dc"
+          },
+          {
+            "from": "app",
+            "to": "aws",
+            "label": "scale with demand"
+          },
+          {
+            "from": "dc",
+            "to": "hidden",
+            "label": "plus"
+          },
+          {
+            "from": "lic",
+            "to": "aws"
+          },
+          {
+            "from": "aws",
+            "to": "right",
+            "label": "smaller size"
+          },
+          {
+            "from": "auto",
+            "to": "aws",
+            "label": "schedules, IaC",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "stats": [
+          {
+            "label": "On-prem TCO",
+            "value": "€180k / yr"
+          },
+          {
+            "label": "AWS",
+            "value": "€34k / yr"
+          }
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Scale",
+        "title": "Economies of scale",
+        "body": [
+          "AWS buys hardware and energy for a huge number of customers, which lowers its cost per unit. It has lowered prices many times as it grew.",
+          "You benefit without negotiating anything yourself."
+        ],
+        "show": [
+          "app",
+          "dc",
+          "aws",
+          "hidden",
+          "lic",
+          "right",
+          "auto",
+          "scale"
+        ],
+        "focus": [
+          "scale"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "dc"
+          },
+          {
+            "from": "app",
+            "to": "aws",
+            "label": "scale with demand"
+          },
+          {
+            "from": "dc",
+            "to": "hidden",
+            "label": "plus"
+          },
+          {
+            "from": "lic",
+            "to": "aws"
+          },
+          {
+            "from": "aws",
+            "to": "right",
+            "label": "smaller size"
+          },
+          {
+            "from": "auto",
+            "to": "aws",
+            "label": "schedules, IaC"
+          },
+          {
+            "from": "scale",
+            "to": "aws",
+            "label": "lower prices",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Where the savings come from",
+        "body": [
+          "These numbers are illustrative. Use the AWS Pricing Calculator for real estimates."
+        ],
+        "show": [
+          "app",
+          "dc",
+          "aws",
+          "hidden",
+          "lic",
+          "right",
+          "auto",
+          "scale"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "dc"
+          },
+          {
+            "from": "app",
+            "to": "aws",
+            "label": "scale with demand"
+          },
+          {
+            "from": "dc",
+            "to": "hidden",
+            "label": "plus"
+          },
+          {
+            "from": "lic",
+            "to": "aws"
+          },
+          {
+            "from": "aws",
+            "to": "right",
+            "label": "smaller size"
+          },
+          {
+            "from": "auto",
+            "to": "aws",
+            "label": "schedules, IaC"
+          },
+          {
+            "from": "scale",
+            "to": "aws",
+            "label": "lower prices"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "stats": [
+          {
+            "label": "On-prem TCO",
+            "value": "€180k / yr"
+          },
+          {
+            "label": "AWS",
+            "value": "€34k / yr"
+          }
+        ],
+        "recap": [
+          "Fixed costs become variable costs",
+          "Compare full TCO: power, space, staff, refresh",
+          "BYOL reuses licences; licence-included is simple",
+          "Rightsizing and automation cut waste",
+          "Economies of scale lower unit prices"
+        ]
+      }
+    ]
+  }
+}

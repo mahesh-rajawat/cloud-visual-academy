@@ -1,0 +1,615 @@
+{
+  "id": "az104-storage-accounts",
+  "exam": "az-104",
+  "title": "Creating and configuring storage accounts, including encryption",
+  "objectiveIds": [
+    "AZ104-2.2.1",
+    "AZ104-2.2.4"
+  ],
+  "estimatedMinutes": 50,
+  "learningObjective": "Choose the right account type, performance and redundancy, set secure defaults, and configure encryption with Microsoft-managed keys, customer-managed keys, encryption scopes and infrastructure encryption.",
+  "prerequisites": [
+    {
+      "text": "Storage account options and storage types (AZ-900)",
+      "objectiveId": "AZ900-2.3.4"
+    },
+    {
+      "text": "Storage redundancy",
+      "lessonId": "az104-storage-redundancy",
+      "objectiveId": "AZ104-2.2.2"
+    }
+  ],
+  "foundation": [
+    "A storage account is the top-level container for Azure Storage data. Its name becomes part of web addresses such as https://stcontoso.blob.core.windows.net, so it must be unique across all of Azure.",
+    "Most workloads use Standard general-purpose v2, which supports blobs, files, queues and tables with every redundancy option. Premium accounts use SSDs for low latency and specialise in block blobs or file shares.",
+    "All data is encrypted at rest automatically. You decide who manages the encryption key: Microsoft (default) or you, in Azure Key Vault."
+  ],
+  "engineer": [
+    "Names: 3–24 characters, lowercase letters and numbers only, globally unique. Name and performance are chosen at creation, and so is hierarchical namespace in most cases (an existing account can be upgraded one way to Data Lake Storage Gen2). Redundancy can be changed later (see the redundancy lesson for the limits).",
+    "Types: Standard GPv2 (all services, all redundancy options), Premium block blobs (LRS/ZRS; low latency, high transaction rates), Premium file shares (LRS/ZRS; SMB and NFS), and Premium page blobs (unmanaged disks / page blobs). Legacy GPv1 and BlobStorage accounts should be upgraded to GPv2.",
+    "Secure defaults: secure transfer required (HTTPS / SMB 3 encryption), minimum TLS 1.2, blob anonymous access disabled, Shared Key access disabled where possible, and default network access restricted.",
+    "Encryption at rest (SSE) uses 256-bit AES, is always on and cannot be disabled. Microsoft-managed keys are the default. Customer-managed keys (CMK) live in Azure Key Vault or Managed HSM: the vault needs soft delete and purge protection, and the account's managed identity needs get, wrapKey and unwrapKey on the key (Key Vault Crypto Service Encryption User). Enable automatic key version updates to pick up rotated keys. If the key is disabled or access is revoked, data becomes inaccessible.",
+    "Infrastructure encryption adds a second AES-256 layer with a different key at the infrastructure level. It can be enabled only when the account is created. Encryption scopes let you apply different keys (Microsoft- or customer-managed) to individual containers or blobs.",
+    "Encryption in transit is controlled by secure transfer and the minimum TLS version. Client-side encryption is done by your application with the SDK."
+  ],
+  "animation": {
+    "id": "storage-account-sim",
+    "caption": "Configure an account: name, type, redundancy, security settings and encryption, and see which settings are fixed after creation."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "acct",
+        "label": "stcontoso01 (StorageV2, GZRS)",
+        "x": 200,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "kv",
+        "label": "Key Vault: soft delete + purge protection",
+        "x": 0,
+        "y": 140,
+        "kind": "security"
+      },
+      {
+        "id": "mi",
+        "label": "Managed identity (Crypto Service Encryption User)",
+        "x": 260,
+        "y": 140,
+        "kind": "identity"
+      },
+      {
+        "id": "ep",
+        "label": "blob / file / queue / table endpoints",
+        "x": 520,
+        "y": 0,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "acct",
+        "to": "ep"
+      },
+      {
+        "from": "acct",
+        "to": "mi",
+        "label": "uses"
+      },
+      {
+        "from": "mi",
+        "to": "kv",
+        "label": "wrap / unwrap key"
+      }
+    ]
+  },
+  "example": {
+    "title": "A compliant data account",
+    "body": [
+      "Regulations require customer control of keys. The team creates stfinprod01 (Standard GPv2, ZRS, minimum TLS 1.2, no anonymous access, infrastructure encryption on) with a system-assigned identity.",
+      "In a Key Vault with purge protection they create key 'st-cmk', grant the identity Key Vault Crypto Service Encryption User, and switch the account to customer-managed keys with automatic key rotation."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Resource group and region",
+      "For CMK: Key Vault with soft delete and purge protection, a managed identity"
+    ],
+    "permissions": [
+      "Storage Account Contributor to create and configure accounts",
+      "Key Vault Crypto Officer (or equivalent) to create keys; role assignment rights to grant the identity access"
+    ],
+    "limits": [
+      "Name 3–24 lowercase letters and numbers",
+      "Infrastructure encryption only at creation",
+      "Premium accounts: LRS/ZRS only"
+    ],
+    "portal": [
+      "Storage accounts > Create > Basics: subscription, resource group, name, region, performance (Standard/Premium and premium account type), redundancy.",
+      "Advanced: require secure transfer, allow anonymous access, enable storage account key access, minimum TLS version, hierarchical namespace, access tier default (Hot/Cool).",
+      "Networking and Data protection tabs: public access, soft delete, versioning.",
+      "Encryption tab: encryption type (MMK/CMK), enable support for CMK on queues and tables, infrastructure encryption.",
+      "Existing account > Security + networking > Encryption: switch to customer-managed keys, select key vault/key and identity. Encryption scopes: + Add."
+    ],
+    "cli": "az storage account create -g rg-data -n stcontoso01 -l westeurope --kind StorageV2 --sku Standard_ZRS \\\n  --min-tls-version TLS1_2 --https-only true --allow-blob-public-access false --require-infrastructure-encryption\naz storage account update -g rg-data -n stcontoso01 --assign-identity\nprincipal=$(az storage account show -g rg-data -n stcontoso01 --query identity.principalId -o tsv)\naz role assignment create --assignee $principal --role \"Key Vault Crypto Service Encryption User\" --scope $(az keyvault show -n kv-contoso --query id -o tsv)\naz storage account update -g rg-data -n stcontoso01 --encryption-key-source Microsoft.Keyvault \\\n  --encryption-key-vault https://kv-contoso.vault.azure.net --encryption-key-name st-cmk\naz storage account encryption-scope create -g rg-data --account-name stcontoso01 -n scope-hr --key-source Microsoft.Storage",
+    "powershell": "New-AzStorageAccount -ResourceGroupName rg-data -Name stcontoso01 -Location westeurope -Kind StorageV2 -SkuName Standard_ZRS `\n  -MinimumTlsVersion TLS1_2 -EnableHttpsTrafficOnly $true -AllowBlobPublicAccess $false -RequireInfrastructureEncryption -AssignIdentity\nSet-AzStorageAccount -ResourceGroupName rg-data -Name stcontoso01 -KeyvaultEncryption `\n  -KeyName st-cmk -KeyVaultUri 'https://kv-contoso.vault.azure.net'",
+    "bicep": "resource st 'Microsoft.Storage/storageAccounts@2023-05-01' = {\n  name: 'stcontoso01'\n  location: location\n  kind: 'StorageV2'\n  sku: { name: 'Standard_ZRS' }\n  identity: { type: 'SystemAssigned' }\n  properties: {\n    minimumTlsVersion: 'TLS1_2'\n    supportsHttpsTrafficOnly: true\n    allowBlobPublicAccess: false\n    encryption: {\n      requireInfrastructureEncryption: true\n      keySource: 'Microsoft.Storage'\n      services: { blob: { enabled: true }, file: { enabled: true } }\n    }\n  }\n}\n\nparam location string = resourceGroup().location"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "storage-account-sim",
+    "objective": "Create a valid, secure account and configure customer-managed keys.",
+    "duration": 15,
+    "steps": [
+      "Try to create 'StContoso' and read the validation errors. Fix the name (lowercase, unique).",
+      "Pick Premium file shares with GRS and read the error; switch to ZRS.",
+      "Switch to customer-managed keys and resolve the vault and identity prerequisites.",
+      "After creation, try turning infrastructure encryption on."
+    ],
+    "expected": [
+      "Name and redundancy rules enforced",
+      "CMK requires purge protection and key access",
+      "Infrastructure encryption is fixed after creation"
+    ],
+    "validation": [
+      {
+        "id": "account-validation",
+        "text": "Fixed a validation error"
+      },
+      {
+        "id": "account-created",
+        "text": "Created a storage account"
+      },
+      {
+        "id": "cmk-configured",
+        "text": "Configured customer-managed keys"
+      }
+    ],
+    "failureScenarios": [
+      "Name with hyphens",
+      "Key vault without purge protection",
+      "Identity without wrap/unwrap permissions"
+    ],
+    "cleanup": [
+      "Simulation only."
+    ],
+    "cost": "None in the simulation. Real accounts are billed for capacity, transactions and redundancy; Key Vault keys add a small per-operation cost."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "'The storage account name is already taken.'",
+      "cause": "Names are global.",
+      "fix": "Add a unique suffix; check with az storage account check-name."
+    },
+    {
+      "symptom": "Data becomes inaccessible (403 KeyVaultEncryptionKeyNotFound or similar).",
+      "cause": "The CMK was disabled or deleted, or identity access was removed.",
+      "fix": "Restore or re-enable the key (soft delete) and the identity's access."
+    },
+    {
+      "symptom": "Cannot enable infrastructure encryption on an existing account.",
+      "cause": "Creation-time-only setting.",
+      "fix": "Create a new account and migrate data (AzCopy, object replication)."
+    },
+    {
+      "symptom": "Clients fail after setting minimum TLS 1.2.",
+      "cause": "Legacy clients use TLS 1.0/1.1.",
+      "fix": "Update clients; check storage logs for the TLS version used."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon S3 SSE-S3 / SSE-KMS",
+      "difference": "Comparable to Microsoft-managed vs customer-managed keys; S3 configures encryption per bucket, Azure per account (or per encryption scope)."
+    },
+    {
+      "service": "Azure Disk Encryption",
+      "difference": "Encrypts the OS/data volumes inside the VM with BitLocker/DM-Crypt; storage service encryption protects the storage platform layer."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Encryption at rest must be enabled.",
+      "reality": "It is always on and cannot be disabled."
+    },
+    {
+      "myth": "CMK protects data from Microsoft operators in transit.",
+      "reality": "CMK controls the at-rest key; TLS protects data in transit."
+    },
+    {
+      "myth": "You can switch a GPv2 account to Premium later.",
+      "reality": "Performance and account kind are fixed; create a new account and copy data."
+    }
+  ],
+  "architectureDecisions": [
+    "Standard GPv2 by default; Premium only for latency-sensitive block blob or file workloads.",
+    "Use CMK when regulations require key control, and plan key availability carefully.",
+    "Enforce secure settings (TLS 1.2, no anonymous access, no Shared Key) with Azure Policy."
+  ],
+  "docs": [
+    {
+      "title": "Storage account overview",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-account-overview"
+    },
+    {
+      "title": "Create a storage account",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-account-create"
+    },
+    {
+      "title": "Azure Storage encryption for data at rest",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-service-encryption"
+    },
+    {
+      "title": "Customer-managed keys for Azure Storage encryption",
+      "url": "https://learn.microsoft.com/azure/storage/common/customer-managed-keys-overview"
+    },
+    {
+      "title": "Enable infrastructure encryption",
+      "url": "https://learn.microsoft.com/azure/storage/common/infrastructure-encryption-enable"
+    },
+    {
+      "title": "Encryption scopes for Blob storage",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/encryption-scope-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Create a storage account with the right type and safe settings, and choose who holds the encryption keys.",
+    "learn": [
+      "Account types and performance",
+      "Safe default settings",
+      "Encryption is always on",
+      "Customer-managed keys and infrastructure encryption"
+    ],
+    "nodes": [
+      {
+        "id": "sa",
+        "label": "Storage account",
+        "x": 400,
+        "y": 80,
+        "kind": "storage",
+        "sub": "one name, many services"
+      },
+      {
+        "id": "blob",
+        "label": "Blobs",
+        "x": 110,
+        "y": 220,
+        "kind": "storage"
+      },
+      {
+        "id": "files",
+        "label": "Files",
+        "x": 300,
+        "y": 220,
+        "kind": "storage"
+      },
+      {
+        "id": "q",
+        "label": "Queues",
+        "x": 490,
+        "y": 220,
+        "kind": "storage"
+      },
+      {
+        "id": "t",
+        "label": "Tables",
+        "x": 680,
+        "y": 220,
+        "kind": "storage"
+      },
+      {
+        "id": "mmk",
+        "label": "Microsoft-managed key",
+        "x": 220,
+        "y": 380,
+        "kind": "security"
+      },
+      {
+        "id": "cmk",
+        "label": "Your key in Key Vault",
+        "x": 580,
+        "y": 380,
+        "kind": "security"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Where to keep data",
+        "title": "An app needs files, images and logs",
+        "body": [
+          "You need cheap, durable storage reachable from anywhere. In Azure that starts with a storage account."
+        ],
+        "show": [
+          "sa"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Types",
+        "title": "One account, four services",
+        "body": [
+          "A Standard general-purpose v2 account holds blobs, file shares, queues and tables, and suits most needs. Premium accounts use SSDs for low latency and come in three kinds: block blobs, file shares, or page blobs.",
+          "The name must be globally unique, 3–24 lowercase letters and numbers."
+        ],
+        "show": [
+          "sa",
+          "blob",
+          "files",
+          "q",
+          "t"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sa",
+            "to": "blob",
+            "fresh": true
+          },
+          {
+            "from": "sa",
+            "to": "files",
+            "fresh": true
+          },
+          {
+            "from": "sa",
+            "to": "q",
+            "fresh": true
+          },
+          {
+            "from": "sa",
+            "to": "t",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Settings",
+        "title": "Safe settings to check",
+        "body": [
+          "Require secure transfer (HTTPS only), minimum TLS version 1.2, and leave anonymous blob access off unless you really host public files. Choose redundancy and the default access tier (Hot or Cool) at creation."
+        ],
+        "show": [
+          "sa",
+          "blob",
+          "files",
+          "q",
+          "t"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sa",
+            "to": "blob"
+          },
+          {
+            "from": "sa",
+            "to": "files"
+          },
+          {
+            "from": "sa",
+            "to": "q"
+          },
+          {
+            "from": "sa",
+            "to": "t"
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Some settings, such as infrastructure encryption and performance, can only be chosen when you create the account."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Encryption",
+        "title": "Data is always encrypted at rest",
+        "body": [
+          "Azure encrypts everything you store with 256-bit AES. You cannot turn it off. By default Microsoft manages the keys."
+        ],
+        "show": [
+          "sa",
+          "blob",
+          "files",
+          "q",
+          "t",
+          "mmk"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sa",
+            "to": "blob"
+          },
+          {
+            "from": "sa",
+            "to": "files"
+          },
+          {
+            "from": "sa",
+            "to": "q"
+          },
+          {
+            "from": "sa",
+            "to": "t"
+          },
+          {
+            "from": "mmk",
+            "to": "sa",
+            "label": "default",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Your key",
+        "title": "Hold the key yourself if you must",
+        "body": [
+          "Customer-managed keys live in your Azure Key Vault (with soft delete and purge protection on). The account reads the key with a managed identity. Disable the key and the data becomes unreadable.",
+          "Infrastructure encryption adds a second layer of encryption and must be enabled at creation. Encryption scopes let different containers use different keys."
+        ],
+        "show": [
+          "sa",
+          "blob",
+          "files",
+          "q",
+          "t",
+          "mmk",
+          "cmk"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sa",
+            "to": "blob"
+          },
+          {
+            "from": "sa",
+            "to": "files"
+          },
+          {
+            "from": "sa",
+            "to": "q"
+          },
+          {
+            "from": "sa",
+            "to": "t"
+          },
+          {
+            "from": "mmk",
+            "to": "sa",
+            "label": "default"
+          },
+          {
+            "from": "cmk",
+            "to": "sa",
+            "label": "managed identity",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Storage accounts",
+        "body": [
+          "Standard GPv2 for most things; encryption always on."
+        ],
+        "show": [
+          "sa",
+          "blob",
+          "files",
+          "q",
+          "t",
+          "mmk",
+          "cmk"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sa",
+            "to": "blob"
+          },
+          {
+            "from": "sa",
+            "to": "files"
+          },
+          {
+            "from": "sa",
+            "to": "q"
+          },
+          {
+            "from": "sa",
+            "to": "t"
+          },
+          {
+            "from": "mmk",
+            "to": "sa",
+            "label": "default"
+          },
+          {
+            "from": "cmk",
+            "to": "sa",
+            "label": "managed identity"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Standard GPv2: blobs, files, queues, tables",
+          "Premium: block blob, file share or page blob",
+          "HTTPS only, TLS 1.2, no anonymous access",
+          "Always encrypted; Microsoft-managed keys by default",
+          "Customer-managed keys in Key Vault; infrastructure encryption at creation"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a storage account with safe settings and review encryption",
+    "minutes": 15,
+    "costLevel": "free",
+    "cost": "Cents. A few small files in a Standard LRS account cost almost nothing; delete the account at the end.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Storage accounts' > + Create. Resource group: rg-az104-lab, name: st<yourinitials><number>, region: your region, primary service: Azure Blob Storage or Azure Data Lake Storage Gen2, performance: Standard, redundancy: LRS.",
+        "see": "The Basics tab filled in. Read the other options in the Redundancy list."
+      },
+      {
+        "do": "Advanced tab: check 'Require secure transfer' is on, 'Allow enabling anonymous access on individual containers' is off, and minimum TLS is 1.2. Note the default access tier: Hot."
+      },
+      {
+        "do": "Encryption tab: read the options. Keep Microsoft-managed keys. Note 'Enable infrastructure encryption' (only available now, at creation)."
+      },
+      {
+        "do": "Review + create > Create. Open the resource when deployed.",
+        "see": "The Overview page with the blob, file, queue and table endpoints listed."
+      },
+      {
+        "do": "Open Security + networking > Encryption.",
+        "see": "Encryption type: Microsoft-managed keys, with the option to switch to customer-managed keys."
+      },
+      {
+        "do": "Open Settings > Configuration.",
+        "see": "Secure transfer, TLS version, anonymous access and default access tier, which you can change here later."
+      }
+    ],
+    "check": [
+      "The account exists with HTTPS only, TLS 1.2 and anonymous access off."
+    ],
+    "cleanup": [
+      "Keep the account for the next storage labs, or: When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Create a storage account",
+        "url": "https://learn.microsoft.com/azure/storage/common/storage-account-create"
+      },
+      {
+        "title": "Azure Storage encryption for data at rest",
+        "url": "https://learn.microsoft.com/azure/storage/common/storage-service-encryption"
+      },
+      {
+        "title": "Customer-managed keys for Azure Storage encryption",
+        "url": "https://learn.microsoft.com/azure/storage/common/customer-managed-keys-overview"
+      }
+    ]
+  }
+}

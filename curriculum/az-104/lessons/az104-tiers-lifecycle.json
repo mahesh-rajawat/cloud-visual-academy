@@ -1,0 +1,580 @@
+{
+  "id": "az104-tiers-lifecycle",
+  "exam": "az-104",
+  "title": "Blob access tiers and lifecycle management",
+  "objectiveIds": [
+    "AZ104-2.3.3",
+    "AZ104-2.3.5"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Choose access tiers by access pattern, account for minimum retention and rehydration, and automate tiering and deletion with lifecycle management rules.",
+  "prerequisites": [
+    {
+      "text": "Storage tiers (AZ-900)",
+      "objectiveId": "AZ900-2.3.2"
+    },
+    {
+      "text": "Blob containers",
+      "lessonId": "az104-containers-shares",
+      "objectiveId": "AZ104-2.3.2"
+    }
+  ],
+  "foundation": [
+    "Blob data can live in four access tiers. Hot is for frequently used data. Cool and Cold are cheaper to store but cost more to read. Archive is the cheapest, but the data is offline.",
+    "Cooler tiers have a minimum time you are expected to keep data there (Cool 30 days, Cold 90, Archive 180). Moving or deleting earlier adds an early-deletion charge.",
+    "Lifecycle management is a set of rules that automatically move blobs to cooler tiers, or delete them, once they reach a certain age."
+  ],
+  "engineer": [
+    "Tiers apply to block blobs. The account default access tier (Hot or Cool) applies to blobs without an explicitly set tier; you can set a tier per blob with Set Blob Tier. Premium block blob accounts do not use access tiers.",
+    "Archive is offline. Reading returns 409 BlobArchived until the blob is rehydrated, either by changing its tier to Hot/Cool/Cold or by copying it to an online tier. Standard priority can take up to 15 hours; High priority usually completes in under an hour for objects under 10 GB. The archive tier is unavailable on ZRS, GZRS and RA-GZRS accounts.",
+    "Early deletion: Cool 30 days, Cold 90 days, Archive 180 days. Moving a blob to another tier or deleting it earlier is charged pro rata for the remaining days.",
+    "Lifecycle policy: JSON rules with filters (blobTypes, prefixMatch, blobIndexMatch) and actions for baseBlob (tierToCool, tierToCold, tierToArchive, delete, enableAutoTierToHotFromCool), snapshot and version. Conditions include daysAfterModificationGreaterThan, daysAfterCreationGreaterThan and daysAfterLastAccessTimeGreaterThan (requires last access time tracking).",
+    "If several actions apply to a blob on the same run, lifecycle management applies the least expensive action (delete is cheaper than archive, archive than cold, cold than cool). The policy runs about once a day, and new or changed rules can take up to 24 hours to take effect, and longer to finish.",
+    "Lifecycle management needs no extra permission beyond writing the policy (Storage Account Contributor); there is no charge for the policy itself, though tier changes and deletes are billed as operations."
+  ],
+  "animation": {
+    "id": "storage-data-sim",
+    "caption": "Play 400 days of a lifecycle policy, add rules, and try reading an archived blob."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "hot",
+        "label": "Hot (day 0)",
+        "x": 0,
+        "y": 60,
+        "kind": "storage"
+      },
+      {
+        "id": "cool",
+        "label": "Cool (> 30 d, min 30 d)",
+        "x": 200,
+        "y": 60,
+        "kind": "storage"
+      },
+      {
+        "id": "arch",
+        "label": "Archive (> 90 d, min 180 d, offline)",
+        "x": 420,
+        "y": 60,
+        "kind": "storage"
+      },
+      {
+        "id": "del",
+        "label": "Delete (> 365 d)",
+        "x": 660,
+        "y": 60,
+        "kind": "security"
+      },
+      {
+        "id": "rh",
+        "label": "Rehydrate: Standard ≤ 15 h / High < 1 h (< 10 GB)",
+        "x": 420,
+        "y": 180,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "hot",
+        "to": "cool",
+        "label": "tierToCool"
+      },
+      {
+        "from": "cool",
+        "to": "arch",
+        "label": "tierToArchive"
+      },
+      {
+        "from": "arch",
+        "to": "del",
+        "label": "delete"
+      },
+      {
+        "from": "arch",
+        "to": "rh",
+        "label": "read needs"
+      }
+    ]
+  },
+  "example": {
+    "title": "Log retention policy",
+    "body": [
+      "Application logs under logs/ are read often for a week, occasionally for a month, and kept for a year for audit. The rule set: tierToCool after 30 days, tierToArchive after 90, delete after 365.",
+      "A one-off investigation needs a 6-month-old log: the engineer rehydrates it with High priority and copies it to a Hot investigation container."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "GPv2 or Blob Storage account (LRS/GRS/RA-GRS for archive)",
+      "Last access time tracking for access-based rules"
+    ],
+    "permissions": [
+      "Storage Account Contributor to set the management policy",
+      "Storage Blob Data Contributor to change tiers on individual blobs"
+    ],
+    "limits": [
+      "Minimum days: Cool 30, Cold 90, Archive 180",
+      "Policy runs about daily; changes take up to 24 h",
+      "Archive not available on ZRS/GZRS/RA-GZRS"
+    ],
+    "portal": [
+      "Storage account > Configuration: default blob access tier (Hot/Cool).",
+      "Container > select blob > Change tier (Hot, Cool, Cold, Archive); for archived blobs choose rehydrate priority.",
+      "Data management > Lifecycle management > Add a rule: scope (all blobs or filters), blob types, conditions (Last modified / Created / Last accessed), actions.",
+      "Lifecycle management > Code view: edit the JSON directly. Enable access tracking for last-accessed conditions."
+    ],
+    "cli": "az storage account update -g rg-data -n stcontoso --access-tier Cool\naz storage blob set-tier --account-name stcontoso -c logs -n app-2026-01.log --tier Archive --auth-mode login\naz storage blob set-tier --account-name stcontoso -c logs -n app-2026-01.log --tier Hot --rehydrate-priority High --auth-mode login\naz storage account blob-service-properties update -g rg-data --account-name stcontoso --enable-last-access-tracking true\naz storage account management-policy create -g rg-data --account-name stcontoso --policy @policy.json\n# policy.json\n# {\"rules\":[{\"enabled\":true,\"name\":\"logs\",\"type\":\"Lifecycle\",\"definition\":{\n#   \"filters\":{\"blobTypes\":[\"blockBlob\"],\"prefixMatch\":[\"logs/\"]},\n#   \"actions\":{\"baseBlob\":{\"tierToCool\":{\"daysAfterModificationGreaterThan\":30},\n#     \"tierToArchive\":{\"daysAfterModificationGreaterThan\":90},\"delete\":{\"daysAfterModificationGreaterThan\":365}}}}}]}",
+    "powershell": "$action = Add-AzStorageAccountManagementPolicyAction -BaseBlobAction TierToCool -DaysAfterModificationGreaterThan 30\n$action = Add-AzStorageAccountManagementPolicyAction -InputObject $action -BaseBlobAction TierToArchive -DaysAfterModificationGreaterThan 90\n$action = Add-AzStorageAccountManagementPolicyAction -InputObject $action -BaseBlobAction Delete -DaysAfterModificationGreaterThan 365\n$filter = New-AzStorageAccountManagementPolicyFilter -PrefixMatch 'logs/' -BlobType blockBlob\n$rule = New-AzStorageAccountManagementPolicyRule -Name logs -Action $action -Filter $filter\nSet-AzStorageAccountManagementPolicy -ResourceGroupName rg-data -StorageAccountName stcontoso -Rule $rule",
+    "bicep": "resource policy 'Microsoft.Storage/storageAccounts/managementPolicies@2023-05-01' = {\n  name: 'stcontoso/default'\n  properties: {\n    policy: {\n      rules: [\n        {\n          enabled: true\n          name: 'logs'\n          type: 'Lifecycle'\n          definition: {\n            filters: { blobTypes: [ 'blockBlob' ], prefixMatch: [ 'logs/' ] }\n            actions: {\n              baseBlob: {\n                tierToCool: { daysAfterModificationGreaterThan: 30 }\n                tierToArchive: { daysAfterModificationGreaterThan: 90 }\n                delete: { daysAfterModificationGreaterThan: 365 }\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "storage-data-sim",
+    "objective": "Design lifecycle rules and predict tier changes, early-deletion charges and archive reads.",
+    "duration": 15,
+    "steps": [
+      "Play the timeline and note the days on which logs/ blobs move tiers.",
+      "Add a rule deleting backups/ after 180 days, then a rule archiving everything after 10 days. Look for early-deletion warnings.",
+      "Scrub to day 100 and read the log blob (archived). Compare Standard and High rehydration."
+    ],
+    "expected": [
+      "The least expensive action wins",
+      "Early-deletion days reported",
+      "409 for archived reads"
+    ],
+    "validation": [
+      {
+        "id": "lifecycle-rule",
+        "text": "Added a lifecycle rule"
+      },
+      {
+        "id": "archive-read",
+        "text": "Tried to read an archived blob"
+      }
+    ],
+    "failureScenarios": [
+      "Archive rule shorter than the Cool minimum",
+      "Expecting immediate policy execution",
+      "Archive on a ZRS account"
+    ],
+    "cleanup": [
+      "Simulation only."
+    ],
+    "cost": "None in the simulation. Real tier changes and rehydration are billed per operation and per GB."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Lifecycle rule created but nothing changed after an hour.",
+      "cause": "Policies run about once a day; new rules take up to 24 h.",
+      "fix": "Wait, and check the blob's properties the next day."
+    },
+    {
+      "symptom": "409 BlobArchived when downloading.",
+      "cause": "Archived blobs are offline.",
+      "fix": "Rehydrate (Set Blob Tier or copy) and wait for completion."
+    },
+    {
+      "symptom": "Unexpected early-deletion charges.",
+      "cause": "Blobs moved or deleted before the tier's minimum days.",
+      "fix": "Align rule thresholds with the minimum retention periods."
+    },
+    {
+      "symptom": "Archive option missing.",
+      "cause": "Account redundancy is ZRS/GZRS/RA-GZRS, or the account is premium.",
+      "fix": "Use an LRS/GRS/RA-GRS account for archival data."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon S3 storage classes and lifecycle rules",
+      "difference": "Similar concept (Standard-IA, Glacier tiers, lifecycle transitions). S3 also has Intelligent-Tiering; Azure offers last-access-based rules and auto tier to hot."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Archive blobs can be read with a delay.",
+      "reality": "They must be rehydrated first; reads fail until then."
+    },
+    {
+      "myth": "Lifecycle rules run instantly.",
+      "reality": "About once a day, with up to 24 h for changes to take effect."
+    },
+    {
+      "myth": "If two rules match, the first one listed wins.",
+      "reality": "The least expensive action wins."
+    }
+  ],
+  "architectureDecisions": [
+    "Classify data by access pattern and encode it in prefixes or blob index tags so rules can target it.",
+    "Use last-access-time rules for unpredictable access patterns.",
+    "Keep archive data in LRS/GRS/RA-GRS accounts."
+  ],
+  "docs": [
+    {
+      "title": "Access tiers for blob data",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/access-tiers-overview"
+    },
+    {
+      "title": "Blob rehydration from the archive tier",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/archive-rehydrate-overview"
+    },
+    {
+      "title": "Lifecycle management overview",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/lifecycle-management-overview"
+    },
+    {
+      "title": "Configure a lifecycle management policy",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/lifecycle-management-policy-configure"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Pay less for data you rarely read by moving it to cheaper tiers, automatically.",
+    "learn": [
+      "Hot, Cool, Cold and Archive",
+      "Minimum days and early deletion",
+      "Archive is offline: rehydration",
+      "Lifecycle management rules"
+    ],
+    "nodes": [
+      {
+        "id": "hot",
+        "label": "Hot",
+        "x": 120,
+        "y": 160,
+        "kind": "storage",
+        "sub": "read often"
+      },
+      {
+        "id": "cool",
+        "label": "Cool",
+        "x": 300,
+        "y": 160,
+        "kind": "storage",
+        "sub": "30+ days"
+      },
+      {
+        "id": "cold",
+        "label": "Cold",
+        "x": 480,
+        "y": 160,
+        "kind": "storage",
+        "sub": "90+ days"
+      },
+      {
+        "id": "arch",
+        "label": "Archive",
+        "x": 660,
+        "y": 160,
+        "kind": "storage",
+        "sub": "180+ days, offline"
+      },
+      {
+        "id": "rule",
+        "label": "Lifecycle rule",
+        "x": 390,
+        "y": 340,
+        "kind": "service",
+        "sub": "runs daily"
+      },
+      {
+        "id": "rehyd",
+        "label": "Rehydrate",
+        "x": 660,
+        "y": 340,
+        "kind": "service",
+        "sub": "hours"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Old data",
+        "title": "Five years of invoices nobody reads",
+        "body": [
+          "They must be kept, but storing them on the fastest tier wastes money every month."
+        ],
+        "show": [
+          "hot"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Tiers",
+        "title": "Four access tiers",
+        "body": [
+          "Hot: cheapest to read, most expensive to store. Cool: cheaper storage, keep at least 30 days. Cold: cheaper still, at least 90 days. Archive: cheapest storage, at least 180 days, and offline.",
+          "Moving or deleting earlier than the minimum costs an early deletion fee."
+        ],
+        "show": [
+          "hot",
+          "cool",
+          "cold",
+          "arch"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "hot",
+            "to": "cool",
+            "fresh": true
+          },
+          {
+            "from": "cool",
+            "to": "cold",
+            "fresh": true
+          },
+          {
+            "from": "cold",
+            "to": "arch",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Archive",
+        "title": "Archive blobs must be rehydrated",
+        "body": [
+          "You cannot read an archived blob. Change its tier to Hot or Cool (or copy it) to rehydrate it. Standard priority can take up to 15 hours; high priority is faster but costs more."
+        ],
+        "show": [
+          "hot",
+          "cool",
+          "cold",
+          "arch",
+          "rehyd"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "hot",
+            "to": "cool"
+          },
+          {
+            "from": "cool",
+            "to": "cold"
+          },
+          {
+            "from": "cold",
+            "to": "arch"
+          },
+          {
+            "from": "arch",
+            "to": "rehyd",
+            "fresh": true
+          },
+          {
+            "from": "rehyd",
+            "to": "hot",
+            "label": "back online",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Archive tier is set per blob, not as an account default."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Lifecycle",
+        "title": "Let rules move data for you",
+        "body": [
+          "Lifecycle management rules move blobs to cooler tiers or delete them, based on days since creation, last modification or last access (needs access tracking). Filters choose containers or name prefixes. Rules run about once a day."
+        ],
+        "show": [
+          "hot",
+          "cool",
+          "cold",
+          "arch",
+          "rehyd",
+          "rule"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "hot",
+            "to": "cool"
+          },
+          {
+            "from": "cool",
+            "to": "cold"
+          },
+          {
+            "from": "cold",
+            "to": "arch"
+          },
+          {
+            "from": "arch",
+            "to": "rehyd"
+          },
+          {
+            "from": "rehyd",
+            "to": "hot",
+            "label": "back online"
+          },
+          {
+            "from": "rule",
+            "to": "cool",
+            "label": "after 30 days",
+            "fresh": true
+          },
+          {
+            "from": "rule",
+            "to": "arch",
+            "label": "after 180 days",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Tiers and lifecycle",
+        "body": [
+          "Cooler is cheaper to keep, dearer to read."
+        ],
+        "show": [
+          "hot",
+          "cool",
+          "cold",
+          "arch",
+          "rehyd",
+          "rule"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "hot",
+            "to": "cool"
+          },
+          {
+            "from": "cool",
+            "to": "cold"
+          },
+          {
+            "from": "cold",
+            "to": "arch"
+          },
+          {
+            "from": "arch",
+            "to": "rehyd"
+          },
+          {
+            "from": "rehyd",
+            "to": "hot",
+            "label": "back online"
+          },
+          {
+            "from": "rule",
+            "to": "cool",
+            "label": "after 30 days"
+          },
+          {
+            "from": "rule",
+            "to": "arch",
+            "label": "after 180 days"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Hot / Cool (30) / Cold (90) / Archive (180)",
+          "Early deletion fees apply",
+          "Archive is offline; rehydrate up to 15 hours",
+          "Lifecycle rules move or delete blobs daily",
+          "Rules can use last access time"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Move a blob through tiers and create a lifecycle rule",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Cents. Archive has a 180-day minimum, but a tiny file's early deletion fee is a fraction of a cent.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A storage account in rg-az104-lab: Standard performance, LRS redundancy, default settings. Name it st<yourinitials><number> (lowercase letters and numbers only, globally unique)."
+    ],
+    "steps": [
+      {
+        "do": "Create a container named invoices and upload a small text file.",
+        "see": "The file with Access tier: Hot (inferred)."
+      },
+      {
+        "do": "Select the file > Change tier > Cool. Save.",
+        "see": "Access tier: Cool."
+      },
+      {
+        "do": "Change tier again to Archive. Save, then try to download the file.",
+        "see": "Download is not possible: the blob is archived (offline)."
+      },
+      {
+        "do": "Change tier to Hot with rehydrate priority Standard. Save.",
+        "see": "Status 'Rehydrate pending to hot'. It can take hours; you do not need to wait."
+      },
+      {
+        "do": "Open the account > Data management > Lifecycle management > Add a rule. Name: move-old, scope: limit with filters, blob type: Block blobs."
+      },
+      {
+        "do": "Base blobs: if last modified more than 30 days ago, move to cool storage. Add condition: more than 180 days ago, move to archive. Filter set: prefix invoices/. Add.",
+        "see": "move-old listed and enabled."
+      },
+      {
+        "do": "Open the Code view tab of Lifecycle management.",
+        "see": "The same rule as JSON, the format used in templates and the CLI."
+      }
+    ],
+    "check": [
+      "You saw an archived blob become unreadable.",
+      "The lifecycle rule exists."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Access tiers for blob data",
+        "url": "https://learn.microsoft.com/azure/storage/blobs/access-tiers-overview"
+      },
+      {
+        "title": "Configure a lifecycle management policy",
+        "url": "https://learn.microsoft.com/azure/storage/blobs/lifecycle-management-policy-configure"
+      },
+      {
+        "title": "Rehydrate an archived blob",
+        "url": "https://learn.microsoft.com/azure/storage/blobs/archive-rehydrate-to-online-tier"
+      }
+    ]
+  }
+}

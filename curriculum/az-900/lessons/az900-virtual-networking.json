@@ -1,0 +1,248 @@
+{
+  "id": "az900-virtual-networking",
+  "exam": "az-900",
+  "title": "Virtual networks, subnets, peering, DNS, VPN Gateway and ExpressRoute",
+  "objectiveIds": [
+    "AZ900-2.2.5"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Describe the purpose of Azure virtual networks and subnets, and how peering, Azure DNS, VPN Gateway and ExpressRoute connect things.",
+  "prerequisites": [
+    {
+      "text": "VM resources",
+      "objectiveId": "AZ900-2.2.3",
+      "lessonId": "az900-vm-resources-hosting"
+    }
+  ],
+  "foundation": [
+    "A virtual network (VNet) is your private network in Azure. Resources in it get private IP addresses and can talk to each other securely.",
+    "Subnets split a VNet's address range into smaller pieces, for example one for web servers and one for databases, so you can apply different rules.",
+    "Peering joins two VNets so they act like one network. VPN Gateway connects your office or laptop to Azure through an encrypted tunnel over the internet. ExpressRoute is a private connection that doesn't use the internet at all.",
+    "Azure DNS hosts your domain names (like contoso.com) on Microsoft's global name servers."
+  ],
+  "engineer": [
+    "VNet capabilities: isolation and segmentation; internet communication (outbound by default, inbound with a public IP or load balancer); communication between Azure resources (VNets and service endpoints); communication with on-premises (point-to-site VPN, site-to-site VPN, ExpressRoute); routing (route tables, BGP); filtering (network security groups, network virtual appliances such as firewalls).",
+    "Address space: you choose private ranges (for example 10.0.0.0/16) and subnets inside them (10.0.1.0/24). Azure reserves 5 addresses per subnet.",
+    "Peering: connects VNets in the same region or across regions (global peering) over the Microsoft backbone, privately, with low latency. Not transitive by default.",
+    "VPN Gateway: a type of virtual network gateway. Site-to-site (on-premises network to Azure), point-to-site (single device to Azure), VNet-to-VNet. Uses IPsec/IKE encryption over the public internet. Policy-based or route-based; active/standby or active/active for availability.",
+    "ExpressRoute: private connection through a connectivity provider. Doesn't traverse the public internet, offers more reliability, higher speeds, consistent latency. Connectivity models: CloudExchange colocation, point-to-point Ethernet, any-to-any (IPVPN), ExpressRoute Direct. Also reaches Microsoft 365 services. Global Reach links on-premises sites through Microsoft's network.",
+    "Azure DNS: hosts DNS zones with Azure's reliability and performance (anycast name servers), managed with Azure credentials, RBAC, activity logs and locks. Supports private DNS zones for names inside VNets and alias records. You can't buy domain names through Azure DNS."
+  ],
+  "animation": {
+    "id": "az900-vnet-sim",
+    "caption": "Pick the networking concept or service for each connectivity need."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "onp",
+        "label": "On-premises network",
+        "x": 0,
+        "y": 80,
+        "kind": "compute"
+      },
+      {
+        "id": "vpn",
+        "label": "VPN Gateway (internet, encrypted)",
+        "x": 230,
+        "y": 0,
+        "kind": "network"
+      },
+      {
+        "id": "er",
+        "label": "ExpressRoute (private)",
+        "x": 230,
+        "y": 160,
+        "kind": "network"
+      },
+      {
+        "id": "v1",
+        "label": "VNet A: web + db subnets",
+        "x": 470,
+        "y": 80,
+        "kind": "network"
+      },
+      {
+        "id": "v2",
+        "label": "VNet B (peered)",
+        "x": 700,
+        "y": 80,
+        "kind": "network"
+      },
+      {
+        "id": "dns",
+        "label": "Azure DNS: contoso.com",
+        "x": 470,
+        "y": 230,
+        "kind": "scope"
+      }
+    ],
+    "edges": [
+      {
+        "from": "onp",
+        "to": "vpn"
+      },
+      {
+        "from": "onp",
+        "to": "er"
+      },
+      {
+        "from": "vpn",
+        "to": "v1"
+      },
+      {
+        "from": "er",
+        "to": "v1"
+      },
+      {
+        "from": "v1",
+        "to": "v2",
+        "label": "peering"
+      },
+      {
+        "from": "dns",
+        "to": "v1",
+        "label": "names"
+      }
+    ]
+  },
+  "example": {
+    "title": "A hub for an insurance firm",
+    "body": [
+      "The firm's VNet has subnets for web, app and data tiers, each with NSGs. A second VNet for analytics is peered to it.",
+      "Head office uses ExpressRoute for predictable claims-processing traffic; 40 branch offices use site-to-site VPN; staff laptops use point-to-site VPN. contoso.com is hosted in Azure DNS."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "VPN gateways take 30+ minutes to create and are billed hourly",
+      "ExpressRoute requires a connectivity provider and a circuit"
+    ],
+    "portal": [
+      "Virtual networks > Create: address space and subnets.",
+      "Virtual network > Peerings > Add.",
+      "Virtual network gateways > Create (VPN); ExpressRoute circuits > Create.",
+      "DNS zones > Create: record sets."
+    ],
+    "cli": "az network vnet create -g <rg> -n vnet-a --address-prefixes 10.0.0.0/16 --subnet-name web --subnet-prefixes 10.0.1.0/24\naz network vnet peering create -g <rg> -n a-to-b --vnet-name vnet-a --remote-vnet vnet-b --allow-vnet-access\naz network dns zone create -g <rg> -n contoso.com",
+    "powershell": "New-AzVirtualNetwork -ResourceGroupName <rg> -Name vnet-a -Location westeurope -AddressPrefix 10.0.0.0/16"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-vnet-sim",
+    "objective": "Choose networking concepts and services.",
+    "duration": 15,
+    "steps": [
+      "Virtual networking concepts tab: answer every need.",
+      "Networking choice tab: answer every requirement."
+    ],
+    "expected": [
+      "Subnets segment a VNet",
+      "ExpressRoute doesn't use the public internet; VPN does (encrypted)"
+    ],
+    "validation": [
+      {
+        "id": "vnet-concepts-correct",
+        "text": "Chose the right networking concept"
+      },
+      {
+        "id": "vnet-concepts-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "networking-correct",
+        "text": "Chose the right networking service"
+      },
+      {
+        "id": "networking-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing VPN when the requirement says 'not over the internet'",
+      "Expecting peering to be transitive"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Peered VNets can't communicate.",
+      "cause": "Overlapping address spaces, or the peering is only created on one side.",
+      "fix": "Use non-overlapping ranges; create both peering links."
+    },
+    {
+      "symptom": "Site-to-site VPN performance varies.",
+      "cause": "Traffic crosses the public internet.",
+      "fix": "Use ExpressRoute for consistent latency."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "VPN Gateway vs ExpressRoute",
+      "difference": "VPN: encrypted over the internet, cheaper, quick to set up. ExpressRoute: private, faster, more consistent, needs a provider."
+    },
+    {
+      "service": "Azure DNS vs domain registrar",
+      "difference": "Azure DNS hosts zones; you buy the domain from a registrar."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "ExpressRoute traffic goes over the internet.",
+      "reality": "It uses a private connection."
+    },
+    {
+      "myth": "VNets are reachable from the internet by default.",
+      "reality": "Inbound traffic needs a public IP or load balancer and allowed rules."
+    },
+    {
+      "myth": "You can buy domains in Azure DNS.",
+      "reality": "Azure DNS hosts zones only."
+    }
+  ],
+  "architectureDecisions": [
+    "Plan non-overlapping address spaces up front.",
+    "Use VPN for branches and remote users; ExpressRoute for critical, high-volume links.",
+    "Segment tiers into subnets with NSGs."
+  ],
+  "docs": [
+    {
+      "title": "Describe Azure compute and networking services (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-azure-compute-networking-services/"
+    },
+    {
+      "title": "What is Azure Virtual Network?",
+      "url": "https://learn.microsoft.com/azure/virtual-network/virtual-networks-overview"
+    },
+    {
+      "title": "Virtual network peering",
+      "url": "https://learn.microsoft.com/azure/virtual-network/virtual-network-peering-overview"
+    },
+    {
+      "title": "VPN Gateway",
+      "url": "https://learn.microsoft.com/azure/vpn-gateway/vpn-gateway-about-vpngateways"
+    },
+    {
+      "title": "ExpressRoute",
+      "url": "https://learn.microsoft.com/azure/expressroute/expressroute-introduction"
+    },
+    {
+      "title": "Azure DNS",
+      "url": "https://learn.microsoft.com/azure/dns/dns-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

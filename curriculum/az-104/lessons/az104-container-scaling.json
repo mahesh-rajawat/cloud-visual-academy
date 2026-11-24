@@ -1,0 +1,482 @@
+{
+  "id": "az104-container-scaling",
+  "exam": "az-104",
+  "title": "Sizing and scaling ACI and Container Apps",
+  "objectiveIds": [
+    "AZ104-3.3.4"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Size container CPU and memory correctly, and configure Container Apps scale rules (including scale to zero), knowing that ACI does not autoscale.",
+  "prerequisites": [
+    {
+      "text": "Containers on Azure",
+      "objectiveId": "AZ104-3.3.2",
+      "lessonId": "az104-containers"
+    },
+    {
+      "text": "Autoscale concepts",
+      "objectiveId": "AZ104-3.2.7",
+      "lessonId": "az104-vmss"
+    }
+  ],
+  "foundation": [
+    "Each container needs a certain amount of CPU and memory, which you set when you deploy it.",
+    "Azure Container Instances runs exactly what you deploy and does not add copies by itself.",
+    "Azure Container Apps adds and removes copies (replicas) automatically based on rules such as HTTP traffic, and can go down to zero when idle."
+  ],
+  "engineer": [
+    "ACI sizing: CPU and memory requests per container (the group's total must fit the region's limits); GPU in supported regions. Resources cannot be changed on a running group; redeploy with new values. Scale out by creating more container groups (for example behind Application Gateway), or use Container Apps or AKS.",
+    "Container Apps sizing: in the Consumption plan, CPU/memory combinations are fixed pairs (for example 0.25 vCPU/0.5 GiB up to 4 vCPU/8 GiB, memory = 2 × vCPU). Workload profiles (dedicated) allow larger sizes.",
+    "Container Apps scaling: min and max replicas per revision (min can be 0; max defaults to 10 and can be raised). Scale rules: HTTP (concurrent requests per replica, default 10), TCP (concurrent connections), CPU/memory utilisation, and custom KEDA scalers (for example Azure Service Bus queue length). With min replicas 0, an idle app costs nothing for compute but has a cold start.",
+    "Scaling decisions are per revision; the KEDA-based scaler polls event sources and adds replicas up to max. Set min replicas to 1+ for latency-sensitive APIs."
+  ],
+  "animation": {
+    "id": "autoscale-sim",
+    "caption": "Open 'Container sizing and scaling': compare ACI with Container Apps HTTP scaling and scale to zero."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "req",
+        "label": "HTTP requests",
+        "x": 0,
+        "y": 60,
+        "kind": "globe"
+      },
+      {
+        "id": "ing",
+        "label": "Container Apps ingress",
+        "x": 220,
+        "y": 60,
+        "kind": "network"
+      },
+      {
+        "id": "keda",
+        "label": "Scale rule: 10 concurrent/replica",
+        "x": 440,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "reps",
+        "label": "Replicas 0…10",
+        "x": 440,
+        "y": 130,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "req",
+        "to": "ing"
+      },
+      {
+        "from": "ing",
+        "to": "reps"
+      },
+      {
+        "from": "keda",
+        "to": "reps",
+        "label": "adjusts"
+      }
+    ]
+  },
+  "example": {
+    "title": "Queue-driven worker",
+    "body": [
+      "An order-processing worker on Container Apps uses a Service Bus scale rule: one replica per 20 messages, min 0, max 30. Overnight it scales to zero; at peak it reaches 30 replicas.",
+      "A legacy report job stays on ACI with 2 vCPU / 4 GiB, run on demand by a Logic App."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Container Apps environment",
+      "Scale source (HTTP ingress, queue, etc.)"
+    ],
+    "permissions": [
+      "Contributor on the container app"
+    ],
+    "limits": [
+      "ACI: no autoscale; resources fixed per deployment",
+      "ACA Consumption: CPU/memory pairs",
+      "Max replicas configurable (default 10)"
+    ],
+    "portal": [
+      "Container App > Scale: min/max replicas and scale rules (HTTP, TCP, custom).",
+      "Container App > Containers: CPU/memory.",
+      "ACI: redeploy with new CPU/memory values."
+    ],
+    "cli": "az containerapp update -g rg-app -n api --cpu 0.5 --memory 1.0Gi --min-replicas 1 --max-replicas 20 \\\n  --scale-rule-name http-rule --scale-rule-type http --scale-rule-http-concurrency 50\naz container create -g rg-app -n aci-report --image mcr.microsoft.com/azuredocs/aci-helloworld --os-type Linux --cpu 2 --memory 4",
+    "powershell": "Update-AzContainerApp -ResourceGroupName rg-app -Name api -ScaleMinReplica 1 -ScaleMaxReplica 20\n$c = New-AzContainerInstanceObject -Name report -Image mcr.microsoft.com/azuredocs/aci-helloworld -RequestCpu 2 -RequestMemoryInGb 4\nNew-AzContainerGroup -ResourceGroupName rg-app -Name aci-report -Location westeurope -Container $c -OsType Linux"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "autoscale-sim",
+    "objective": "Size containers and configure scaling for idle and peak load.",
+    "duration": 10,
+    "steps": [
+      "Run with 250 concurrent requests and max 10 replicas; read the cap warning.",
+      "Apply 'Idle (scale to zero)'.",
+      "Switch to ACI under load and read why it cannot scale.",
+      "Try 1 vCPU / 8 GiB on Container Apps."
+    ],
+    "expected": [
+      "Replicas capped at max",
+      "Zero replicas when idle",
+      "ACI has no autoscale",
+      "CPU/memory pair rule"
+    ],
+    "validation": [
+      {
+        "id": "aci-fixed",
+        "text": "Saw ACI's fixed capacity"
+      },
+      {
+        "id": "aca-scale-zero",
+        "text": "Scaled a container app to zero"
+      },
+      {
+        "id": "aca-scaled",
+        "text": "Scaled a container app out"
+      }
+    ],
+    "failureScenarios": [
+      "Max replicas too low",
+      "Invalid CPU/memory pair"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Container app slow on the first request in the morning.",
+      "cause": "Scaled to zero; cold start.",
+      "fix": "Set min replicas to 1."
+    },
+    {
+      "symptom": "Requests queue during peak.",
+      "cause": "Max replicas reached.",
+      "fix": "Raise max replicas or the per-replica concurrency."
+    },
+    {
+      "symptom": "Invalid CPU/memory combination error.",
+      "cause": "Consumption profile requires fixed pairs.",
+      "fix": "Use a valid pair or a dedicated workload profile."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AKS Horizontal Pod Autoscaler / KEDA",
+      "difference": "Container Apps uses KEDA under the hood without exposing the cluster."
+    },
+    {
+      "service": "AWS Fargate",
+      "difference": "ECS services on Fargate use Application Auto Scaling; App Runner scales on concurrency."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Scale to zero means the app is deleted.",
+      "reality": "Revisions remain; replicas start again on demand."
+    },
+    {
+      "myth": "ACI can scale with rules like VMSS.",
+      "reality": "It cannot."
+    }
+  ],
+  "architectureDecisions": [
+    "Use HTTP concurrency rules for APIs and event-source rules for workers.",
+    "Keep min replicas ≥ 1 where cold starts are unacceptable."
+  ],
+  "docs": [
+    {
+      "title": "Scaling in Azure Container Apps",
+      "url": "https://learn.microsoft.com/azure/container-apps/scale-app"
+    },
+    {
+      "title": "Containers in Azure Container Apps (CPU and memory)",
+      "url": "https://learn.microsoft.com/azure/container-apps/containers"
+    },
+    {
+      "title": "Resource availability for ACI",
+      "url": "https://learn.microsoft.com/azure/container-instances/container-instances-region-availability"
+    },
+    {
+      "title": "ACI FAQ (scaling)",
+      "url": "https://learn.microsoft.com/azure/container-instances/container-instances-faq"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Give containers the right CPU and memory, and let Container Apps scale them for you.",
+    "learn": [
+      "Sizing ACI container groups",
+      "ACI does not autoscale",
+      "Container Apps scale rules",
+      "Replicas, scale to zero and revisions"
+    ],
+    "nodes": [
+      {
+        "id": "aci",
+        "label": "ACI group",
+        "x": 150,
+        "y": 120,
+        "kind": "compute",
+        "sub": "fixed CPU + memory"
+      },
+      {
+        "id": "aca",
+        "label": "Container app",
+        "x": 450,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "rule",
+        "label": "Scale rule",
+        "x": 150,
+        "y": 320,
+        "kind": "service",
+        "sub": "HTTP: 50 requests"
+      },
+      {
+        "id": "r1",
+        "label": "Replica 1",
+        "x": 690,
+        "y": 110,
+        "kind": "compute"
+      },
+      {
+        "id": "r2",
+        "label": "Replica 2",
+        "x": 690,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "r3",
+        "label": "Replica 3",
+        "x": 690,
+        "y": 330,
+        "kind": "compute"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Sizing",
+        "title": "How big, and how many?",
+        "body": [
+          "Too little CPU and the app is slow; too much and you overpay. And traffic changes during the day."
+        ],
+        "show": [
+          "aci"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "ACI size",
+        "title": "ACI: you set the size, it stays",
+        "body": [
+          "In ACI you request CPU and memory per container; the group's total is the sum. To change it, you redeploy. ACI has no built-in autoscale; for more copies, create more groups."
+        ],
+        "show": [
+          "aci"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Need automatic scaling for containers without managing Kubernetes? Choose Container Apps, not ACI."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Rules",
+        "title": "Container Apps: scale rules",
+        "body": [
+          "Each container app has minimum and maximum replicas and scale rules: HTTP (concurrent requests), TCP, CPU or memory, or event-driven rules from KEDA (for example queue length)."
+        ],
+        "show": [
+          "aci",
+          "aca",
+          "rule"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "rule",
+            "to": "aca",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Replicas",
+        "title": "Replicas grow, shrink and can reach zero",
+        "body": [
+          "With minimum replicas 0, an idle app scales to zero and costs nothing for compute. CPU and memory per container are set in fixed combinations (for example 0.5 vCPU / 1 GiB).",
+          "Changes to the template create a new revision; you can split traffic between revisions."
+        ],
+        "show": [
+          "aci",
+          "aca",
+          "rule",
+          "r1",
+          "r2",
+          "r3"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "rule",
+            "to": "aca"
+          },
+          {
+            "from": "aca",
+            "to": "r1",
+            "fresh": true
+          },
+          {
+            "from": "aca",
+            "to": "r2",
+            "fresh": true
+          },
+          {
+            "from": "aca",
+            "to": "r3",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Container scaling",
+        "body": [
+          "ACI: fixed size. Container Apps: rules and replicas."
+        ],
+        "show": [
+          "aci",
+          "aca",
+          "rule",
+          "r1",
+          "r2",
+          "r3"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "rule",
+            "to": "aca"
+          },
+          {
+            "from": "aca",
+            "to": "r1"
+          },
+          {
+            "from": "aca",
+            "to": "r2"
+          },
+          {
+            "from": "aca",
+            "to": "r3"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "ACI: CPU and memory per container; redeploy to change",
+          "ACI has no autoscale",
+          "Container Apps: HTTP, TCP, CPU/memory or KEDA rules",
+          "Min/max replicas; 0 = scale to zero",
+          "Template changes create revisions"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a container app with an HTTP scale rule",
+    "minutes": 25,
+    "costLevel": "free",
+    "cost": "Free or cents. Container Apps (Consumption) includes a monthly free grant; the app scales to zero when idle.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Container Apps' > + Create > Container App. Group rg-az104-lab, name ca-lab, region your region, create a new Container Apps environment (Consumption only)."
+      },
+      {
+        "do": "Container tab: tick 'Use quickstart image' (Simple hello world container).",
+        "see": "Defaults of 0.5 CPU and 1 GiB memory."
+      },
+      {
+        "do": "Ingress tab: enable ingress, traffic from anywhere, target port 80. Review + create > Create.",
+        "see": "Deployment completes in a few minutes."
+      },
+      {
+        "do": "Open ca-lab > Overview and browse to the Application Url.",
+        "see": "A hello world page."
+      },
+      {
+        "do": "Open Application > Scale (or Revisions and replicas > Edit and deploy > Scale). Set min replicas 0, max 5. Add a rule: HTTP scaling, concurrent requests 10. Create the new revision.",
+        "see": "A new revision with the scale rule."
+      },
+      {
+        "do": "Open Revisions and replicas.",
+        "see": "The revision list and how many replicas are running. With no traffic it drops to 0 after a few minutes."
+      }
+    ],
+    "check": [
+      "ca-lab has min 0, max 5 replicas and an HTTP rule."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Set scaling rules in Azure Container Apps",
+        "url": "https://learn.microsoft.com/azure/container-apps/scale-app"
+      },
+      {
+        "title": "Container groups in Azure Container Instances",
+        "url": "https://learn.microsoft.com/azure/container-instances/container-instances-container-groups"
+      },
+      {
+        "title": "Revisions in Azure Container Apps",
+        "url": "https://learn.microsoft.com/azure/container-apps/revisions"
+      }
+    ]
+  }
+}

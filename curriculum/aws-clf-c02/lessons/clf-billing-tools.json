@@ -1,0 +1,661 @@
+{
+  "id": "clf-billing-tools",
+  "exam": "aws-clf-c02",
+  "title": "Billing, budgets and cost management",
+  "objectiveIds": [
+    "CLFC02-4.2.1",
+    "CLFC02-4.2.2",
+    "CLFC02-4.2.3",
+    "CLFC02-4.2.4",
+    "CLFC02-4.2.5",
+    "CLFC02-4.2.6",
+    "CLFC02-4.2.7",
+    "CLFC02-4.2.8"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Use the Billing console, pricing information, AWS Budgets, Cost Explorer, the Pricing Calculator, Organizations consolidated billing and cost allocation tags with the Cost and Usage Report.",
+  "prerequisites": [
+    {
+      "text": "Pricing models",
+      "objectiveId": "CLFC02-4.1.1",
+      "lessonId": "clf-pricing-models"
+    }
+  ],
+  "foundation": [
+    "The Billing and Cost Management console shows your bills and payments.",
+    "AWS Budgets alerts you when cost or usage passes a limit; Cost Explorer shows where money goes and forecasts spend; the Pricing Calculator estimates costs before you build.",
+    "AWS Organizations puts many accounts on one bill (consolidated billing), and cost allocation tags let you split costs by project or team."
+  ],
+  "engineer": [
+    "Billing support: billing console, invoices, payment methods, Billing Conductor (custom billing groups), AWS Support for billing questions (available on all plans including Basic).",
+    "Pricing information: service pricing pages, AWS Price List API, Pricing Calculator (estimates, exportable, shareable).",
+    "AWS Budgets: cost, usage, RI/Savings Plans utilisation and coverage budgets; alerts on actual or forecasted values via email/SNS; budget actions can apply IAM or SCP policies or stop instances. Cost Explorer: visualise up to the past 13 months (longer with settings), forecast, rightsizing and Savings Plans recommendations.",
+    "Organizations: management account pays; consolidated billing combines usage for volume pricing tiers and shares RI/Savings Plans discounts; no extra cost. Cost allocation tags: AWS-generated (for example aws:createdBy) and user-defined tags must be activated in the billing console; they appear in Cost Explorer and the AWS Cost and Usage Report (CUR / CUR 2.0 via Data Exports), the most detailed billing data delivered to S3."
+  ],
+  "animation": {
+    "id": "aws-billing-sim",
+    "caption": "Open 'Billing and cost tools' and 'Consolidated billing and RIs'."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "calc",
+        "label": "Pricing Calculator (before)",
+        "x": 0,
+        "y": 60,
+        "kind": "service"
+      },
+      {
+        "id": "acct",
+        "label": "Accounts in Organizations",
+        "x": 230,
+        "y": 60,
+        "kind": "user"
+      },
+      {
+        "id": "ce",
+        "label": "Cost Explorer (analyse, forecast)",
+        "x": 460,
+        "y": 0,
+        "kind": "service"
+      },
+      {
+        "id": "bud",
+        "label": "Budgets (alerts/actions)",
+        "x": 460,
+        "y": 130,
+        "kind": "security"
+      },
+      {
+        "id": "cur",
+        "label": "Cost and Usage Report (S3)",
+        "x": 690,
+        "y": 60,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "calc",
+        "to": "acct",
+        "label": "build"
+      },
+      {
+        "from": "acct",
+        "to": "ce"
+      },
+      {
+        "from": "acct",
+        "to": "bud"
+      },
+      {
+        "from": "acct",
+        "to": "cur",
+        "label": "with tags"
+      }
+    ]
+  },
+  "example": {
+    "title": "FinOps basics",
+    "body": [
+      "The company estimates a new project with the Pricing Calculator, tags all resources with project=atlas, activates the tag for cost allocation, sets a budget alert at 80% of forecast, and loads the CUR into Athena for monthly chargeback across 30 accounts on one consolidated bill."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "Billing and Cost Management > Budgets > Create budget.",
+      "Cost Explorer > Reports.",
+      "Billing > Cost allocation tags > Activate.",
+      "Data Exports > Create (CUR 2.0)."
+    ],
+    "cli": "aws budgets create-budget --account-id <id> --budget file://budget.json --notifications-with-subscribers file://notify.json\naws ce get-cost-and-usage --time-period Start=2026-10-01,End=2026-11-01 --granularity MONTHLY --metrics UnblendedCost --group-by Type=TAG,Key=project\naws organizations list-accounts",
+    "powershell": "Get-CECostAndUsage -TimePeriod_Start 2026-10-01 -TimePeriod_End 2026-11-01 -Granularity MONTHLY -Metric UnblendedCost\nGet-ORGAccountList"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-billing-sim",
+    "objective": "Practise choosing the right billing tool.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Billing and cost tools' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-billing-tool-correct",
+        "text": "Chose a correct billing tool"
+      },
+      {
+        "id": "aws-billing-tool-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Tags missing in Cost Explorer.",
+      "cause": "Tags not activated as cost allocation tags (or applied after the usage).",
+      "fix": "Activate them in Billing; they apply going forward."
+    },
+    {
+      "symptom": "Surprised by a large bill.",
+      "cause": "No budget alerts.",
+      "fix": "Create budgets with forecast alerts."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Cost Management",
+      "difference": "Budgets, cost analysis, pricing calculator and exports are equivalent."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Budgets stop spending automatically.",
+      "reality": "They alert; budget actions must be configured to act."
+    },
+    {
+      "myth": "Consolidated billing costs extra.",
+      "reality": "It is free with Organizations."
+    }
+  ],
+  "architectureDecisions": [
+    "Tag consistently, activate tags, and review Cost Explorer monthly."
+  ],
+  "docs": [
+    {
+      "title": "AWS Budgets",
+      "url": "https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html"
+    },
+    {
+      "title": "AWS Cost Explorer",
+      "url": "https://docs.aws.amazon.com/cost-management/latest/userguide/ce-what-is.html"
+    },
+    {
+      "title": "AWS Pricing Calculator",
+      "url": "https://docs.aws.amazon.com/pricing-calculator/latest/userguide/what-is-pricing-calculator.html"
+    },
+    {
+      "title": "Consolidated billing",
+      "url": "https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/consolidated-billing.html"
+    },
+    {
+      "title": "Cost allocation tags",
+      "url": "https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html"
+    },
+    {
+      "title": "AWS Cost and Usage Report",
+      "url": "https://docs.aws.amazon.com/cur/latest/userguide/what-is-cur.html"
+    },
+    {
+      "title": "AWS Organizations",
+      "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Run the bills for a company with many AWS accounts: one bill, tagged costs, forecasts, alerts and estimates.",
+    "learn": [
+      "AWS Organizations and consolidated billing",
+      "Cost allocation tags and the Cost and Usage Report",
+      "AWS Cost Explorer",
+      "AWS Budgets",
+      "AWS Pricing Calculator, pricing information and billing support"
+    ],
+    "nodes": [
+      {
+        "id": "org",
+        "label": "AWS Organizations",
+        "x": 400,
+        "y": 50,
+        "kind": "globe",
+        "sub": "management account"
+      },
+      {
+        "id": "a1",
+        "label": "Account: Shop",
+        "x": 200,
+        "y": 160,
+        "kind": "service"
+      },
+      {
+        "id": "a2",
+        "label": "Account: Data",
+        "x": 400,
+        "y": 160,
+        "kind": "service"
+      },
+      {
+        "id": "a3",
+        "label": "Account: Dev",
+        "x": 600,
+        "y": 160,
+        "kind": "service"
+      },
+      {
+        "id": "tags",
+        "label": "Cost allocation tags",
+        "x": 160,
+        "y": 290,
+        "kind": "cost",
+        "sub": "team=checkout"
+      },
+      {
+        "id": "cur",
+        "label": "Cost and Usage Report",
+        "x": 160,
+        "y": 400,
+        "kind": "cost",
+        "sub": "every line item"
+      },
+      {
+        "id": "ce",
+        "label": "Cost Explorer",
+        "x": 400,
+        "y": 300,
+        "kind": "cost",
+        "sub": "trends + forecast"
+      },
+      {
+        "id": "bud",
+        "label": "AWS Budgets",
+        "x": 640,
+        "y": 300,
+        "kind": "cost",
+        "sub": "alerts + actions"
+      },
+      {
+        "id": "calc",
+        "label": "Pricing Calculator",
+        "x": 640,
+        "y": 400,
+        "kind": "cost",
+        "sub": "estimate first"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Who spent it?",
+        "title": "\"Why is the bill 40% higher?\"",
+        "body": [
+          "The company has many AWS accounts. Finance gets several bills, can't tell which team spent what, and only finds out about overspending at the end of the month."
+        ],
+        "show": [
+          "a1",
+          "a2",
+          "a3"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Consolidated",
+        "title": "One bill with AWS Organizations",
+        "body": [
+          "Put all accounts in AWS Organizations. Consolidated billing gives one bill paid by the management account, still broken down per account.",
+          "Usage is combined, so volume pricing tiers and shared RI and Savings Plans discounts benefit everyone."
+        ],
+        "show": [
+          "a1",
+          "a2",
+          "a3",
+          "org"
+        ],
+        "focus": [
+          "org"
+        ],
+        "edges": [
+          {
+            "from": "a1",
+            "to": "org",
+            "fresh": true
+          },
+          {
+            "from": "a2",
+            "to": "org",
+            "fresh": true
+          },
+          {
+            "from": "a3",
+            "to": "org",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Tags",
+        "title": "Tag resources by team and project",
+        "body": [
+          "Cost allocation tags are key-value labels on resources. AWS-generated tags (such as aws:createdBy) and user-defined tags (such as team=checkout) appear in billing only after you activate them in the Billing console.",
+          "The Cost and Usage Report (delivered through Data Exports) gives the most detailed line-item data, including tags."
+        ],
+        "show": [
+          "a1",
+          "a2",
+          "a3",
+          "org",
+          "tags",
+          "cur"
+        ],
+        "focus": [
+          "tags",
+          "cur"
+        ],
+        "edges": [
+          {
+            "from": "a1",
+            "to": "org"
+          },
+          {
+            "from": "a2",
+            "to": "org"
+          },
+          {
+            "from": "a3",
+            "to": "org"
+          },
+          {
+            "from": "a1",
+            "to": "tags",
+            "label": "team=checkout",
+            "fresh": true
+          },
+          {
+            "from": "tags",
+            "to": "cur",
+            "label": "line items",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Cost Explorer",
+        "title": "See trends with Cost Explorer",
+        "body": [
+          "AWS Cost Explorer shows costs over time, grouped by service, account, Region or tag, and forecasts future spend. Here it shows the jump came from the Data account's new cluster."
+        ],
+        "show": [
+          "a1",
+          "a2",
+          "a3",
+          "org",
+          "tags",
+          "cur",
+          "ce"
+        ],
+        "focus": [
+          "ce"
+        ],
+        "edges": [
+          {
+            "from": "a1",
+            "to": "org"
+          },
+          {
+            "from": "a2",
+            "to": "org"
+          },
+          {
+            "from": "a3",
+            "to": "org"
+          },
+          {
+            "from": "a1",
+            "to": "tags",
+            "label": "team=checkout"
+          },
+          {
+            "from": "tags",
+            "to": "cur",
+            "label": "line items"
+          },
+          {
+            "from": "org",
+            "to": "ce",
+            "label": "cost data",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Budgets",
+        "title": "Get warned with AWS Budgets",
+        "body": [
+          "AWS Budgets sets a cost or usage limit and sends alerts, by email or SNS, when actual or forecast spend crosses a threshold. It can also track RI and Savings Plans coverage, and run actions such as applying a restrictive policy."
+        ],
+        "show": [
+          "a1",
+          "a2",
+          "a3",
+          "org",
+          "tags",
+          "cur",
+          "ce",
+          "bud"
+        ],
+        "focus": [
+          "bud"
+        ],
+        "edges": [
+          {
+            "from": "a1",
+            "to": "org"
+          },
+          {
+            "from": "a2",
+            "to": "org"
+          },
+          {
+            "from": "a3",
+            "to": "org"
+          },
+          {
+            "from": "a1",
+            "to": "tags",
+            "label": "team=checkout"
+          },
+          {
+            "from": "tags",
+            "to": "cur",
+            "label": "line items"
+          },
+          {
+            "from": "org",
+            "to": "ce",
+            "label": "cost data"
+          },
+          {
+            "from": "ce",
+            "to": "bud",
+            "label": "thresholds",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Cost Explorer = analyse past and forecast. Budgets = alert when a threshold is crossed. Pricing Calculator = estimate before you build."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Estimate",
+        "title": "Estimate before building",
+        "body": [
+          "AWS Pricing Calculator estimates the monthly cost of an architecture you haven't built yet. Each service's pricing page and the AWS Price List API give the official prices.",
+          "Billing and account questions can go to AWS Support on every plan, including Basic, at no extra cost."
+        ],
+        "show": [
+          "a1",
+          "a2",
+          "a3",
+          "org",
+          "tags",
+          "cur",
+          "ce",
+          "bud",
+          "calc"
+        ],
+        "focus": [
+          "calc"
+        ],
+        "edges": [
+          {
+            "from": "a1",
+            "to": "org"
+          },
+          {
+            "from": "a2",
+            "to": "org"
+          },
+          {
+            "from": "a3",
+            "to": "org"
+          },
+          {
+            "from": "a1",
+            "to": "tags",
+            "label": "team=checkout"
+          },
+          {
+            "from": "tags",
+            "to": "cur",
+            "label": "line items"
+          },
+          {
+            "from": "org",
+            "to": "ce",
+            "label": "cost data"
+          },
+          {
+            "from": "ce",
+            "to": "bud",
+            "label": "thresholds"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "See it, split it, limit it, plan it",
+        "body": [
+          "No more month-end surprises."
+        ],
+        "show": [
+          "a1",
+          "a2",
+          "a3",
+          "org",
+          "tags",
+          "cur",
+          "ce",
+          "bud",
+          "calc"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "a1",
+            "to": "org"
+          },
+          {
+            "from": "a2",
+            "to": "org"
+          },
+          {
+            "from": "a3",
+            "to": "org"
+          },
+          {
+            "from": "a1",
+            "to": "tags",
+            "label": "team=checkout"
+          },
+          {
+            "from": "tags",
+            "to": "cur",
+            "label": "line items"
+          },
+          {
+            "from": "org",
+            "to": "ce",
+            "label": "cost data"
+          },
+          {
+            "from": "ce",
+            "to": "bud",
+            "label": "thresholds"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Organizations: one consolidated bill, shared discounts",
+          "Activate cost allocation tags; detailed data in the Cost and Usage Report",
+          "Cost Explorer: trends and forecasts",
+          "Budgets: alerts and actions",
+          "Pricing Calculator for estimates; billing support on all plans"
+        ]
+      }
+    ]
+  }
+}

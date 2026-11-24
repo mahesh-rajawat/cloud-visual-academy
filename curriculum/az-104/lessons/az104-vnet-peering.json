@@ -1,0 +1,534 @@
+{
+  "id": "az104-vnet-peering",
+  "exam": "az-104",
+  "title": "Virtual network peering",
+  "objectiveIds": [
+    "AZ104-4.1.2"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Create and configure regional and global VNet peering, including hub-and-spoke designs with gateway transit and forwarded traffic.",
+  "prerequisites": [
+    {
+      "text": "Virtual networks and subnets",
+      "objectiveId": "AZ104-4.1.1",
+      "lessonId": "az104-vnet-subnets"
+    }
+  ],
+  "foundation": [
+    "Peering connects two virtual networks so their resources talk using private IP addresses over the Microsoft backbone, as if they were one network.",
+    "Peering works within a region (regional) or across regions (global). The two address spaces must not overlap.",
+    "Peering is not transitive: if A is peered with Hub and Hub with B, A still cannot reach B on its own."
+  ],
+  "engineer": [
+    "A peering is two links, one in each VNet. Status is Initiated until both exist, then Connected. The portal creates both links in one step when you have permissions on both VNets; with the CLI you create each side.",
+    "Settings per link: Allow access to the remote VNet, Allow forwarded traffic (accept traffic that an NVA in the other VNet forwards, not originated there), Allow gateway transit (on the hub: let peers use this VNet's VPN/ExpressRoute gateway), Use remote gateways (on the spoke: use the hub's gateway; the spoke must not have its own gateway).",
+    "Spoke-to-spoke traffic needs a hub NVA or Azure Firewall plus UDRs in the spokes, or Azure Virtual Network Manager connectivity configurations, or Virtual WAN.",
+    "Peering works across subscriptions and Microsoft Entra tenants (with permissions on both sides). Address spaces of peered VNets can be resized after peering, followed by a sync of the peering.",
+    "Costs: peering traffic is charged per GB for both ingress and egress; global peering charges are higher."
+  ],
+  "animation": {
+    "id": "network-routing-sim",
+    "caption": "VNet peering tab: hub-and-spoke reachability, gateway transit and overlapping spaces."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "hub",
+        "label": "vnet-hub 10.0.0.0/16 (VPN gateway, NVA)",
+        "x": 300,
+        "y": 20,
+        "kind": "network"
+      },
+      {
+        "id": "s1",
+        "label": "vnet-spoke1 10.1.0.0/16",
+        "x": 80,
+        "y": 160,
+        "kind": "network"
+      },
+      {
+        "id": "s2",
+        "label": "vnet-spoke2 10.2.0.0/16",
+        "x": 520,
+        "y": 160,
+        "kind": "network"
+      },
+      {
+        "id": "op",
+        "label": "On-premises",
+        "x": 300,
+        "y": 260,
+        "kind": "globe"
+      }
+    ],
+    "edges": [
+      {
+        "from": "s1",
+        "to": "hub",
+        "label": "peering"
+      },
+      {
+        "from": "s2",
+        "to": "hub",
+        "label": "peering"
+      },
+      {
+        "from": "hub",
+        "to": "op",
+        "label": "VPN"
+      }
+    ]
+  },
+  "example": {
+    "title": "Shared services hub",
+    "body": [
+      "Contoso runs domain controllers and a VPN gateway in vnet-hub. Each app team has a spoke peered to the hub with Use remote gateways, so spokes reach on-premises through one gateway.",
+      "Spokes are isolated from each other until the security team adds Azure Firewall in the hub and UDRs sending 10.0.0.0/8 to it."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription and a resource group (rg-net)"
+    ],
+    "permissions": [
+      "Network Contributor (or Microsoft.Network/virtualNetworks/virtualNetworkPeerings/write) on both VNets"
+    ],
+    "limits": [
+      "500 peerings per VNet (more with Azure Virtual Network Manager)",
+      "Address spaces must not overlap",
+      "Use remote gateways requires the remote VNet to have a gateway and the local VNet to have none"
+    ],
+    "portal": [
+      "vnet-spoke1 > Peerings > Add.",
+      "Enter both link names, choose the remote VNet, set allow access, forwarded traffic, gateway transit or use remote gateways.",
+      "Check Peering status is Connected on both VNets."
+    ],
+    "cli": "az network vnet peering create -g rg-net -n spoke1-to-hub --vnet-name vnet-spoke1 --remote-vnet vnet-hub --allow-vnet-access --allow-forwarded-traffic --use-remote-gateways\naz network vnet peering create -g rg-net -n hub-to-spoke1 --vnet-name vnet-hub --remote-vnet vnet-spoke1 --allow-vnet-access --allow-gateway-transit\naz network vnet peering list -g rg-net --vnet-name vnet-hub -o table",
+    "powershell": "$hub = Get-AzVirtualNetwork -Name vnet-hub -ResourceGroupName rg-net\n$sp = Get-AzVirtualNetwork -Name vnet-spoke1 -ResourceGroupName rg-net\nAdd-AzVirtualNetworkPeering -Name hub-to-spoke1 -VirtualNetwork $hub -RemoteVirtualNetworkId $sp.Id -AllowGatewayTransit\nAdd-AzVirtualNetworkPeering -Name spoke1-to-hub -VirtualNetwork $sp -RemoteVirtualNetworkId $hub.Id -UseRemoteGateways -AllowForwardedTraffic"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "network-routing-sim",
+    "objective": "Build hub-and-spoke peering and prove it is non-transitive.",
+    "duration": 15,
+    "steps": [
+      "Run the default spoke1 → spoke2 test and read why it fails.",
+      "Apply 'Spoke to spoke via hub NVA'.",
+      "Apply 'On-premises via gateway transit'.",
+      "Apply 'Overlapping address space' and 'Only one side created'."
+    ],
+    "expected": [
+      "Spoke-to-spoke fails without an NVA",
+      "Gateway transit reaches on-premises",
+      "Overlap and one-sided peering fail"
+    ],
+    "validation": [
+      {
+        "id": "peering-connected",
+        "text": "Connected a spoke to the hub"
+      },
+      {
+        "id": "peering-transit-nva",
+        "text": "Routed spoke to spoke via the hub NVA"
+      },
+      {
+        "id": "peering-gateway-transit",
+        "text": "Used gateway transit"
+      },
+      {
+        "id": "peering-failed",
+        "text": "Diagnosed a failed peering"
+      }
+    ],
+    "failureScenarios": [
+      "Overlapping address spaces",
+      "Peering created on one side only",
+      "Expecting transitive routing"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Peering status stays Initiated.",
+      "cause": "Only one link exists.",
+      "fix": "Create the peering from the remote VNet too."
+    },
+    {
+      "symptom": "Spoke1 cannot reach spoke2.",
+      "cause": "Peering is not transitive.",
+      "fix": "Add a hub NVA/Firewall with UDRs, or peer the spokes directly."
+    },
+    {
+      "symptom": "Spoke cannot reach on-premises.",
+      "cause": "Gateway transit not configured.",
+      "fix": "Hub: Allow gateway transit; spoke: Use remote gateways."
+    },
+    {
+      "symptom": "Cannot create peering.",
+      "cause": "Address spaces overlap.",
+      "fix": "Re-address one VNet."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "VPN gateway VNet-to-VNet",
+      "difference": "Encrypted IPsec tunnel through gateways with bandwidth limits; peering is lower latency and higher bandwidth."
+    },
+    {
+      "service": "AWS VPC peering",
+      "difference": "Also non-transitive; AWS Transit Gateway is the hub equivalent."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Peering is transitive through a hub.",
+      "reality": "It is not; use an NVA, Virtual WAN or direct peerings."
+    },
+    {
+      "myth": "Global peering traffic is free.",
+      "reality": "Peering is billed per GB in and out."
+    }
+  ],
+  "architectureDecisions": [
+    "Use hub-and-spoke with a central firewall for shared services and inspection.",
+    "Plan non-overlapping address spaces up front.",
+    "Consider Azure Virtual Network Manager for many spokes."
+  ],
+  "docs": [
+    {
+      "title": "Virtual network peering",
+      "url": "https://learn.microsoft.com/azure/virtual-network/virtual-network-peering-overview"
+    },
+    {
+      "title": "Configure gateway transit",
+      "url": "https://learn.microsoft.com/azure/vpn-gateway/vpn-gateway-peering-gateway-transit"
+    },
+    {
+      "title": "Hub-spoke topology",
+      "url": "https://learn.microsoft.com/azure/architecture/networking/architecture/hub-spoke"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Connect two virtual networks so they talk privately over Microsoft's backbone.",
+    "learn": [
+      "What peering does",
+      "Peering is not transitive",
+      "Gateway transit and forwarded traffic",
+      "Rules: no overlaps, both directions"
+    ],
+    "nodes": [
+      {
+        "id": "hub",
+        "label": "Hub VNet 10.0.0.0/16",
+        "x": 400,
+        "y": 80,
+        "kind": "network"
+      },
+      {
+        "id": "s1",
+        "label": "Spoke 1 10.1.0.0/16",
+        "x": 180,
+        "y": 260,
+        "kind": "network"
+      },
+      {
+        "id": "s2",
+        "label": "Spoke 2 10.2.0.0/16",
+        "x": 620,
+        "y": 260,
+        "kind": "network"
+      },
+      {
+        "id": "gw",
+        "label": "VPN gateway",
+        "x": 680,
+        "y": 80,
+        "kind": "network",
+        "sub": "in the hub"
+      },
+      {
+        "id": "fw",
+        "label": "Firewall / NVA",
+        "x": 400,
+        "y": 390,
+        "kind": "security",
+        "sub": "in the hub"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Separate networks",
+        "title": "Two teams, two VNets, one app",
+        "body": [
+          "The web team's VNet must reach the database team's VNet, privately and fast, without a VPN."
+        ],
+        "show": [
+          "s1",
+          "hub"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Peering",
+        "title": "Peering joins two VNets",
+        "body": [
+          "VNet peering connects two VNets so their resources talk using private IPs over the Microsoft backbone, with low latency. It works in the same region or across regions (global peering) and across subscriptions and tenants."
+        ],
+        "show": [
+          "s1",
+          "hub"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "s1",
+            "to": "hub",
+            "label": "peering",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Not transitive",
+        "title": "Peering is not transitive",
+        "body": [
+          "If Spoke 1 is peered to the hub and Spoke 2 is peered to the hub, Spoke 1 still cannot reach Spoke 2. Either peer the spokes directly, or route through a firewall or NVA in the hub with user-defined routes."
+        ],
+        "show": [
+          "s1",
+          "hub",
+          "s2",
+          "fw"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "s1",
+            "to": "hub",
+            "label": "peering"
+          },
+          {
+            "from": "s2",
+            "to": "hub",
+            "label": "peering",
+            "fresh": true
+          },
+          {
+            "from": "hub",
+            "to": "fw",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Exam favourite: A↔B and B↔C does not give A↔C."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Options",
+        "title": "Peering settings that matter",
+        "body": [
+          "'Allow gateway transit' on the hub plus 'Use remote gateways' on the spoke lets spokes use the hub's VPN gateway. 'Allow forwarded traffic' accepts traffic that did not start in the peered VNet, which is needed when routing through an NVA."
+        ],
+        "show": [
+          "s1",
+          "hub",
+          "s2",
+          "fw",
+          "gw"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "s1",
+            "to": "hub",
+            "label": "peering"
+          },
+          {
+            "from": "s2",
+            "to": "hub",
+            "label": "peering"
+          },
+          {
+            "from": "hub",
+            "to": "fw"
+          },
+          {
+            "from": "gw",
+            "to": "hub",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Rules",
+        "title": "Rules of peering",
+        "body": [
+          "Address spaces must not overlap. A peering has two links, one in each VNet; both must show Connected. Inbound and outbound data across peering is charged."
+        ],
+        "show": [
+          "s1",
+          "hub",
+          "s2",
+          "fw",
+          "gw"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "s1",
+            "to": "hub",
+            "label": "peering"
+          },
+          {
+            "from": "s2",
+            "to": "hub",
+            "label": "peering"
+          },
+          {
+            "from": "hub",
+            "to": "fw"
+          },
+          {
+            "from": "gw",
+            "to": "hub"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Peering",
+        "body": [
+          "Private, fast, but not transitive."
+        ],
+        "show": [
+          "s1",
+          "hub",
+          "s2",
+          "fw",
+          "gw"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "s1",
+            "to": "hub",
+            "label": "peering"
+          },
+          {
+            "from": "s2",
+            "to": "hub",
+            "label": "peering"
+          },
+          {
+            "from": "hub",
+            "to": "fw"
+          },
+          {
+            "from": "gw",
+            "to": "hub"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Regional or global, cross-subscription and tenant",
+          "Not transitive",
+          "Gateway transit + use remote gateways to share a VPN gateway",
+          "Allow forwarded traffic for NVA routing",
+          "No overlapping ranges; both links Connected"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Peer two VNets and confirm both links",
+    "minutes": 15,
+    "costLevel": "free",
+    "cost": "Free without VMs. Data across peering is charged per GB, but you send none.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A virtual network vnet-lab (10.10.0.0/16) in rg-az104-lab with a subnet snet-app (10.10.1.0/24): Virtual networks > + Create > IP addresses tab. For these labs, untick 'Enable private subnet' on snet-app so lab VMs can reach the internet (in production use a NAT gateway instead)."
+    ],
+    "steps": [
+      {
+        "do": "Create a second VNet in rg-az104-lab: vnet-lab2, address space 10.20.0.0/16, subnet snet-db 10.20.1.0/24."
+      },
+      {
+        "do": "Open vnet-lab > Settings > Peerings > + Add.",
+        "see": "A form with two sections: this VNet and the remote VNet."
+      },
+      {
+        "do": "Remote peering link name: lab2-to-lab; remote VNet: vnet-lab2. Local peering link name: lab-to-lab2. Leave 'Allow access' ticked on both sides. Add.",
+        "see": "After a moment the peering status shows Connected."
+      },
+      {
+        "do": "Open vnet-lab2 > Peerings.",
+        "see": "The matching link lab2-to-lab, also Connected. The portal created both directions."
+      },
+      {
+        "do": "Try a third VNet with an overlapping range (10.10.0.0/16) and peer it to vnet-lab.",
+        "see": "Peering is refused because the address spaces overlap. Delete that VNet."
+      },
+      {
+        "do": "Read the options 'Allow gateway transit' and 'Use remote gateways' on the peering.",
+        "see": "They are only useful when a VNet has a VPN or ExpressRoute gateway."
+      }
+    ],
+    "check": [
+      "Both peering links show Connected."
+    ],
+    "cleanup": [
+      "Delete the peering, or: When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Connect virtual networks with peering using the portal",
+        "url": "https://learn.microsoft.com/azure/virtual-network/tutorial-connect-virtual-networks-portal"
+      },
+      {
+        "title": "Virtual network peering overview",
+        "url": "https://learn.microsoft.com/azure/virtual-network/virtual-network-peering-overview"
+      }
+    ]
+  }
+}

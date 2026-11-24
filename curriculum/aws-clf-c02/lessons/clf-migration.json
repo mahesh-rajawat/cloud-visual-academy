@@ -1,0 +1,604 @@
+{
+  "id": "clf-migration",
+  "exam": "aws-clf-c02",
+  "title": "Migrating to AWS: CAF, adoption strategies and migration resources",
+  "objectiveIds": [
+    "CLFC02-1.3.1",
+    "CLFC02-1.3.2",
+    "CLFC02-1.3.3",
+    "CLFC02-1.3.4"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Describe the AWS Cloud Adoption Framework perspectives and outcomes, cloud adoption and migration strategies, and the resources that support migration.",
+  "prerequisites": [
+    {
+      "text": "Cloud benefits",
+      "objectiveId": "CLFC02-1.1.1",
+      "lessonId": "clf-benefits"
+    }
+  ],
+  "foundation": [
+    "The AWS Cloud Adoption Framework (AWS CAF) organises guidance into six perspectives so an organisation can plan its move to the cloud: Business, People, Governance, Platform, Security and Operations.",
+    "Migration strategies (the '7 Rs') describe what to do with each application: rehost, replatform, refactor, repurchase, retire, retain or relocate.",
+    "AWS provides tools, programs and partners to help, such as AWS Migration Hub, Application Migration Service, DMS and Migration Evaluator."
+  ],
+  "engineer": [
+    "CAF business outcomes: reduced business risk, improved ESG (environmental, social and governance) performance, increased revenue and increased operational efficiency. Transformation domains: technology, process, organisation, product.",
+    "Perspectives: Business (strategy, portfolio, innovation), People (culture, workforce, change), Governance (program/portfolio, risk, cloud financial management), Platform (architecture, engineering, CI/CD), Security (identity, detection, data protection, incident response), Operations (observability, incident and problem management).",
+    "7 Rs: Rehost (lift and shift, often with AWS Application Migration Service), Replatform (for example to Amazon RDS), Refactor/re-architect (cloud-native), Repurchase (move to SaaS), Retire, Retain, Relocate (for example VMware Cloud on AWS).",
+    "Migration resources: AWS Migration Hub (track migrations), AWS Application Discovery Service and Migration Evaluator (discovery and business case), AWS Application Migration Service (rehost servers), AWS DMS with SCT (database migration including ongoing replication), AWS Snow Family and DataSync (data transfer), AWS Prescriptive Guidance, AWS Professional Services and partners, and the Migration Acceleration Program (MAP)."
+  ],
+  "animation": {
+    "id": "aws-concepts-sim",
+    "caption": "Open 'Migration strategies' and 'Cloud Adoption Framework'."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "disc",
+        "label": "Discover & assess (Migration Evaluator, ADS)",
+        "x": 0,
+        "y": 60,
+        "kind": "service"
+      },
+      {
+        "id": "plan",
+        "label": "Plan with CAF perspectives",
+        "x": 230,
+        "y": 60,
+        "kind": "user"
+      },
+      {
+        "id": "mig",
+        "label": "Migrate (MGN, DMS, Snow, DataSync)",
+        "x": 460,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "hub",
+        "label": "Track in Migration Hub",
+        "x": 690,
+        "y": 60,
+        "kind": "service"
+      }
+    ],
+    "edges": [
+      {
+        "from": "disc",
+        "to": "plan"
+      },
+      {
+        "from": "plan",
+        "to": "mig"
+      },
+      {
+        "from": "mig",
+        "to": "hub"
+      }
+    ]
+  },
+  "example": {
+    "title": "A data center exit",
+    "body": [
+      "A company must leave its data center in a year. Migration Evaluator builds the business case, Application Migration Service rehosts 300 VMs, DMS replicates the Oracle databases to Aurora with minimal downtime (SCT converts schemas), and old reporting apps are retired."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "AWS Migration Hub > Discover / Assess / Migrate.",
+      "AWS DMS > Create replication instance and task."
+    ],
+    "cli": "aws mgn describe-source-servers\naws dms describe-replication-tasks",
+    "powershell": "Get-DMSReplicationTask"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-concepts-sim",
+    "objective": "Practise choosing the right migration strategy.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Migration strategies' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-migration-correct",
+        "text": "Chose a correct migration strategy"
+      },
+      {
+        "id": "aws-migration-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Migration stalls on organisational resistance.",
+      "cause": "People perspective ignored.",
+      "fix": "Invest in training and change management."
+    },
+    {
+      "symptom": "Database migration needs near-zero downtime.",
+      "cause": "Bulk copy only.",
+      "fix": "Use DMS with ongoing replication (change data capture)."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Microsoft Cloud Adoption Framework / Azure Migrate",
+      "difference": "Equivalent frameworks and tools on Azure."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Every app should be refactored.",
+      "reality": "Choose per app; rehost is often first."
+    },
+    {
+      "myth": "CAF is a migration tool.",
+      "reality": "It is a framework of guidance."
+    }
+  ],
+  "architectureDecisions": [
+    "Prioritise by business value and complexity; use rehost for speed and refactor where it pays off."
+  ],
+  "docs": [
+    {
+      "title": "Overview of the AWS CAF",
+      "url": "https://docs.aws.amazon.com/whitepapers/latest/overview-aws-cloud-adoption-framework/welcome.html"
+    },
+    {
+      "title": "Migration strategies (7 Rs)",
+      "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/large-migration-guide/migration-strategies.html"
+    },
+    {
+      "title": "AWS Migration Hub",
+      "url": "https://docs.aws.amazon.com/migrationhub/latest/ug/whatishub.html"
+    },
+    {
+      "title": "AWS Application Migration Service",
+      "url": "https://docs.aws.amazon.com/mgn/latest/ug/what-is-application-migration-service.html"
+    },
+    {
+      "title": "AWS DMS",
+      "url": "https://docs.aws.amazon.com/dms/latest/userguide/Welcome.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Move one company's data center to AWS: plan with the CAF, choose a strategy per app, use the right tools.",
+    "learn": [
+      "Cloud adoption: the AWS CAF and its business outcomes",
+      "The six CAF perspectives",
+      "The 7 Rs migration strategies",
+      "Migration tools and help (including database replication)"
+    ],
+    "nodes": [
+      {
+        "id": "dc",
+        "label": "On-premises",
+        "x": 110,
+        "y": 220,
+        "kind": "cost",
+        "sub": "200 apps"
+      },
+      {
+        "id": "caf",
+        "label": "AWS CAF",
+        "x": 330,
+        "y": 70,
+        "kind": "service",
+        "sub": "plan the journey"
+      },
+      {
+        "id": "persp",
+        "label": "6 perspectives",
+        "x": 560,
+        "y": 70,
+        "kind": "user",
+        "sub": "business to ops"
+      },
+      {
+        "id": "rs",
+        "label": "7 Rs",
+        "x": 330,
+        "y": 220,
+        "kind": "service",
+        "sub": "one choice per app"
+      },
+      {
+        "id": "mgn",
+        "label": "Application Migration",
+        "x": 560,
+        "y": 190,
+        "kind": "compute",
+        "sub": "Service: rehost"
+      },
+      {
+        "id": "dms",
+        "label": "AWS DMS + SCT",
+        "x": 560,
+        "y": 290,
+        "kind": "database",
+        "sub": "migrate databases"
+      },
+      {
+        "id": "aws",
+        "label": "AWS",
+        "x": 330,
+        "y": 380,
+        "kind": "globe",
+        "sub": "target"
+      },
+      {
+        "id": "help",
+        "label": "Guidance + partners",
+        "x": 600,
+        "y": 390,
+        "kind": "user",
+        "sub": "people and docs"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Where to start?",
+        "title": "200 applications and a lease that ends next year",
+        "body": [
+          "A company must leave its data center. Some apps are old, some are critical, some nobody uses.",
+          "Moving them all the same way would be slow and risky. It needs a plan, a strategy for each app, and tools."
+        ],
+        "show": [
+          "dc"
+        ],
+        "focus": [
+          "dc"
+        ],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "AWS CAF",
+        "title": "Plan with the AWS Cloud Adoption Framework",
+        "body": [
+          "The AWS CAF is AWS's guidance for organising a cloud transformation. It is not only about technology.",
+          "It names four business outcomes the move should bring: reduced business risk, improved ESG (environmental, social and governance) performance, increased revenue, and increased operational efficiency."
+        ],
+        "show": [
+          "dc",
+          "caf"
+        ],
+        "focus": [
+          "caf"
+        ],
+        "edges": [
+          {
+            "from": "dc",
+            "to": "caf",
+            "label": "plan",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Perspectives",
+        "title": "Six perspectives: everyone has a part",
+        "body": [
+          "Business, People and Governance are the business side: strategy, skills and culture, and risk and cloud financial management.",
+          "Platform, Security and Operations are the technical side: architecture, protection, and running things day to day."
+        ],
+        "show": [
+          "dc",
+          "caf",
+          "persp"
+        ],
+        "focus": [
+          "persp"
+        ],
+        "edges": [
+          {
+            "from": "dc",
+            "to": "caf",
+            "label": "plan"
+          },
+          {
+            "from": "caf",
+            "to": "persp",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Exam tip: People = training and culture; Governance = cost and risk control; Platform = architecture."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "7 Rs",
+        "title": "Choose a strategy per app: the 7 Rs",
+        "body": [
+          "Rehost (lift and shift as-is). Replatform (small changes, for example move the database to Amazon RDS). Refactor (re-architect to be cloud-native). Repurchase (switch to SaaS).",
+          "Retire (switch it off). Retain (keep it on-premises for now). Relocate (move VMware workloads as they are)."
+        ],
+        "show": [
+          "dc",
+          "caf",
+          "persp",
+          "rs"
+        ],
+        "focus": [
+          "rs"
+        ],
+        "edges": [
+          {
+            "from": "dc",
+            "to": "caf",
+            "label": "plan"
+          },
+          {
+            "from": "caf",
+            "to": "persp"
+          },
+          {
+            "from": "dc",
+            "to": "rs",
+            "label": "assess each app",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Tools",
+        "title": "Use the right migration tools",
+        "body": [
+          "AWS Application Migration Service copies servers to AWS for rehosting with minimal downtime.",
+          "AWS Database Migration Service (DMS) moves databases while the source keeps running, using continuous replication. The Schema Conversion Tool (SCT) converts the schema when the engine changes, for example Oracle to Aurora PostgreSQL."
+        ],
+        "show": [
+          "dc",
+          "caf",
+          "persp",
+          "rs",
+          "mgn",
+          "dms",
+          "aws"
+        ],
+        "focus": [
+          "mgn",
+          "dms"
+        ],
+        "edges": [
+          {
+            "from": "dc",
+            "to": "caf",
+            "label": "plan"
+          },
+          {
+            "from": "caf",
+            "to": "persp"
+          },
+          {
+            "from": "dc",
+            "to": "rs",
+            "label": "assess each app"
+          },
+          {
+            "from": "rs",
+            "to": "mgn",
+            "label": "rehost",
+            "fresh": true
+          },
+          {
+            "from": "rs",
+            "to": "dms",
+            "label": "replatform",
+            "fresh": true
+          },
+          {
+            "from": "mgn",
+            "to": "aws",
+            "fresh": true
+          },
+          {
+            "from": "dms",
+            "to": "aws",
+            "label": "replicate",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "key",
+          "text": "Database replication lets the old database keep serving users until you switch over. That is how you cut downtime."
+        }
+      },
+      {
+        "kind": "case",
+        "label": "The plan",
+        "title": "Case: three apps, three strategies",
+        "body": [
+          "The old HR app: retire it, because nobody uses it. The shop: rehost now with Application Migration Service, refactor later. The billing database: replatform to RDS with DMS replication, then switch over on a quiet night.",
+          "AWS Prescriptive Guidance, AWS Professional Services and AWS Partners help plan and run the work."
+        ],
+        "show": [
+          "dc",
+          "caf",
+          "persp",
+          "rs",
+          "mgn",
+          "dms",
+          "aws",
+          "help"
+        ],
+        "focus": [
+          "rs",
+          "help"
+        ],
+        "edges": [
+          {
+            "from": "dc",
+            "to": "caf",
+            "label": "plan"
+          },
+          {
+            "from": "caf",
+            "to": "persp"
+          },
+          {
+            "from": "dc",
+            "to": "rs",
+            "label": "assess each app"
+          },
+          {
+            "from": "rs",
+            "to": "mgn",
+            "label": "rehost"
+          },
+          {
+            "from": "rs",
+            "to": "dms",
+            "label": "replatform"
+          },
+          {
+            "from": "mgn",
+            "to": "aws"
+          },
+          {
+            "from": "dms",
+            "to": "aws",
+            "label": "replicate"
+          },
+          {
+            "from": "help",
+            "to": "rs",
+            "label": "advice",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Plan, choose, move",
+        "body": [
+          "A migration is a business change, a strategy per app, and the right tools."
+        ],
+        "show": [
+          "dc",
+          "caf",
+          "persp",
+          "rs",
+          "mgn",
+          "dms",
+          "aws",
+          "help"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "dc",
+            "to": "caf",
+            "label": "plan"
+          },
+          {
+            "from": "caf",
+            "to": "persp"
+          },
+          {
+            "from": "dc",
+            "to": "rs",
+            "label": "assess each app"
+          },
+          {
+            "from": "rs",
+            "to": "mgn",
+            "label": "rehost"
+          },
+          {
+            "from": "rs",
+            "to": "dms",
+            "label": "replatform"
+          },
+          {
+            "from": "mgn",
+            "to": "aws"
+          },
+          {
+            "from": "dms",
+            "to": "aws",
+            "label": "replicate"
+          },
+          {
+            "from": "help",
+            "to": "rs",
+            "label": "advice"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "CAF outcomes: less risk, better ESG, more revenue, more efficiency",
+          "Six perspectives: Business, People, Governance, Platform, Security, Operations",
+          "7 Rs: rehost, replatform, refactor, repurchase, retire, retain, relocate",
+          "Application Migration Service rehosts servers; DMS + SCT move databases with replication",
+          "Prescriptive Guidance, Professional Services and Partners help"
+        ]
+      }
+    ]
+  }
+}

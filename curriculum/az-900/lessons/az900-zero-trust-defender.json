@@ -1,0 +1,268 @@
+{
+  "id": "az900-zero-trust-defender",
+  "exam": "az-900",
+  "title": "Zero Trust, defense in depth and Microsoft Defender for Cloud",
+  "objectiveIds": [
+    "AZ900-2.4.6",
+    "AZ900-2.4.7",
+    "AZ900-2.4.8"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Describe the Zero Trust model, the layers of defense in depth, and what Microsoft Defender for Cloud does.",
+  "prerequisites": [
+    {
+      "text": "Conditional Access and RBAC",
+      "objectiveId": "AZ900-2.4.4",
+      "lessonId": "az900-conditional-access-rbac"
+    }
+  ],
+  "foundation": [
+    "Zero Trust: 'never trust, always verify'. Don't assume a request is safe because it comes from inside the corporate network; check every request as if it came from an open network.",
+    "Defense in depth: protect data with several layers of security, like a castle with a moat, walls and guards. If one layer fails, the next one stops the attacker.",
+    "Microsoft Defender for Cloud: a monitoring tool that checks your resources' security, gives you a secure score and recommendations, and alerts you to threats, in Azure, on-premises and other clouds."
+  ],
+  "engineer": [
+    "Zero Trust principles: verify explicitly (authenticate and authorise on all available data points: identity, location, device health, service, data classification, anomalies); use least privilege access (just-in-time and just-enough access, risk-based adaptive policies); assume breach (minimise blast radius, segment access, verify end-to-end encryption, use analytics to detect threats).",
+    "Defense-in-depth layers (outer to inner): physical security (datacenter buildings), identity and access (SSO, MFA, auditing), perimeter (DDoS protection, perimeter firewalls), network (segmentation, NSGs, deny by default), compute (patching, endpoint protection, closing ports), application (secure code, secrets in Key Vault), data (encryption, access control). The goal: protect information and prevent it from being stolen.",
+    "Microsoft Defender for Cloud: cloud security posture management (CSPM: continuous assessment, secure score, recommendations against benchmarks such as the Microsoft cloud security benchmark) and cloud workload protection (Defender plans for servers, storage, SQL, containers, Key Vault and more: threat detection and alerts).",
+    "Coverage: Azure-native resources automatically; on-premises and other clouds through Azure Arc and native connectors for AWS and GCP. Foundational CSPM is free; enhanced plans are paid.",
+    "Assess, secure, defend: assess with continuous inventory and recommendations; secure by remediating (often with one-click fixes or Azure Policy); defend with alerts that include affected resources and remediation steps."
+  ],
+  "animation": {
+    "id": "az900-defense-sim",
+    "caption": "Close defense-in-depth gaps with Defender for Cloud guidance, and match practices to Zero Trust principles and layers."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "phys",
+        "label": "Physical",
+        "x": 0,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "id",
+        "label": "Identity & access",
+        "x": 120,
+        "y": 0,
+        "kind": "identity"
+      },
+      {
+        "id": "per",
+        "label": "Perimeter",
+        "x": 240,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "net",
+        "label": "Network",
+        "x": 360,
+        "y": 0,
+        "kind": "network"
+      },
+      {
+        "id": "comp",
+        "label": "Compute",
+        "x": 480,
+        "y": 0,
+        "kind": "compute"
+      },
+      {
+        "id": "app",
+        "label": "Application",
+        "x": 600,
+        "y": 0,
+        "kind": "compute"
+      },
+      {
+        "id": "data",
+        "label": "Data",
+        "x": 720,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "def",
+        "label": "Defender for Cloud: secure score, alerts",
+        "x": 360,
+        "y": 150,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "phys",
+        "to": "id"
+      },
+      {
+        "from": "id",
+        "to": "per"
+      },
+      {
+        "from": "per",
+        "to": "net"
+      },
+      {
+        "from": "net",
+        "to": "comp"
+      },
+      {
+        "from": "comp",
+        "to": "app"
+      },
+      {
+        "from": "app",
+        "to": "data"
+      },
+      {
+        "from": "def",
+        "to": "net",
+        "label": "assess"
+      },
+      {
+        "from": "def",
+        "to": "comp",
+        "label": "protect"
+      }
+    ]
+  },
+  "example": {
+    "title": "A ransomware attempt",
+    "body": [
+      "An attacker phishes a password. MFA stops the sign-in (identity layer). A second attempt through a VM with an open port is blocked by an NSG (network layer).",
+      "Defender for Cloud had already raised 'Management ports should be closed' and a high-severity alert; the team followed its remediation steps. Assuming breach, data was encrypted and segmented anyway."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Security Reader to view; Security Admin to change settings"
+    ],
+    "limits": [
+      "Foundational CSPM is free; Defender plans are billed per resource"
+    ],
+    "portal": [
+      "Microsoft Defender for Cloud > Overview: secure score; Recommendations; Security alerts.",
+      "Environment settings: enable Defender plans; add AWS/GCP connectors."
+    ],
+    "cli": "az security secure-scores list -o table\naz security assessment list --query \"[?status.code=='Unhealthy'].displayName\" -o tsv | head\naz security pricing list -o table",
+    "powershell": "Get-AzSecuritySecureScore\nGet-AzSecurityAlert"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-defense-sim",
+    "objective": "Build layered defenses and apply Zero Trust.",
+    "duration": 15,
+    "steps": [
+      "Defense in depth tab: enable layers until no gaps remain.",
+      "Zero Trust principles tab: answer every practice.",
+      "Defense-in-depth layers tab: answer every control."
+    ],
+    "expected": [
+      "One gap shouldn't expose data",
+      "Zero Trust verifies every request"
+    ],
+    "validation": [
+      {
+        "id": "defense-complete",
+        "text": "Protected every layer"
+      },
+      {
+        "id": "defense-gaps",
+        "text": "Found a gap"
+      },
+      {
+        "id": "zero-trust-correct",
+        "text": "Chose the right Zero Trust principle"
+      },
+      {
+        "id": "zero-trust-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "defense-layer-correct",
+        "text": "Chose the right layer"
+      },
+      {
+        "id": "defense-layer-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Trusting traffic because it's inside the network",
+      "Relying on one layer only"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Secure score is low.",
+      "cause": "Many unhealthy recommendations.",
+      "fix": "Fix the highest-impact recommendations first (score increase shown)."
+    },
+    {
+      "symptom": "No alerts for on-premises servers.",
+      "cause": "They aren't connected.",
+      "fix": "Onboard with Azure Arc and enable Defender for Servers."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Zero Trust vs perimeter security",
+      "difference": "Perimeter security trusts everything inside the network; Zero Trust verifies every request."
+    },
+    {
+      "service": "Defender for Cloud vs Azure Advisor",
+      "difference": "Both give recommendations; Defender focuses on security and threat protection. Advisor's security recommendations come from Defender."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Zero Trust means trusting nobody, so blocking everything.",
+      "reality": "It means verifying explicitly before granting least-privilege access."
+    },
+    {
+      "myth": "Defender for Cloud only covers Azure.",
+      "reality": "It covers hybrid and multicloud too."
+    },
+    {
+      "myth": "A firewall is enough.",
+      "reality": "Defense in depth needs several layers."
+    }
+  ],
+  "architectureDecisions": [
+    "Adopt Zero Trust: MFA, least privilege, segmentation.",
+    "Track and improve secure score.",
+    "Enable Defender plans for critical workloads."
+  ],
+  "docs": [
+    {
+      "title": "Describe Azure identity, access, and security (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-azure-identity-access-security/"
+    },
+    {
+      "title": "Zero Trust overview",
+      "url": "https://learn.microsoft.com/security/zero-trust/zero-trust-overview"
+    },
+    {
+      "title": "Microsoft Defender for Cloud",
+      "url": "https://learn.microsoft.com/azure/defender-for-cloud/defender-for-cloud-introduction"
+    },
+    {
+      "title": "Secure score",
+      "url": "https://learn.microsoft.com/azure/defender-for-cloud/secure-score-security-controls"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

@@ -1,0 +1,614 @@
+{
+  "id": "az104-management-groups",
+  "exam": "az-104",
+  "title": "Management groups: organising subscriptions for governance at scale",
+  "objectiveIds": [
+    "AZ104-1.3.7"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Design and configure a management group hierarchy, move subscriptions safely, and predict how Policy and RBAC inheritance change.",
+  "prerequisites": [
+    {
+      "text": "Management groups and the scope hierarchy (AZ-900)",
+      "objectiveId": "AZ900-2.1.6"
+    },
+    {
+      "text": "RBAC scopes",
+      "lessonId": "az104-rbac",
+      "objectiveId": "AZ104-1.2.2"
+    },
+    {
+      "text": "Azure Policy assignments",
+      "lessonId": "az104-policy-tags",
+      "objectiveId": "AZ104-1.3.1"
+    }
+  ],
+  "foundation": [
+    "A management group is a folder for subscriptions. You put subscriptions (and other management groups) inside it, and whatever rules or permissions you set on the folder apply to everything inside.",
+    "Every tenant has one top folder called the Tenant Root Group. You build a tree below it, for example Platform, Landing zones → Prod and Dev, and Sandbox.",
+    "Moving a subscription from one folder to another changes which rules apply to it straight away."
+  ],
+  "engineer": [
+    "Hierarchy rules: one root management group per tenant, whose ID is the tenant ID. Up to six levels of depth below the root (not counting the root or subscription levels), up to 10,000 management groups per directory, and each management group or subscription has exactly one parent.",
+    "Azure Policy and Azure RBAC assignments at a management group are inherited by all child management groups, subscriptions, resource groups and resources. Budgets can also be created at management group scope.",
+    "New subscriptions land in the root management group unless you configure a default management group in Hierarchy settings. 'Require write permissions for creating new management groups' stops any user from creating management groups (by default any user in the tenant can create one).",
+    "Moving a subscription needs Owner on the subscription (write and role-assignment write), plus management group write (Owner, Contributor or Management Group Contributor) on the target parent and on the current parent. When the current parent is the root, no check is needed on it.",
+    "The root management group cannot be moved or deleted. A management group can be deleted only when it has no children. Management group IDs cannot be changed; display names can.",
+    "A Global Administrator has no Azure access to the root by default. They can elevate access (User Access Administrator at root scope /), grant the right roles, and then remove the elevation."
+  ],
+  "animation": {
+    "id": "hierarchy-sim",
+    "caption": "Move subscriptions between management groups, watch inheritance change, and hit the depth limit."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "root",
+        "label": "Tenant Root Group (policy: Allowed locations)",
+        "x": 220,
+        "y": 0,
+        "kind": "scope"
+      },
+      {
+        "id": "plat",
+        "label": "Platform (RBAC: Network team)",
+        "x": 0,
+        "y": 120,
+        "kind": "scope"
+      },
+      {
+        "id": "lz",
+        "label": "Landing zones (policy: require costCenter)",
+        "x": 240,
+        "y": 120,
+        "kind": "scope"
+      },
+      {
+        "id": "sbx",
+        "label": "Sandbox (budget 200 USD)",
+        "x": 480,
+        "y": 120,
+        "kind": "scope"
+      },
+      {
+        "id": "prod",
+        "label": "Prod (policy: deny public IP)",
+        "x": 240,
+        "y": 240,
+        "kind": "scope"
+      },
+      {
+        "id": "sub",
+        "label": "sub-app2",
+        "x": 240,
+        "y": 350,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "root",
+        "to": "plat"
+      },
+      {
+        "from": "root",
+        "to": "lz"
+      },
+      {
+        "from": "root",
+        "to": "sbx"
+      },
+      {
+        "from": "lz",
+        "to": "prod"
+      },
+      {
+        "from": "prod",
+        "to": "sub",
+        "label": "inherits all three levels"
+      }
+    ]
+  },
+  "example": {
+    "title": "Promoting an app from sandbox to production",
+    "body": [
+      "sub-app1 starts under Sandbox, where developers have Contributor and spending is capped by a budget. When the app goes live, the platform team moves sub-app1 under Landing zones → Prod.",
+      "Immediately the Sandbox Contributor assignment no longer applies, while 'Require costCenter tag' and 'Deny public IPs' do. Existing public IPs are not deleted; they show as non-compliant. That is why the team runs a compliance review before the move."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "A planned hierarchy (often aligned with Cloud Adoption Framework landing zones)",
+      "Access at the root or relevant management groups"
+    ],
+    "permissions": [
+      "Microsoft.Management/managementGroups/write (Owner, Contributor or Management Group Contributor) on parent management groups",
+      "Owner on a subscription to move it",
+      "Hierarchy settings require write access on the root management group"
+    ],
+    "limits": [
+      "Six levels of depth below the root",
+      "10,000 management groups per directory",
+      "One parent per management group or subscription"
+    ],
+    "portal": [
+      "Search 'Management groups' > Create: enter the management group ID (immutable) and display name.",
+      "Open a management group > Add management group / Add subscription, or select a subscription > Move.",
+      "Management groups > Settings (root): set the default management group for new subscriptions and require write permissions for creating management groups.",
+      "Open any management group > Access control (IAM) or Policy to assign roles and policies that inherit downward."
+    ],
+    "cli": "az account management-group create --name mg-prod --display-name \"Prod\" --parent mg-landingzones\naz account management-group subscription add --name mg-prod --subscription <subscription-id>\naz account management-group show --name mg-landingzones --expand --recurse\naz account management-group update --name mg-prod --display-name \"Production\"",
+    "powershell": "New-AzManagementGroup -GroupName 'mg-prod' -DisplayName 'Prod' -ParentId '/providers/Microsoft.Management/managementGroups/mg-landingzones'\nNew-AzManagementGroupSubscription -GroupName 'mg-prod' -SubscriptionId '<subscription-id>'\nGet-AzManagementGroup -GroupName 'mg-landingzones' -Expand -Recurse",
+    "bicep": "targetScope = 'tenant'\n\nresource mgProd 'Microsoft.Management/managementGroups@2021-04-01' = {\n  name: 'mg-prod'\n  properties: {\n    displayName: 'Prod'\n    details: {\n      parent: { id: tenantResourceId('Microsoft.Management/managementGroups', 'mg-landingzones') }\n    }\n  }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "hierarchy-sim",
+    "objective": "Move a subscription with the right permissions, explain the inheritance change, and find the depth limit.",
+    "duration": 15,
+    "steps": [
+      "Select sub-app1 and target Prod. Try to move it without 'MG write on current parent' and read the error.",
+      "Tick the missing permission and move it. Compare the inherited assignments before and after.",
+      "Create child management groups under Prod repeatedly until creation fails at the depth limit."
+    ],
+    "expected": [
+      "The move fails without write on the current parent (Sandbox)",
+      "After the move, Sandbox's Contributor assignment no longer applies and Prod's policies do",
+      "Creation fails beyond level 6"
+    ],
+    "validation": [
+      {
+        "id": "moved-subscription",
+        "text": "Moved a subscription to a different management group"
+      },
+      {
+        "id": "depth-limit",
+        "text": "Hit the six-level depth limit"
+      }
+    ],
+    "failureScenarios": [
+      "Missing permission on the current parent",
+      "Trying to create a seventh level",
+      "Expecting existing non-compliant resources to be removed after the move"
+    ],
+    "cleanup": [
+      "Use 'Reset hierarchy'."
+    ],
+    "cost": "None. Management groups are free; the simulation runs in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "AuthorizationFailed when moving a subscription.",
+      "cause": "Missing Owner on the subscription or management group write on the source or target parent.",
+      "fix": "Check IAM at all three scopes; the Management Group Contributor role covers management group write."
+    },
+    {
+      "symptom": "Cannot delete a management group.",
+      "cause": "It still has child management groups or subscriptions.",
+      "fix": "Move or delete the children first."
+    },
+    {
+      "symptom": "A Global Administrator cannot see management groups.",
+      "cause": "Entra roles do not grant Azure RBAC.",
+      "fix": "Elevate access temporarily, assign an Azure role at the root management group, then remove the elevation."
+    },
+    {
+      "symptom": "New subscriptions bypass guardrails.",
+      "cause": "They land in the root, or in a default management group without policies.",
+      "fix": "Set the default management group in Hierarchy settings to a governed group (for example Sandbox)."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS Organizations OUs",
+      "difference": "Comparable hierarchy of accounts; SCPs restrict permissions, whereas Azure management groups carry RBAC and Policy assignments that inherit."
+    },
+    {
+      "service": "Resource groups",
+      "difference": "Resource groups contain resources within one subscription and cannot nest; management groups contain subscriptions and can nest six levels deep."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "A subscription can belong to several management groups.",
+      "reality": "Each subscription has exactly one parent management group."
+    },
+    {
+      "myth": "Management groups contain resources directly.",
+      "reality": "They contain management groups and subscriptions only."
+    },
+    {
+      "myth": "Moving a subscription requires downtime.",
+      "reality": "Resources keep running; only the governance inherited from management groups changes."
+    }
+  ],
+  "architectureDecisions": [
+    "Keep the hierarchy shallow (3–4 levels) and organised by governance needs (platform, landing zones, sandbox), not by org chart.",
+    "Assign broad guardrails at higher levels and specific ones lower down.",
+    "Set a governed default management group for new subscriptions and require write permission to create management groups."
+  ],
+  "docs": [
+    {
+      "title": "What are Azure management groups?",
+      "url": "https://learn.microsoft.com/azure/governance/management-groups/overview"
+    },
+    {
+      "title": "Create management groups",
+      "url": "https://learn.microsoft.com/azure/governance/management-groups/create-management-group-portal"
+    },
+    {
+      "title": "Manage your Azure subscriptions at scale with management groups (move permissions)",
+      "url": "https://learn.microsoft.com/azure/governance/management-groups/manage"
+    },
+    {
+      "title": "How to protect your resource hierarchy",
+      "url": "https://learn.microsoft.com/azure/governance/management-groups/how-to/protect-resource-hierarchy"
+    },
+    {
+      "title": "Elevate access to manage all Azure subscriptions and management groups",
+      "url": "https://learn.microsoft.com/azure/role-based-access-control/elevate-access-global-admin"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Govern many subscriptions at once by placing them in a tree.",
+    "learn": [
+      "What management groups are",
+      "The tenant root group",
+      "Inheritance of policy and RBAC",
+      "Limits and moving subscriptions"
+    ],
+    "nodes": [
+      {
+        "id": "root",
+        "label": "Tenant root group",
+        "x": 400,
+        "y": 50,
+        "kind": "identity"
+      },
+      {
+        "id": "corp",
+        "label": "MG: Corp",
+        "x": 220,
+        "y": 170,
+        "kind": "identity"
+      },
+      {
+        "id": "lab",
+        "label": "MG: Sandbox",
+        "x": 580,
+        "y": 170,
+        "kind": "identity"
+      },
+      {
+        "id": "prod",
+        "label": "Sub: Prod",
+        "x": 120,
+        "y": 300,
+        "kind": "cost"
+      },
+      {
+        "id": "dev",
+        "label": "Sub: Dev",
+        "x": 320,
+        "y": 300,
+        "kind": "cost"
+      },
+      {
+        "id": "test",
+        "label": "Sub: Lab",
+        "x": 580,
+        "y": 300,
+        "kind": "cost"
+      },
+      {
+        "id": "pol",
+        "label": "Policy: allowed regions",
+        "x": 220,
+        "y": 410,
+        "kind": "security"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Many subscriptions",
+        "title": "Twenty subscriptions, twenty copies of every rule",
+        "body": [
+          "Each team has its own subscription. Assigning the same policy and the same roles twenty times is slow and error-prone."
+        ],
+        "show": [
+          "prod",
+          "dev",
+          "test"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "The tree",
+        "title": "Management groups form a tree above subscriptions",
+        "body": [
+          "A management group holds subscriptions and other management groups, up to six levels deep (not counting the root). The top is the tenant root group, created automatically."
+        ],
+        "show": [
+          "prod",
+          "dev",
+          "test",
+          "root",
+          "corp",
+          "lab"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "root",
+            "to": "corp",
+            "fresh": true
+          },
+          {
+            "from": "root",
+            "to": "lab",
+            "fresh": true
+          },
+          {
+            "from": "corp",
+            "to": "prod",
+            "fresh": true
+          },
+          {
+            "from": "corp",
+            "to": "dev",
+            "fresh": true
+          },
+          {
+            "from": "lab",
+            "to": "test",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Inherit",
+        "title": "Assign once, apply everywhere below",
+        "body": [
+          "Policies and role assignments at a management group flow down to every subscription, resource group and resource under it."
+        ],
+        "show": [
+          "prod",
+          "dev",
+          "test",
+          "root",
+          "corp",
+          "lab",
+          "pol"
+        ],
+        "focus": [
+          "corp",
+          "prod",
+          "dev"
+        ],
+        "edges": [
+          {
+            "from": "root",
+            "to": "corp"
+          },
+          {
+            "from": "root",
+            "to": "lab"
+          },
+          {
+            "from": "corp",
+            "to": "prod"
+          },
+          {
+            "from": "corp",
+            "to": "dev"
+          },
+          {
+            "from": "lab",
+            "to": "test"
+          },
+          {
+            "from": "pol",
+            "to": "corp",
+            "label": "assigned",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Limits",
+        "title": "Rules of the tree",
+        "body": [
+          "Up to 10,000 management groups per tenant. Each subscription or management group has exactly one parent. Moving a subscription needs rights on the subscription and on the target group.",
+          "To manage the root, a Global Administrator can elevate access (Entra ID > Properties > Access management for Azure resources)."
+        ],
+        "show": [
+          "prod",
+          "dev",
+          "test",
+          "root",
+          "corp",
+          "lab",
+          "pol"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "root",
+            "to": "corp"
+          },
+          {
+            "from": "root",
+            "to": "lab"
+          },
+          {
+            "from": "corp",
+            "to": "prod"
+          },
+          {
+            "from": "corp",
+            "to": "dev"
+          },
+          {
+            "from": "lab",
+            "to": "test"
+          },
+          {
+            "from": "pol",
+            "to": "corp",
+            "label": "assigned"
+          },
+          {
+            "from": "lab",
+            "to": "dev",
+            "label": "move",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Management groups",
+        "body": [
+          "Organise subscriptions, govern once."
+        ],
+        "show": [
+          "prod",
+          "dev",
+          "test",
+          "root",
+          "corp",
+          "lab",
+          "pol"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "root",
+            "to": "corp"
+          },
+          {
+            "from": "root",
+            "to": "lab"
+          },
+          {
+            "from": "corp",
+            "to": "prod"
+          },
+          {
+            "from": "corp",
+            "to": "dev"
+          },
+          {
+            "from": "lab",
+            "to": "test"
+          },
+          {
+            "from": "pol",
+            "to": "corp",
+            "label": "assigned"
+          },
+          {
+            "from": "lab",
+            "to": "dev",
+            "label": "move"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Management groups sit above subscriptions",
+          "Tenant root group at the top",
+          "Policy and RBAC inherit downward",
+          "Six levels deep, one parent each",
+          "Elevate access to manage the root"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a management group and place your subscription in it",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Free.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "Your account must be able to manage management groups. In a personal tenant you are Global Administrator; if you get an authorization error, see the tip in step 1."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Management groups'. If asked, select 'Start using management groups'.",
+        "see": "The Tenant Root Group with your subscription under it.",
+        "tip": "Authorization error? Open Microsoft Entra ID > Properties, set 'Access management for Azure resources' to Yes, Save, sign out and in. Turn it back to No at the end."
+      },
+      {
+        "do": "Select + Create. ID: mg-lab, display name: Lab. Submit.",
+        "see": "mg-lab under the Tenant Root Group (refresh after a minute)."
+      },
+      {
+        "do": "Open mg-lab > + Add subscription, choose your subscription. Save.",
+        "see": "Your subscription now listed under mg-lab."
+      },
+      {
+        "do": "Open mg-lab > Access control (IAM) > Add role assignment: Reader for Ana Lab (from the identity labs).",
+        "see": "A role assignment at the management group scope."
+      },
+      {
+        "do": "Open your subscription > Access control (IAM) > Role assignments.",
+        "see": "Ana's Reader assignment shown as inherited from mg-lab (scope: management group)."
+      }
+    ],
+    "check": [
+      "Ana's role on the subscription shows as inherited from mg-lab."
+    ],
+    "cleanup": [
+      "Remove Ana's role on mg-lab.",
+      "Move the subscription back to the Tenant Root Group, then delete mg-lab.",
+      "If you elevated access, set it back to No."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: create a management group",
+        "url": "https://learn.microsoft.com/azure/governance/management-groups/create-management-group-portal"
+      },
+      {
+        "title": "Manage your Azure subscriptions at scale with management groups",
+        "url": "https://learn.microsoft.com/azure/governance/management-groups/manage"
+      },
+      {
+        "title": "Elevate access to manage all Azure subscriptions",
+        "url": "https://learn.microsoft.com/azure/role-based-access-control/elevate-access-global-admin"
+      }
+    ]
+  }
+}

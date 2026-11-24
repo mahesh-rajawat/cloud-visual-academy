@@ -1,0 +1,231 @@
+{
+  "id": "az900-cost-factors",
+  "exam": "az-900",
+  "title": "Factors that affect cost, and the pricing calculator",
+  "objectiveIds": [
+    "AZ900-3.1.1",
+    "AZ900-3.1.2"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Describe the factors that affect Azure costs and use the pricing calculator to estimate a solution before deploying it.",
+  "prerequisites": [
+    {
+      "text": "Consumption-based pricing",
+      "objectiveId": "AZ900-1.1.5",
+      "lessonId": "az900-pricing-serverless"
+    }
+  ],
+  "foundation": [
+    "Azure bills by consumption, so what you deploy and how long it runs decides the bill.",
+    "Main cost factors: the resource type and size, how much you consume, leftover resources, the region, network traffic leaving Azure, your subscription type, and anything bought from the Azure Marketplace.",
+    "The pricing calculator (azure.microsoft.com/pricing/calculator) lets you add services, pick options and see an estimated monthly cost before you build anything. It's free and you don't need to sign in."
+  ],
+  "engineer": [
+    "Resource type and size: each service, tier and SKU has its own meters. A Premium SSD costs more than Standard HDD; a D-series VM more than a B-series. Storage cost depends on type, tier, redundancy and region.",
+    "Consumption: pay-as-you-go by default; commit with reservations or savings plans for discounts. Maintenance: resources created with others (disks, NICs, public IPs, NSGs) remain after a VM is deleted unless cleaned up.",
+    "Geography: prices differ between regions because of local power, labour and tax costs. Network traffic: inbound data transfer is generally free; outbound (egress) to the internet and traffic between regions or zones is billed, in tiers by zone and volume.",
+    "Subscription type: free accounts include 12 months of popular services, credit for the first 30 days and always-free services. Azure Marketplace: third-party solutions bill their own software charges on your Azure invoice.",
+    "Pricing calculator: choose products, configure options (region, tier, billing option, support), see a per-month estimate, export or share it. Estimates aren't quotes; actual cost depends on real usage."
+  ],
+  "animation": {
+    "id": "az900-cost-sim",
+    "caption": "Build an estimate and compare it to a budget, then match situations to cost factors."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "type",
+        "label": "Resource type and size",
+        "x": 0,
+        "y": 0,
+        "kind": "compute"
+      },
+      {
+        "id": "reg",
+        "label": "Region",
+        "x": 0,
+        "y": 100,
+        "kind": "scope"
+      },
+      {
+        "id": "egress",
+        "label": "Outbound traffic",
+        "x": 0,
+        "y": 200,
+        "kind": "network"
+      },
+      {
+        "id": "cons",
+        "label": "Consumption / commitments",
+        "x": 0,
+        "y": 300,
+        "kind": "scope"
+      },
+      {
+        "id": "calc",
+        "label": "Pricing calculator estimate",
+        "x": 300,
+        "y": 150,
+        "kind": "user"
+      },
+      {
+        "id": "bill",
+        "label": "Monthly bill",
+        "x": 560,
+        "y": 150,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "type",
+        "to": "calc"
+      },
+      {
+        "from": "reg",
+        "to": "calc"
+      },
+      {
+        "from": "egress",
+        "to": "calc"
+      },
+      {
+        "from": "cons",
+        "to": "calc"
+      },
+      {
+        "from": "calc",
+        "to": "bill",
+        "label": "deploy"
+      }
+    ]
+  },
+  "example": {
+    "title": "Estimating a new web shop",
+    "body": [
+      "The team prices 2 App Service instances, an Azure SQL Database and 500 GB of outbound traffic in the calculator for two regions. North Europe is cheaper than Switzerland North for the same SKUs.",
+      "They export the estimate for the budget meeting and later notice that a forgotten test VM's disks keep costing money after the VM was deleted."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Cost Management Reader to view costs"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "azure.microsoft.com/pricing/calculator: add products, set region and options, Export.",
+      "Cost Management > Cost analysis: compare the estimate with actual cost after deploying."
+    ],
+    "cli": "az consumption usage list --top 5 -o table\naz vm list-skus -l westeurope --size Standard_D -o table",
+    "powershell": "Get-AzConsumptionUsageDetail -Top 5"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-cost-sim",
+    "objective": "Estimate costs and recognise cost factors.",
+    "duration": 15,
+    "steps": [
+      "Cost factors and estimates tab: change region, size, hours and egress; compare with the budget.",
+      "What affects cost? tab: answer every situation."
+    ],
+    "expected": [
+      "Region and egress change the estimate",
+      "Leftover resources still cost money"
+    ],
+    "validation": [
+      {
+        "id": "cost-estimated",
+        "text": "Built an estimate"
+      },
+      {
+        "id": "cost-over",
+        "text": "Saw an estimate exceed the budget"
+      },
+      {
+        "id": "cost-factor-correct",
+        "text": "Chose the right cost factor"
+      },
+      {
+        "id": "cost-factor-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Ignoring outbound data transfer",
+      "Treating an estimate as a guaranteed price"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Bill is much higher than the estimate.",
+      "cause": "Real usage (hours, egress, transactions) differs from estimate inputs.",
+      "fix": "Compare Cost analysis by meter with the estimate and adjust."
+    },
+    {
+      "symptom": "Charges continue for deleted resources.",
+      "cause": "Associated disks or IPs remain.",
+      "fix": "Delete orphaned resources."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Pricing calculator vs Cost Management",
+      "difference": "The calculator estimates before deploying; Cost Management tracks actual spend after."
+    },
+    {
+      "service": "Ingress vs egress",
+      "difference": "Inbound transfer is generally free; outbound is billed."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Azure prices are the same in every region.",
+      "reality": "They vary by region."
+    },
+    {
+      "myth": "Deleting a VM deletes everything it used.",
+      "reality": "Disks, NICs and IPs may remain."
+    },
+    {
+      "myth": "The calculator needs an Azure subscription.",
+      "reality": "It's free to use without signing in."
+    }
+  ],
+  "architectureDecisions": [
+    "Estimate in several regions before choosing.",
+    "Design to minimise cross-region and internet egress.",
+    "Clean up associated resources."
+  ],
+  "docs": [
+    {
+      "title": "Describe cost management in Azure (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-cost-management-azure/"
+    },
+    {
+      "title": "Pricing calculator",
+      "url": "https://azure.microsoft.com/pricing/calculator/"
+    },
+    {
+      "title": "Bandwidth pricing",
+      "url": "https://azure.microsoft.com/pricing/details/bandwidth/"
+    },
+    {
+      "title": "Azure free account",
+      "url": "https://azure.microsoft.com/free/"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

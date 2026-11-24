@@ -1,0 +1,247 @@
+{
+  "id": "ai901-speech-apps",
+  "exam": "ai-901",
+  "title": "Spoken prompts with a multimodal model, and apps with Azure Speech",
+  "objectiveIds": [
+    "AI901-2.2.2",
+    "AI901-2.2.3"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Respond to spoken prompts with a deployed multimodal model, and build a lightweight application with Azure Speech in Foundry Tools.",
+  "prerequisites": [
+    {
+      "text": "Speech capabilities",
+      "objectiveId": "AI901-1.3.3",
+      "lessonId": "ai901-speech-capabilities"
+    },
+    {
+      "text": "Chat client with the SDK",
+      "objectiveId": "AI901-2.1.3",
+      "lessonId": "ai901-sdk-chat-client"
+    }
+  ],
+  "foundation": [
+    "There are two ways to build a voice app. Option 1: Azure Speech turns speech into text, a model answers, and Azure Speech reads the answer aloud. Option 2: send the audio straight to a multimodal model that understands audio.",
+    "For live, natural conversations where the user can interrupt, use a real-time voice option (Voice Live or realtime models)."
+  ],
+  "engineer": [
+    "Azure Speech SDK (azure-cognitiveservices-speech): SpeechConfig (key or Entra token + endpoint/region); speech_recognition_language (for example en-US) or auto language detection; SpeechRecognizer with AudioConfig(use_default_microphone=True) or a filename; recognize_once_async().get() for one utterance; continuous recognition for long audio; check result.reason == ResultReason.RecognizedSpeech.",
+    "Text to speech: speech_config.speech_synthesis_voice_name = 'en-US-Ava:DragonHDLatestNeural'; SpeechSynthesizer(speech_config).speak_text_async(text).get(), or speak_ssml_async for SSML; output to speaker or file.",
+    "Multimodal audio input: deploy an audio-capable model; send the audio (base64, with its format) as an input content item alongside instructions; the model replies in text (or audio if supported). Good when tone and content both matter, with fewer moving parts.",
+    "Voice Live API / realtime: low-latency, bidirectional speech-to-speech for voice agents, with features such as noise suppression, turn detection and interruption handling.",
+    "Common errors: no microphone or wrong audio format, NoMatch (speech not recognised: check language), Canceled (check the cancellation details: auth, region/endpoint, quota)."
+  ],
+  "animation": {
+    "id": "ai901-speechapp-sim",
+    "caption": "Build a voice pipeline with Azure Speech or a multimodal model, and choose the approach for each requirement."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "mic",
+        "label": "Microphone",
+        "x": 0,
+        "y": 100,
+        "kind": "user"
+      },
+      {
+        "id": "stt",
+        "label": "Azure Speech: speech to text",
+        "x": 220,
+        "y": 30,
+        "kind": "ai"
+      },
+      {
+        "id": "llm",
+        "label": "Model deployment",
+        "x": 440,
+        "y": 30,
+        "kind": "ai"
+      },
+      {
+        "id": "tts",
+        "label": "Azure Speech: text to speech",
+        "x": 660,
+        "y": 30,
+        "kind": "ai"
+      },
+      {
+        "id": "mm",
+        "label": "Multimodal model with audio input",
+        "x": 440,
+        "y": 190,
+        "kind": "ai"
+      },
+      {
+        "id": "spk",
+        "label": "Speaker / text reply",
+        "x": 880,
+        "y": 100,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "mic",
+        "to": "stt"
+      },
+      {
+        "from": "stt",
+        "to": "llm"
+      },
+      {
+        "from": "llm",
+        "to": "tts"
+      },
+      {
+        "from": "tts",
+        "to": "spk"
+      },
+      {
+        "from": "mic",
+        "to": "mm",
+        "label": "audio in prompt"
+      },
+      {
+        "from": "mm",
+        "to": "spk"
+      }
+    ]
+  },
+  "example": {
+    "title": "A hands-free warehouse assistant",
+    "body": [
+      "Workers ask 'Where is pallet 4417?'. The app uses Azure Speech with a phrase list of product codes, sends the text to a model with a function to query the warehouse system, and speaks the answer with a neural voice.",
+      "A prototype that sends the recorded question directly to an audio-capable model needs fewer components but has less control over vocabulary."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Foundry portal > your project > Speech playground: try real-time speech to text and the voice gallery.",
+      "Language playground: run sentiment analysis and NER on sample text.",
+      "Copy the resource key and endpoint (or use Entra ID) from the resource's Keys and Endpoint page."
+    ],
+    "cli": "az cognitiveservices account keys list --name contoso-ai --resource-group rg-ai901\naz cognitiveservices account show --name contoso-ai --resource-group rg-ai901 --query properties.endpoint -o tsv",
+    "powershell": "Get-AzCognitiveServicesAccountKey -ResourceGroupName rg-ai901 -Name contoso-ai",
+    "python": "# pip install azure-cognitiveservices-speech azure-ai-textanalytics\nimport os\nimport azure.cognitiveservices.speech as speechsdk\nfrom azure.ai.textanalytics import TextAnalyticsClient\nfrom azure.core.credentials import AzureKeyCredential\n\nspeech_config = speechsdk.SpeechConfig(subscription=os.environ[\"SPEECH_KEY\"], endpoint=os.environ[\"ENDPOINT\"])\nspeech_config.speech_recognition_language = \"en-US\"\nrecognizer = speechsdk.SpeechRecognizer(speech_config=speech_config,\n                                        audio_config=speechsdk.audio.AudioConfig(use_default_microphone=True))\nresult = recognizer.recognize_once_async().get()\nif result.reason == speechsdk.ResultReason.RecognizedSpeech:\n    text = result.text\n    language = TextAnalyticsClient(os.environ[\"ENDPOINT\"], AzureKeyCredential(os.environ[\"SPEECH_KEY\"]))\n    sentiment = language.analyze_sentiment([text])[0]\n    print(text, \"->\", sentiment.sentiment, sentiment.confidence_scores)\n\n    speech_config.speech_synthesis_voice_name = \"en-US-Ava:DragonHDLatestNeural\"\n    speechsdk.SpeechSynthesizer(speech_config=speech_config).speak_text_async(f\"You sounded {sentiment.sentiment}.\").get()\nelse:\n    print(\"No speech recognized:\", result.reason)\n# Spoken prompt to an audio-capable model (openai = project.get_openai_client())\nimport base64\nwith open(\"question.wav\", \"rb\") as f:\n    audio_b64 = base64.b64encode(f.read()).decode()\n\ncompletion = openai.chat.completions.create(\n    model=\"audio-model\",  # a deployment of an audio-capable model\n    modalities=[\"text\"],\n    messages=[{\"role\": \"user\", \"content\": [\n        {\"type\": \"text\", \"text\": \"Answer the spoken question briefly.\"},\n        {\"type\": \"input_audio\", \"input_audio\": {\"data\": audio_b64, \"format\": \"wav\"}},\n    ]}],\n)\nprint(completion.choices[0].message.content)\n\n"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-speechapp-sim",
+    "objective": "Build a working voice pipeline.",
+    "duration": 20,
+    "steps": [
+      "Speech apps tab: run the default, fix errors, then try the multimodal preset.",
+      "Which speech approach? tab: answer every requirement."
+    ],
+    "expected": [
+      "Speech SDK: recognise → model → synthesise",
+      "Multimodal models accept audio directly"
+    ],
+    "validation": [
+      {
+        "id": "ai-speech-ok",
+        "text": "Voice pipeline works"
+      },
+      {
+        "id": "ai-speech-multimodal",
+        "text": "Used a multimodal audio model"
+      },
+      {
+        "id": "ai-speech-error",
+        "text": "Diagnosed a speech error"
+      },
+      {
+        "id": "speech-approach-correct",
+        "text": "Chose the right approach"
+      },
+      {
+        "id": "speech-approach-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Wrong recognition language",
+      "Ignoring the Canceled reason details"
+    ],
+    "cleanup": [
+      "Simulation: use Reset.",
+      "If you ran it in Azure: az group delete --name rg-ai901 --yes (deletes the Foundry resource, projects and deployments)."
+    ],
+    "cost": "Simulation: free. Optional real run: model tokens and Foundry Tools transactions are billed per use; delete the resource group afterwards."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Result reason NoMatch.",
+      "cause": "Speech didn't match the recognition language, or silence.",
+      "fix": "Set the correct language or use auto-detection; check the microphone."
+    },
+    {
+      "symptom": "Result reason Canceled with an authentication error.",
+      "cause": "Wrong key, endpoint or region, or missing role.",
+      "fix": "Check SpeechConfig values and RBAC."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Speech SDK pipeline vs multimodal model",
+      "difference": "Pipeline: more control (custom speech, voices, SSML). Multimodal: simpler, understands audio directly."
+    },
+    {
+      "service": "Voice Live vs recognize_once",
+      "difference": "Voice Live is real-time conversational; recognize_once handles one utterance."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "A multimodal model replaces all speech features.",
+      "reality": "Custom speech, diarization and SSML still need Azure Speech."
+    },
+    {
+      "myth": "recognize_once handles long recordings.",
+      "reality": "Use continuous or batch transcription."
+    }
+  ],
+  "architectureDecisions": [
+    "Use Azure Speech when you need vocabulary control and specific voices.",
+    "Use multimodal audio for simple spoken Q&A.",
+    "Use Voice Live for natural real-time conversations."
+  ],
+  "docs": [
+    {
+      "title": "Quickstart: speech to text",
+      "url": "https://learn.microsoft.com/azure/ai-services/speech-service/get-started-speech-to-text"
+    },
+    {
+      "title": "Quickstart: text to speech",
+      "url": "https://learn.microsoft.com/azure/ai-services/speech-service/get-started-text-to-speech"
+    },
+    {
+      "title": "Azure Speech overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/speech-service/overview"
+    },
+    {
+      "title": "Audio input with chat models",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/audio-completions-quickstart"
+    },
+    {
+      "title": "Voice Live overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/speech-service/voice-live"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

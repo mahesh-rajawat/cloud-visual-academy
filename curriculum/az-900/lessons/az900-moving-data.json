@@ -1,0 +1,248 @@
+{
+  "id": "az900-moving-data",
+  "exam": "az-900",
+  "title": "Moving files and migrating to Azure",
+  "objectiveIds": [
+    "AZ900-2.3.5",
+    "AZ900-2.3.6"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Identify AzCopy, Azure Storage Explorer and Azure File Sync for moving files, and Azure Migrate and Azure Data Box for migration.",
+  "prerequisites": [
+    {
+      "text": "Storage services",
+      "objectiveId": "AZ900-2.3.1",
+      "lessonId": "az900-storage-services"
+    }
+  ],
+  "foundation": [
+    "AzCopy: a command-line tool to copy files to, from and between storage accounts. Good for scripts.",
+    "Azure Storage Explorer: a free desktop app (Windows, macOS, Linux) to browse and move files with a graphical interface.",
+    "Azure File Sync: keeps a Windows file server and an Azure file share in sync, so the server becomes a fast local cache.",
+    "Azure Migrate: one hub to discover, assess and move servers, databases, apps and data to Azure. Azure Data Box: a physical, rugged device Microsoft ships to you to move lots of data offline."
+  ],
+  "engineer": [
+    "AzCopy: upload, download, copy between accounts, and sync (one-direction) blobs and files; authenticates with Microsoft Entra ID or SAS tokens; resumable; works across clouds (for example from Amazon S3).",
+    "Storage Explorer: uses AzCopy underneath; manage blobs, files, queues, tables, Data Lake Storage and managed disks; connect by Entra ID, keys or SAS.",
+    "Azure File Sync: centralise shares in Azure Files; keep the flexibility and performance of on-premises Windows Server; any protocol on the server (SMB, NFS, FTPS); as many caches as needed worldwide; cloud tiering keeps hot files local and tiers cold files to Azure; replace a failed server quickly.",
+    "Azure Migrate: integrated tools (Discovery and assessment, Server migration, Data Migration Assistant, Azure Database Migration Service, web app migration assistant, Azure Data Box) plus third-party ISV tools, with a central dashboard tracking progress.",
+    "Azure Data Box: about 80 TB usable per standard device; for one-time bulk migration, initial seeding before online sync, periodic uploads, or exporting data out of Azure (for disaster recovery or moving off). Data is encrypted (AES 256-bit) and wiped after upload following NIST 800-88.",
+    "Rule of thumb: transfer time = data size ÷ bandwidth. 80 TB over 100 Mbps takes about 74 days; ship a Data Box instead."
+  ],
+  "animation": {
+    "id": "az900-migration-sim",
+    "caption": "Estimate transfer times, then pick the right tool for each move."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "onp",
+        "label": "On-premises servers and files",
+        "x": 0,
+        "y": 80,
+        "kind": "compute"
+      },
+      {
+        "id": "mig",
+        "label": "Azure Migrate: discover, assess, migrate",
+        "x": 260,
+        "y": 0,
+        "kind": "scope"
+      },
+      {
+        "id": "db",
+        "label": "Data Box: ship disks",
+        "x": 260,
+        "y": 100,
+        "kind": "storage"
+      },
+      {
+        "id": "az",
+        "label": "AzCopy / Storage Explorer",
+        "x": 260,
+        "y": 200,
+        "kind": "user"
+      },
+      {
+        "id": "fs",
+        "label": "Azure File Sync",
+        "x": 260,
+        "y": 300,
+        "kind": "network"
+      },
+      {
+        "id": "azure",
+        "label": "Azure",
+        "x": 520,
+        "y": 150,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "onp",
+        "to": "mig"
+      },
+      {
+        "from": "onp",
+        "to": "db"
+      },
+      {
+        "from": "onp",
+        "to": "az"
+      },
+      {
+        "from": "onp",
+        "to": "fs"
+      },
+      {
+        "from": "mig",
+        "to": "azure"
+      },
+      {
+        "from": "db",
+        "to": "azure"
+      },
+      {
+        "from": "az",
+        "to": "azure"
+      },
+      {
+        "from": "fs",
+        "to": "azure"
+      }
+    ]
+  },
+  "example": {
+    "title": "A media company moves to Azure",
+    "body": [
+      "It assesses 300 servers with Azure Migrate (sizing and cost), ships 400 TB of video archive on Data Box devices, and uses AzCopy nightly for new footage.",
+      "Regional offices keep a Windows file server each, synchronised by Azure File Sync with cloud tiering so only recent projects use local disk."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Azure Migrate > Servers, databases and web apps: discover and assess.",
+      "Data Box > Order.",
+      "Storage Sync Services > Create; register servers; create sync groups."
+    ],
+    "cli": "azcopy login\nazcopy copy ./footage \"https://<account>.blob.core.windows.net/raw\" --recursive\nazcopy sync ./footage \"https://<account>.blob.core.windows.net/raw\"",
+    "powershell": "New-AzStorageSyncService -ResourceGroupName <rg> -Name sync1 -Location westeurope"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-migration-sim",
+    "objective": "Estimate transfers and choose migration tools.",
+    "duration": 15,
+    "steps": [
+      "Moving data and migrating tab: try different sizes and link speeds.",
+      "Moving files and migrating tab: answer every task."
+    ],
+    "expected": [
+      "Large data on slow links → Data Box",
+      "File Sync keeps a local cache"
+    ],
+    "validation": [
+      {
+        "id": "migration-correct",
+        "text": "Chose the right transfer tool"
+      },
+      {
+        "id": "migration-wrong",
+        "text": "Saw a slower option"
+      },
+      {
+        "id": "move-tools-correct",
+        "text": "Chose the right tool"
+      },
+      {
+        "id": "move-tools-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Sending hundreds of TB over a slow internet link"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Copy job fails after a network interruption.",
+      "cause": "Long transfers are interrupted.",
+      "fix": "AzCopy jobs can resume: azcopy jobs resume <id>."
+    },
+    {
+      "symptom": "Local file server disk fills up.",
+      "cause": "Cloud tiering isn't enabled.",
+      "fix": "Enable cloud tiering with a free-space policy."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AzCopy vs Storage Explorer",
+      "difference": "AzCopy is scriptable command line; Storage Explorer is a GUI built on AzCopy."
+    },
+    {
+      "service": "Azure Migrate vs Data Box",
+      "difference": "Migrate is the assessment and migration hub; Data Box is one offline transfer option it includes."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Azure File Sync replaces your file server entirely.",
+      "reality": "It keeps the server as a cache synced with Azure Files."
+    },
+    {
+      "myth": "Data Box only imports data.",
+      "reality": "It can export data from Azure too."
+    }
+  ],
+  "architectureDecisions": [
+    "Assess before migrating with Azure Migrate.",
+    "Use Data Box when online transfer would take too long.",
+    "Script recurring copies with AzCopy."
+  ],
+  "docs": [
+    {
+      "title": "Describe Azure storage services (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-azure-storage-services/"
+    },
+    {
+      "title": "Get started with AzCopy",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-use-azcopy-v10"
+    },
+    {
+      "title": "Azure File Sync introduction",
+      "url": "https://learn.microsoft.com/azure/storage/file-sync/file-sync-introduction"
+    },
+    {
+      "title": "Azure Migrate overview",
+      "url": "https://learn.microsoft.com/azure/migrate/migrate-services-overview"
+    },
+    {
+      "title": "Azure Data Box",
+      "url": "https://learn.microsoft.com/azure/databox/data-box-overview"
+    },
+    {
+      "title": "Azure Storage Explorer",
+      "url": "https://azure.microsoft.com/products/storage/storage-explorer/"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

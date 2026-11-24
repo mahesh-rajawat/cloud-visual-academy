@@ -1,0 +1,226 @@
+{
+  "id": "ai901-speech-capabilities",
+  "exam": "ai-901",
+  "title": "Speech recognition and speech synthesis",
+  "objectiveIds": [
+    "AI901-1.3.3"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Identify features and capabilities of speech recognition (speech to text) and speech synthesis (text to speech).",
+  "prerequisites": [
+    {
+      "text": "AI workloads",
+      "objectiveId": "AI901-1.3.1",
+      "lessonId": "ai901-ai-workloads"
+    }
+  ],
+  "foundation": [
+    "Speech recognition (speech to text) turns spoken audio into written text: captions, transcripts, voice commands.",
+    "Speech synthesis (text to speech) turns text into natural-sounding spoken audio: reading answers aloud, audiobooks, phone menus.",
+    "Azure Speech in Foundry Tools does both, plus translation of speech and more. Multimodal models can also listen and speak directly."
+  ],
+  "engineer": [
+    "Speech to text modes: real-time (streaming, for captions and voice assistants), fast transcription (quick synchronous file transcription), batch transcription (large volumes of stored audio, asynchronous). Features: automatic punctuation, language identification, speaker diarization (who spoke when), word-level timestamps, profanity filtering, phrase lists, and custom speech models trained with your audio and text for domain vocabulary and accents.",
+    "Text to speech: neural and HD voices in many languages and styles; SSML (Speech Synthesis Markup Language) controls pronunciation, pauses, rate, pitch, volume and speaking style; custom voice (with approval) for a brand voice; text-to-speech avatars.",
+    "Other speech capabilities: speech translation (speech to text or speech in other languages), pronunciation assessment (accuracy, fluency, prosody for language learning), keyword recognition, and Voice Live for low-latency voice agents.",
+    "Responsible use: custom neural voice and some features require an application and approval; disclose synthetic voices."
+  ],
+  "animation": {
+    "id": "ai901-speech-sim",
+    "caption": "Pick Azure Speech features for each need, and follow a voice pipeline from microphone to speaker."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "mic",
+        "label": "Microphone / audio file",
+        "x": 0,
+        "y": 100,
+        "kind": "user"
+      },
+      {
+        "id": "stt",
+        "label": "Speech to text (real-time, fast, batch)",
+        "x": 240,
+        "y": 30,
+        "kind": "ai"
+      },
+      {
+        "id": "feat",
+        "label": "Diarization, custom speech, translation",
+        "x": 240,
+        "y": 170,
+        "kind": "ai"
+      },
+      {
+        "id": "text",
+        "label": "Text",
+        "x": 480,
+        "y": 100,
+        "kind": "storage"
+      },
+      {
+        "id": "tts",
+        "label": "Text to speech (neural voice + SSML)",
+        "x": 700,
+        "y": 100,
+        "kind": "ai"
+      },
+      {
+        "id": "spk",
+        "label": "Speaker",
+        "x": 920,
+        "y": 100,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "mic",
+        "to": "stt"
+      },
+      {
+        "from": "stt",
+        "to": "feat"
+      },
+      {
+        "from": "stt",
+        "to": "text"
+      },
+      {
+        "from": "text",
+        "to": "tts"
+      },
+      {
+        "from": "tts",
+        "to": "spk"
+      }
+    ]
+  },
+  "example": {
+    "title": "A pharmacy call line",
+    "body": [
+      "Calls are transcribed in real time with a custom speech model that knows drug names; diarization separates pharmacist and caller; batch transcription processes archived calls overnight.",
+      "The automated line answers in a neural voice; SSML spells out prescription numbers digit by digit and adds pauses."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Cognitive Services Speech User or Azure AI User"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Foundry portal > Speech playground: real-time speech to text, voice gallery, try SSML.",
+      "Custom speech: upload audio + transcripts to train a domain model."
+    ],
+    "cli": "az cognitiveservices account keys list --name contoso-ai --resource-group rg-ai901\naz cognitiveservices account show --name contoso-ai --resource-group rg-ai901 --query properties.endpoint -o tsv",
+    "powershell": "Get-AzCognitiveServicesAccountKey -ResourceGroupName rg-ai901 -Name contoso-ai",
+    "python": "# pip install azure-cognitiveservices-speech azure-ai-textanalytics\nimport os\nimport azure.cognitiveservices.speech as speechsdk\nfrom azure.ai.textanalytics import TextAnalyticsClient\nfrom azure.core.credentials import AzureKeyCredential\n\nspeech_config = speechsdk.SpeechConfig(subscription=os.environ[\"SPEECH_KEY\"], endpoint=os.environ[\"ENDPOINT\"])\nspeech_config.speech_recognition_language = \"en-US\"\nrecognizer = speechsdk.SpeechRecognizer(speech_config=speech_config,\n                                        audio_config=speechsdk.audio.AudioConfig(use_default_microphone=True))\nresult = recognizer.recognize_once_async().get()\nif result.reason == speechsdk.ResultReason.RecognizedSpeech:\n    text = result.text\n    language = TextAnalyticsClient(os.environ[\"ENDPOINT\"], AzureKeyCredential(os.environ[\"SPEECH_KEY\"]))\n    sentiment = language.analyze_sentiment([text])[0]\n    print(text, \"->\", sentiment.sentiment, sentiment.confidence_scores)\n\n    speech_config.speech_synthesis_voice_name = \"en-US-Ava:DragonHDLatestNeural\"\n    speechsdk.SpeechSynthesizer(speech_config=speech_config).speak_text_async(f\"You sounded {sentiment.sentiment}.\").get()\nelse:\n    print(\"No speech recognized:\", result.reason)"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-speech-sim",
+    "objective": "Recognise speech features.",
+    "duration": 15,
+    "steps": [
+      "Speech capabilities tab: answer every need.",
+      "Speech apps tab: run the voice pipeline and each preset."
+    ],
+    "expected": [
+      "Diarization identifies speakers",
+      "SSML controls synthesis"
+    ],
+    "validation": [
+      {
+        "id": "speech-feature-correct",
+        "text": "Chose the right speech feature"
+      },
+      {
+        "id": "speech-feature-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "ai-speech-ok",
+        "text": "Ran a voice pipeline"
+      }
+    ],
+    "failureScenarios": [
+      "Using real-time recognition for 10,000 archived files",
+      "Expecting SSML to improve recognition"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Product names are transcribed wrongly.",
+      "cause": "General model doesn't know the vocabulary.",
+      "fix": "Add a phrase list or train custom speech."
+    },
+    {
+      "symptom": "Synthesised voice reads '2025' as a number, not a year.",
+      "cause": "No SSML guidance.",
+      "fix": "Use SSML say-as for dates or numbers."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Speech to text vs OCR",
+      "difference": "Speech to text reads audio; OCR reads text in images."
+    },
+    {
+      "service": "Batch vs real-time transcription",
+      "difference": "Batch processes stored files asynchronously; real-time streams live audio."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Text to speech sounds robotic.",
+      "reality": "Neural and HD voices are natural and expressive."
+    },
+    {
+      "myth": "Speaker diarization identifies people by name.",
+      "reality": "It separates speakers (Speaker 1, 2); identification needs extra steps."
+    },
+    {
+      "myth": "SSML is for recognition.",
+      "reality": "SSML controls synthesis."
+    }
+  ],
+  "architectureDecisions": [
+    "Use batch transcription for archives.",
+    "Add custom speech for specialist vocabulary.",
+    "Use SSML for precise pronunciation."
+  ],
+  "docs": [
+    {
+      "title": "Azure Speech overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/speech-service/overview"
+    },
+    {
+      "title": "Speech to text overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/speech-service/speech-to-text"
+    },
+    {
+      "title": "Text to speech overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech"
+    },
+    {
+      "title": "SSML overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/speech-service/speech-synthesis-markup"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

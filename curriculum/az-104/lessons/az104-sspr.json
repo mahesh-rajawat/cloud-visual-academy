@@ -1,0 +1,608 @@
+{
+  "id": "az104-sspr",
+  "exam": "az-104",
+  "title": "Self-service password reset (SSPR)",
+  "objectiveIds": [
+    "AZ104-1.1.5"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Configure SSPR scope, authentication methods, registration and writeback, and explain why a given user can or cannot reset their password.",
+  "prerequisites": [
+    {
+      "text": "Authentication methods and MFA (AZ-900)",
+      "objectiveId": "AZ900-2.4.2"
+    },
+    {
+      "text": "Groups",
+      "lessonId": "az104-entra-users-groups",
+      "objectiveId": "AZ104-1.1.1"
+    }
+  ],
+  "foundation": [
+    "SSPR lets users reset a forgotten password themselves, without calling the help desk.",
+    "You choose who can use it (no one, a selected group, or everyone), how many verification methods they must pass (one or two), and which methods are allowed (authenticator app, text or call, email, security questions…).",
+    "Users must register their methods first, and you can require them to register the next time they sign in.",
+    "Administrators are always covered by a stricter built-in policy, whatever you choose for users."
+  ],
+  "engineer": [
+    "Scope: None, Selected (a group, ideal for a pilot) or All. Licensing: SSPR for cloud users requires Microsoft Entra ID P1 or an eligible Microsoft 365 business plan. Password writeback for synced users requires P1 and Microsoft Entra Connect or Cloud Sync with writeback enabled.",
+    "Methods: Microsoft Authenticator notification or code, mobile phone (SMS or voice), office phone, email, and security questions. Number of methods required: 1 or 2. Security questions are the weakest method and are never allowed for administrators.",
+    "The administrator reset policy is enabled for all Azure administrator roles regardless of the user setting. It requires two methods (two-gate) and does not allow security questions.",
+    "Registration: 'Require users to register when signing in' and the number of days before users are asked to reconfirm (default 180). The combined security information registration experience registers SSPR and MFA methods together.",
+    "Notifications: notify users on password resets, and notify all admins when other admins reset their password. Customisation: a help-desk link or email shown on the reset page.",
+    "Synced (hybrid) users: without writeback the cloud reset cannot change the on-premises password, so SSPR fails for them. With writeback, on-premises password policy (complexity, history) also applies.",
+    "Since 30 September 2025 the authentication methods available for MFA and SSPR are managed in one place: the Authentication methods policy (Protection > Authentication methods > Policies). The legacy MFA and SSPR method settings no longer control which methods users can use."
+  ],
+  "animation": {
+    "id": "identity-sim",
+    "caption": "Open the SSPR tab: change scope, methods and writeback, then test each user."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "user",
+        "label": "User: Forgot my password",
+        "x": 0,
+        "y": 60,
+        "kind": "user"
+      },
+      {
+        "id": "scope",
+        "label": "Scope check (None / Selected / All)",
+        "x": 230,
+        "y": 60,
+        "kind": "security"
+      },
+      {
+        "id": "methods",
+        "label": "Verify 1–2 registered methods",
+        "x": 470,
+        "y": 60,
+        "kind": "security"
+      },
+      {
+        "id": "cloud",
+        "label": "Cloud password updated",
+        "x": 700,
+        "y": 0,
+        "kind": "identity"
+      },
+      {
+        "id": "wb",
+        "label": "Writeback → on-prem AD (synced users)",
+        "x": 700,
+        "y": 130,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "user",
+        "to": "scope"
+      },
+      {
+        "from": "scope",
+        "to": "methods"
+      },
+      {
+        "from": "methods",
+        "to": "cloud",
+        "label": "cloud user"
+      },
+      {
+        "from": "methods",
+        "to": "wb",
+        "label": "synced user"
+      }
+    ]
+  },
+  "example": {
+    "title": "Pilot then roll out",
+    "body": [
+      "Contoso enables SSPR for the group 'SSPR pilot' with two required methods (Authenticator app and mobile phone), requires registration at sign-in, and enables password writeback because most users are synced from AD.",
+      "After two weeks with fewer issues they switch the scope to All. Security questions stay disabled because the security team considers them too weak."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Microsoft Entra ID P1 (or eligible Microsoft 365 plan)",
+      "For hybrid users: Entra Connect or Cloud Sync with password writeback"
+    ],
+    "permissions": [
+      "Authentication Policy Administrator or Global Administrator to configure password reset",
+      "Hybrid Identity Administrator to configure Connect/Cloud Sync writeback"
+    ],
+    "limits": [
+      "Methods required: 1 or 2",
+      "Security questions not available for administrators",
+      "Admin policy always enforced"
+    ],
+    "portal": [
+      "Microsoft Entra admin center > Protection > Password reset > Properties: Self service password reset enabled = None / Selected / All (choose the group for Selected).",
+      "Authentication methods: number of methods required and the allowed methods.",
+      "Registration: require users to register when signing in; days before users are asked to reconfirm.",
+      "On-premises integration: enable password writeback (requires Connect or Cloud Sync).",
+      "Notifications and Customization: user/admin notifications and help-desk link."
+    ],
+    "cli": "# SSPR policy is configured in the Microsoft Entra admin center; there is no az command for it.\n# Inspect a user's registered authentication methods through Microsoft Graph:\naz rest --method get --url https://graph.microsoft.com/v1.0/users/ana@contoso.com/authentication/methods",
+    "powershell": "Connect-MgGraph -Scopes 'UserAuthenticationMethod.Read.All'\nGet-MgUserAuthenticationMethod -UserId 'ana@contoso.com' | Select-Object Id, AdditionalProperties\n# Registration status across users (requires Reports.Read.All)\nGet-MgReportAuthenticationMethodUserRegistrationDetail | Select-Object UserPrincipalName, IsSsprRegistered, IsSsprCapable"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "identity-sim",
+    "objective": "Explain every SSPR success and failure from scope, methods, writeback and the admin policy.",
+    "duration": 10,
+    "steps": [
+      "On the SSPR tab, try Ana (in the pilot group, but only one method registered). Register a second method and try again.",
+      "Try Chen (synced) with writeback off, then turn writeback on and add Chen to scope by switching to All.",
+      "Try Dana (Global Admin) with security questions registered. Then register Authenticator app and mobile phone."
+    ],
+    "expected": [
+      "Insufficient methods blocks reset",
+      "Synced users need writeback",
+      "Admins need two methods and cannot use security questions"
+    ],
+    "validation": [
+      {
+        "id": "sspr-blocked",
+        "text": "Saw a reset blocked and read why"
+      },
+      {
+        "id": "sspr-success",
+        "text": "Completed a successful reset"
+      },
+      {
+        "id": "admin-policy",
+        "text": "Tested the administrator policy"
+      }
+    ],
+    "failureScenarios": [
+      "Scope set to Selected with the user outside the group",
+      "Writeback disabled for synced users",
+      "Admin relying on security questions"
+    ],
+    "cleanup": [
+      "Use Reset scenario."
+    ],
+    "cost": "None in the simulation. SSPR needs P1 (or an eligible Microsoft 365 plan) in a real tenant."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "User sees 'Your account is not enabled for password reset'.",
+      "cause": "SSPR is None, or Selected and the user is not in the group.",
+      "fix": "Add the user to the selected group or change the scope."
+    },
+    {
+      "symptom": "Reset succeeds in the cloud, but the old password still works on-premises.",
+      "cause": "Password writeback is disabled or failing.",
+      "fix": "Enable writeback in Connect/Cloud Sync and in Password reset > On-premises integration."
+    },
+    {
+      "symptom": "An admin cannot use security questions.",
+      "cause": "The admin policy never allows them.",
+      "fix": "Register two strong methods (app, phone, email)."
+    },
+    {
+      "symptom": "A user is prompted to register again.",
+      "cause": "The reconfirmation period elapsed.",
+      "fix": "Expected behaviour; adjust 'Number of days before users are asked to re-confirm'."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Self-service password change",
+      "difference": "Changing a known password is available to all cloud users; reset (forgotten password) is SSPR."
+    },
+    {
+      "service": "AWS IAM Identity Center",
+      "difference": "Supports user-initiated password reset for its own directory; Entra SSPR adds method policies and on-premises writeback."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Disabling SSPR for users disables it for admins.",
+      "reality": "Administrators always have SSPR with the two-gate policy."
+    },
+    {
+      "myth": "SSPR works for synced users out of the box.",
+      "reality": "Password writeback is needed."
+    },
+    {
+      "myth": "Selected scope means selected users.",
+      "reality": "It is scoped by group membership."
+    }
+  ],
+  "architectureDecisions": [
+    "Pilot with a group, then enable for All.",
+    "Require two methods and prefer Authenticator over SMS; avoid security questions.",
+    "Use combined registration so MFA and SSPR methods are registered once."
+  ],
+  "docs": [
+    {
+      "title": "How self-service password reset works",
+      "url": "https://learn.microsoft.com/entra/identity/authentication/concept-sspr-howitworks"
+    },
+    {
+      "title": "Tutorial: Enable self-service password reset",
+      "url": "https://learn.microsoft.com/entra/identity/authentication/tutorial-enable-sspr"
+    },
+    {
+      "title": "Administrator reset policy differences",
+      "url": "https://learn.microsoft.com/entra/identity/authentication/concept-sspr-policy"
+    },
+    {
+      "title": "Enable password writeback",
+      "url": "https://learn.microsoft.com/entra/identity/authentication/tutorial-enable-sspr-writeback"
+    },
+    {
+      "title": "SSPR licensing requirements",
+      "url": "https://learn.microsoft.com/entra/identity/authentication/concept-sspr-licensing"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Let people reset their own forgotten password, safely, without calling the help desk.",
+    "learn": [
+      "What SSPR does",
+      "Scope: none, selected or all",
+      "Authentication methods and how many",
+      "Registration and notifications",
+      "Testing it as a user"
+    ],
+    "nodes": [
+      {
+        "id": "user",
+        "label": "Ana forgot password",
+        "x": 120,
+        "y": 220,
+        "kind": "user"
+      },
+      {
+        "id": "desk",
+        "label": "Help desk",
+        "x": 120,
+        "y": 380,
+        "kind": "service",
+        "sub": "slow, costly"
+      },
+      {
+        "id": "sspr",
+        "label": "SSPR",
+        "x": 380,
+        "y": 220,
+        "kind": "security",
+        "sub": "aka.ms/sspr"
+      },
+      {
+        "id": "scope",
+        "label": "Scope: group",
+        "x": 380,
+        "y": 80,
+        "kind": "identity",
+        "sub": "who can use it"
+      },
+      {
+        "id": "meth",
+        "label": "Methods",
+        "x": 640,
+        "y": 140,
+        "kind": "security",
+        "sub": "app, email, phone"
+      },
+      {
+        "id": "reg",
+        "label": "Registration",
+        "x": 640,
+        "y": 300,
+        "kind": "identity",
+        "sub": "at next sign-in"
+      },
+      {
+        "id": "ok",
+        "label": "New password",
+        "x": 380,
+        "y": 380,
+        "kind": "user"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Locked out",
+        "title": "Monday 8 a.m.: Ana forgot her password",
+        "body": [
+          "She calls the help desk, waits 20 minutes, and someone resets it by hand. Multiply that by a large company and it costs real money."
+        ],
+        "show": [
+          "user",
+          "desk"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "desk",
+            "label": "call",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "SSPR",
+        "title": "Self-service password reset",
+        "body": [
+          "With SSPR, Ana goes to aka.ms/sspr, proves who she is with a second method, and chooses a new password herself.",
+          "Resetting a forgotten password needs Microsoft Entra ID P1 (or a Microsoft 365 business licence). Changing a password you still know is free."
+        ],
+        "show": [
+          "user",
+          "sspr"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "sspr",
+            "label": "reset",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Scope",
+        "title": "Turn it on for nobody, some, or everyone",
+        "body": [
+          "Password reset > Properties: None, Selected (one security group) or All. Start with a pilot group, then move to All.",
+          "Administrators are always enabled with a stronger two-method policy, whatever you choose here."
+        ],
+        "show": [
+          "user",
+          "sspr",
+          "scope"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "sspr",
+            "label": "reset"
+          },
+          {
+            "from": "scope",
+            "to": "sspr",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Methods",
+        "title": "How users prove who they are",
+        "body": [
+          "Choose 1 or 2 methods required to reset. Methods include the Microsoft Authenticator app, email, mobile phone and security questions. Microsoft now manages which methods are allowed in the Authentication methods policy.",
+          "Registration: require users to register their methods at sign-in, and re-confirm them every N days. Notifications tell users and admins when a password is reset."
+        ],
+        "show": [
+          "user",
+          "sspr",
+          "scope",
+          "meth",
+          "reg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "sspr",
+            "label": "reset"
+          },
+          {
+            "from": "scope",
+            "to": "sspr"
+          },
+          {
+            "from": "sspr",
+            "to": "meth",
+            "fresh": true
+          },
+          {
+            "from": "sspr",
+            "to": "reg",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Two methods required is more secure than one. Security questions are the weakest method."
+        }
+      },
+      {
+        "kind": "case",
+        "label": "Test",
+        "title": "Case: Ana resets her own password",
+        "body": [
+          "Ana signs in once, registers the Authenticator app and her phone. A week later she forgets her password, opens aka.ms/sspr, confirms both methods and sets a new one in two minutes."
+        ],
+        "show": [
+          "user",
+          "sspr",
+          "scope",
+          "meth",
+          "reg",
+          "ok"
+        ],
+        "focus": [
+          "ok"
+        ],
+        "edges": [
+          {
+            "from": "user",
+            "to": "sspr",
+            "label": "reset"
+          },
+          {
+            "from": "scope",
+            "to": "sspr"
+          },
+          {
+            "from": "sspr",
+            "to": "meth"
+          },
+          {
+            "from": "sspr",
+            "to": "reg"
+          },
+          {
+            "from": "sspr",
+            "to": "ok",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "SSPR in one minute",
+        "body": [
+          "Users fix their own passwords; you choose who and how."
+        ],
+        "show": [
+          "user",
+          "sspr",
+          "scope",
+          "meth",
+          "reg",
+          "ok"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "sspr",
+            "label": "reset"
+          },
+          {
+            "from": "scope",
+            "to": "sspr"
+          },
+          {
+            "from": "sspr",
+            "to": "meth"
+          },
+          {
+            "from": "sspr",
+            "to": "reg"
+          },
+          {
+            "from": "sspr",
+            "to": "ok"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Reset of forgotten passwords needs Entra ID P1",
+          "Scope: None, Selected (one group) or All",
+          "1 or 2 methods required",
+          "Users register methods, then reset at aka.ms/sspr",
+          "Admins always have SSPR with two methods"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Turn on SSPR for a group and reset a password as Ana",
+    "minutes": 25,
+    "costLevel": "free",
+    "cost": "Free with the Entra ID P2 trial from the licences lab.",
+    "before": [
+      "Signed in at portal.azure.com with the account that created your Azure subscription. That account is a Global Administrator of its own Microsoft Entra tenant.",
+      "The P2 trial is active and grp-it-lab (with Ana Lab) has the licence.",
+      "Ana's sign-in name and the temporary password you copied."
+    ],
+    "steps": [
+      {
+        "do": "Open Microsoft Entra ID > Password reset > Properties. Set 'Self service password reset enabled' to Selected, choose grp-it-lab, and select Save.",
+        "see": "A success notification."
+      },
+      {
+        "do": "Select Authentication methods. Set 'Number of methods required to reset' to 1 and tick Email and Mobile phone. Save.",
+        "see": "Your choices saved.",
+        "tip": "In some tenants the methods list is managed in Protection > Authentication methods > Policies. If the page sends you there, enable Email OTP there."
+      },
+      {
+        "do": "Select Registration. Set 'Require users to register when signing in' to Yes. Save."
+      },
+      {
+        "do": "Open a private (InPrivate/Incognito) browser window and sign in at myapps.microsoft.com as Ana with the temporary password. Set a new password when asked.",
+        "see": "A prompt asking Ana to register security information.",
+        "tip": "Use My Apps rather than the Azure portal: Azure now requires multifactor authentication for portal sign-in, which adds extra set-up steps."
+      },
+      {
+        "do": "Register an email address you can read (or a phone number). Finish and close the browser.",
+        "see": "A confirmation that the method is registered."
+      },
+      {
+        "do": "Open another private window, go to aka.ms/sspr and enter Ana's sign-in name. Complete the check with the code sent to the email or phone.",
+        "see": "A page to choose a new password."
+      },
+      {
+        "do": "Set a new password and sign in with it.",
+        "see": "Ana signs in successfully. Admins can see the event in Password reset > Audit logs."
+      }
+    ],
+    "check": [
+      "Ana reset her own password without an admin.",
+      "Password reset > Audit logs shows the reset."
+    ],
+    "cleanup": [
+      "Set Password reset > Properties back to None when you finish if you like. Nothing here costs money."
+    ],
+    "screens": [
+      {
+        "title": "Tutorial: enable self-service password reset",
+        "url": "https://learn.microsoft.com/entra/identity/authentication/tutorial-enable-sspr"
+      },
+      {
+        "title": "How SSPR works",
+        "url": "https://learn.microsoft.com/entra/identity/authentication/concept-sspr-howitworks"
+      },
+      {
+        "title": "Manage authentication methods",
+        "url": "https://learn.microsoft.com/entra/identity/authentication/concept-authentication-methods-manage"
+      }
+    ]
+  }
+}

@@ -1,0 +1,665 @@
+{
+  "id": "az104-storage-redundancy",
+  "exam": "az-104",
+  "title": "Azure Storage redundancy: LRS, ZRS, GRS, RA-GRS, GZRS, RA-GZRS",
+  "objectiveIds": [
+    "AZ104-2.2.2"
+  ],
+  "estimatedMinutes": 50,
+  "learningObjective": "Choose and change a storage account's redundancy based on failure domains, read requirements, RPO and feature constraints, and know what happens during each failure.",
+  "prerequisites": [
+    {
+      "text": "Regions, region pairs and availability zones (AZ-900)",
+      "objectiveId": "AZ900-2.1.1"
+    },
+    {
+      "text": "Storage redundancy options (AZ-900)",
+      "objectiveId": "AZ900-2.3.3"
+    }
+  ],
+  "foundation": [
+    "Azure always keeps at least three copies of your data. Redundancy settings decide where those copies live.",
+    "LRS keeps three copies in one datacenter. ZRS spreads three copies across three availability zones in one region. GRS and GZRS do the same in the primary region and also send a copy to a second region hundreds of kilometres away.",
+    "The 'RA-' versions (RA-GRS, RA-GZRS) also let you read from the second region at any time. Without RA-, the secondary copy is there for disaster recovery but you cannot read it until a failover.",
+    "Copies inside one region are written at the same time (synchronously). The copy to the second region is sent a little later (asynchronously), so the very latest writes can be lost if the primary region is destroyed."
+  ],
+  "engineer": [
+    "Primary-region writes are acknowledged only after all three synchronous copies are written (LRS within a datacenter, ZRS across zones). Durability design targets: LRS at least 11 nines, ZRS at least 12 nines, GRS/RA-GRS/GZRS/RA-GZRS at least 16 nines per year.",
+    "Geo-replication to the paired secondary region is asynchronous. Microsoft documents a typical RPO below 15 minutes, with no SLA on replication time. The Last Sync Time property (geoReplicationStats.lastSyncTime) tells you the point up to which the secondary is guaranteed consistent.",
+    "The secondary region always stores data as LRS. After an unplanned customer-managed failover the account becomes LRS in the new primary region, and you must reconfigure geo-redundancy (which triggers a full copy and egress cost).",
+    "RA-GRS/RA-GZRS expose a read-only secondary endpoint: <account>-secondary.blob.core.windows.net. Applications must be written to use it (for example a retry policy that falls back to the secondary for reads).",
+    "Feature constraints: premium block blob and premium file share accounts support LRS and ZRS only (no geo-redundancy). The archive access tier is supported only for LRS, GRS and RA-GRS accounts, not ZRS, GZRS or RA-GZRS.",
+    "Changing redundancy: switching between LRS, GRS and RA-GRS (and between ZRS, GZRS and RA-GZRS) is an account update. Moving to or from zone redundancy (for example LRS → ZRS) needs a conversion (requested from the Redundancy blade) or a manual migration, and zone redundancy is available only in regions with availability zones."
+  ],
+  "animation": {
+    "id": "storage-replication",
+    "caption": "Write data under each redundancy option, then inject node, zone and region failures."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Application",
+        "x": 0,
+        "y": 120,
+        "kind": "user"
+      },
+      {
+        "id": "p1",
+        "label": "Primary region: zone 1",
+        "x": 240,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "p2",
+        "label": "Primary region: zone 2",
+        "x": 240,
+        "y": 120,
+        "kind": "storage"
+      },
+      {
+        "id": "p3",
+        "label": "Primary region: zone 3",
+        "x": 240,
+        "y": 240,
+        "kind": "storage"
+      },
+      {
+        "id": "sec",
+        "label": "Secondary region (LRS)",
+        "x": 560,
+        "y": 120,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "app",
+        "to": "p1",
+        "label": "sync"
+      },
+      {
+        "from": "app",
+        "to": "p2",
+        "label": "sync"
+      },
+      {
+        "from": "app",
+        "to": "p3",
+        "label": "sync"
+      },
+      {
+        "from": "p2",
+        "to": "sec",
+        "label": "async geo-replication (GZRS)"
+      }
+    ]
+  },
+  "example": {
+    "title": "Picking redundancy for three workloads",
+    "body": [
+      "Build artifacts that can be regenerated: LRS. Cheapest, and losing them is an inconvenience, not a disaster.",
+      "Order documents for an app deployed across zones in West Europe: ZRS. The data stays available for reads and writes if a single zone fails, which matches the app's zone-redundant compute.",
+      "Regulatory archive that must survive a regional disaster and be readable during one: RA-GZRS if no archive tier is needed. If the archive tier is required, RA-GRS, because the archive tier is not supported on zone-redundant accounts."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Region with availability zones for ZRS/GZRS/RA-GZRS",
+      "General-purpose v2 account for geo-zone options"
+    ],
+    "permissions": [
+      "Microsoft.Storage/storageAccounts/write (Storage Account Contributor or Contributor) to change SKU",
+      "Microsoft.Storage/storageAccounts/failover/action to initiate failover"
+    ],
+    "limits": [
+      "Premium block blob / file shares: LRS or ZRS only",
+      "Archive tier: LRS, GRS and RA-GRS only",
+      "Geo-replication has no RPO SLA; typical RPO under 15 minutes"
+    ],
+    "portal": [
+      "Storage accounts > Create > Basics > Redundancy: choose LRS, ZRS, GRS or GZRS; tick 'Make read access to data available in the event of regional unavailability' for RA-.",
+      "Existing account > Data management > Redundancy: change the option, view Last Sync Time and the secondary endpoints.",
+      "Redundancy > Prepare for failover (customer-managed failover)."
+    ],
+    "cli": "az storage account create -g rg-data -n stcvadocs01 -l westeurope --kind StorageV2 --sku Standard_GZRS\naz storage account update -g rg-data -n stcvadocs01 --sku Standard_RAGZRS\naz storage account show -g rg-data -n stcvadocs01 --expand geoReplicationStats \\\n  --query \"{sku:sku.name, lastSync:geoReplicationStats.lastSyncTime, secondary:secondaryEndpoints.blob}\"\naz storage account failover -g rg-data -n stcvadocs01",
+    "powershell": "New-AzStorageAccount -ResourceGroupName rg-data -Name stcvadocs01 -Location westeurope -Kind StorageV2 -SkuName Standard_GZRS\nSet-AzStorageAccount -ResourceGroupName rg-data -Name stcvadocs01 -SkuName Standard_RAGZRS\n(Get-AzStorageAccount -ResourceGroupName rg-data -Name stcvadocs01 -IncludeGeoReplicationStats).GeoReplicationStats.LastSyncTime\nInvoke-AzStorageAccountFailover -ResourceGroupName rg-data -Name stcvadocs01",
+    "bicep": "resource st 'Microsoft.Storage/storageAccounts@2023-05-01' = {\n  name: 'stcvadocs01'\n  location: location\n  kind: 'StorageV2'\n  sku: { name: 'Standard_RAGZRS' }\n  properties: {\n    minimumTlsVersion: 'TLS1_2'\n    allowBlobPublicAccess: false\n  }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "storage-replication",
+    "objective": "Prove which redundancy options survive each failure domain, and where data loss is still possible.",
+    "duration": 15,
+    "steps": [
+      "Select LRS, write data, then fail the datacenter/zone. Note availability and loss risk.",
+      "Select ZRS and fail a zone, then fail the region.",
+      "Select GRS and fail the region. Note that reads stop until failover and recent writes can be lost.",
+      "Select RA-GZRS and fail the region. Reads continue from the secondary endpoint."
+    ],
+    "expected": [
+      "LRS: unavailable on datacenter failure.",
+      "ZRS: survives a zone, not a region.",
+      "Geo options: data-loss risk is 'recent writes', never zero."
+    ],
+    "validation": [
+      {
+        "id": "lrs-zone-fail",
+        "text": "Failed a datacenter under LRS"
+      },
+      {
+        "id": "zrs-region-fail",
+        "text": "Failed a region under ZRS"
+      },
+      {
+        "id": "ra-read-secondary",
+        "text": "Read from the secondary under an RA- option during a region outage"
+      }
+    ],
+    "failureScenarios": [
+      "Assuming GRS reads continue during an outage without RA-",
+      "Assuming geo-failover is lossless"
+    ],
+    "cleanup": [
+      "Simulation only."
+    ],
+    "cost": "None. Runs entirely in the browser. Real geo-redundant accounts cost more per GB and incur replication bandwidth charges."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Cannot select ZRS/GZRS when creating an account.",
+      "cause": "Region has no availability zones, or the account type does not support zone redundancy.",
+      "fix": "Pick a zone-enabled region or an account type that supports ZRS."
+    },
+    {
+      "symptom": "Set Blob Tier to Archive fails on a GZRS account.",
+      "cause": "Archive tier is not supported with ZRS, GZRS or RA-GZRS.",
+      "fix": "Use Cool/Cold, or store archive data in an LRS/GRS/RA-GRS account."
+    },
+    {
+      "symptom": "Reads from <account>-secondary fail with 'not found'.",
+      "cause": "Account is GRS/GZRS (not RA-), or the blob has not replicated yet (written after Last Sync Time).",
+      "fix": "Enable RA- and check Last Sync Time."
+    },
+    {
+      "symptom": "After failover, the account shows LRS.",
+      "cause": "Expected: unplanned failover leaves the new primary as LRS.",
+      "fix": "Reconfigure GRS/GZRS after the incident; plan for the re-replication time and cost."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Backup / blob soft delete / versioning",
+      "difference": "Redundancy protects against hardware and site failure, not against accidental deletes or corruption, which replicate to every copy. Use soft delete, versioning or backups for that."
+    },
+    {
+      "service": "Object replication",
+      "difference": "Asynchronously copies block blobs between containers in different accounts that you choose (any region); geo-redundancy replicates the whole account to the fixed paired region."
+    },
+    {
+      "service": "Amazon S3 storage classes",
+      "difference": "S3 Standard stores data across at least three AZs by default; cross-Region copies require S3 Replication rules rather than an account-level SKU."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "GRS means zero data loss if the region fails.",
+      "reality": "Geo-replication is asynchronous; writes after the Last Sync Time can be lost."
+    },
+    {
+      "myth": "With GRS you can read the secondary any time.",
+      "reality": "Only RA-GRS/RA-GZRS provide a readable secondary endpoint without failover."
+    },
+    {
+      "myth": "ZRS protects against a regional outage.",
+      "reality": "All ZRS copies are in one region."
+    },
+    {
+      "myth": "Redundancy protects against accidental deletion.",
+      "reality": "Deletes replicate too; use soft delete, versioning, point-in-time restore or backups."
+    }
+  ],
+  "architectureDecisions": [
+    "Match storage redundancy to compute: zone-redundant apps should use ZRS or GZRS, otherwise a zone failure takes out storage even when compute survives.",
+    "Monitor Last Sync Time if your RPO matters; it is the actual exposure, not the 15-minute typical figure.",
+    "Use RA- only if the application can actually read from the secondary endpoint; otherwise you pay for a capability you cannot use."
+  ],
+  "docs": [
+    {
+      "title": "Azure Storage redundancy",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-redundancy"
+    },
+    {
+      "title": "Azure storage disaster recovery planning and failover",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-disaster-recovery-guidance"
+    },
+    {
+      "title": "Change how a storage account is replicated",
+      "url": "https://learn.microsoft.com/azure/storage/common/redundancy-migration"
+    },
+    {
+      "title": "Check the Last Sync Time property",
+      "url": "https://learn.microsoft.com/azure/storage/common/last-sync-time-get"
+    },
+    {
+      "title": "Access tiers for blob data (archive tier redundancy support)",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/access-tiers-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert. Newer planned-failover options that keep geo-redundancy are not covered."
+  },
+  "walkthrough": {
+    "subtitle": "Choose how many copies of your data Azure keeps, and how far apart.",
+    "learn": [
+      "LRS: three copies in one datacenter",
+      "ZRS: three availability zones",
+      "GRS and GZRS: a copy in another region",
+      "RA-: reading the secondary",
+      "Changing redundancy later"
+    ],
+    "nodes": [
+      {
+        "id": "dc",
+        "label": "Datacenter",
+        "x": 160,
+        "y": 100,
+        "kind": "storage",
+        "sub": "LRS: 3 copies"
+      },
+      {
+        "id": "z1",
+        "label": "Zone 1",
+        "x": 160,
+        "y": 240,
+        "kind": "storage"
+      },
+      {
+        "id": "z2",
+        "label": "Zone 2",
+        "x": 160,
+        "y": 330,
+        "kind": "storage"
+      },
+      {
+        "id": "z3",
+        "label": "Zone 3",
+        "x": 160,
+        "y": 410,
+        "kind": "storage"
+      },
+      {
+        "id": "prim",
+        "label": "Primary region",
+        "x": 420,
+        "y": 240,
+        "kind": "globe"
+      },
+      {
+        "id": "sec",
+        "label": "Secondary region",
+        "x": 660,
+        "y": 240,
+        "kind": "globe",
+        "sub": "paired, LRS there"
+      },
+      {
+        "id": "read",
+        "label": "Read from secondary",
+        "x": 660,
+        "y": 390,
+        "kind": "user",
+        "sub": "RA- only"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Disasters",
+        "title": "Disks fail, buildings flood, regions go down",
+        "body": [
+          "How much loss can your data survive? The answer decides your redundancy option and its price."
+        ],
+        "show": [
+          "prim"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "LRS",
+        "title": "LRS: cheapest, one building",
+        "body": [
+          "Locally redundant storage keeps three copies in one datacenter. It survives a disk or server failure, but not a fire or flood in that building."
+        ],
+        "show": [
+          "prim",
+          "dc"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "prim",
+            "to": "dc",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "ZRS",
+        "title": "ZRS: three zones in one region",
+        "body": [
+          "Zone-redundant storage spreads three copies across three availability zones (separate buildings with their own power). It survives a whole datacenter going down."
+        ],
+        "show": [
+          "prim",
+          "dc",
+          "z1",
+          "z2",
+          "z3"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "prim",
+            "to": "dc"
+          },
+          {
+            "from": "prim",
+            "to": "z1",
+            "fresh": true
+          },
+          {
+            "from": "prim",
+            "to": "z2",
+            "fresh": true
+          },
+          {
+            "from": "prim",
+            "to": "z3",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "GRS",
+        "title": "GRS and GZRS: another region too",
+        "body": [
+          "Geo-redundant storage (GRS) = LRS in the primary region plus an asynchronous copy to the paired region. GZRS = ZRS in the primary plus the copy in the secondary region.",
+          "The secondary copy is not readable until you fail over, unless you choose the RA- version."
+        ],
+        "show": [
+          "prim",
+          "dc",
+          "z1",
+          "z2",
+          "z3",
+          "sec"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "prim",
+            "to": "dc"
+          },
+          {
+            "from": "prim",
+            "to": "z1"
+          },
+          {
+            "from": "prim",
+            "to": "z2"
+          },
+          {
+            "from": "prim",
+            "to": "z3"
+          },
+          {
+            "from": "prim",
+            "to": "sec",
+            "label": "async copy",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "RA-",
+        "title": "RA-GRS and RA-GZRS: read the copy any time",
+        "body": [
+          "Read-access versions give you a second endpoint (accountname-secondary) to read data from the secondary region at any time, even when the primary is healthy."
+        ],
+        "show": [
+          "prim",
+          "dc",
+          "z1",
+          "z2",
+          "z3",
+          "sec",
+          "read"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "prim",
+            "to": "dc"
+          },
+          {
+            "from": "prim",
+            "to": "z1"
+          },
+          {
+            "from": "prim",
+            "to": "z2"
+          },
+          {
+            "from": "prim",
+            "to": "z3"
+          },
+          {
+            "from": "prim",
+            "to": "sec",
+            "label": "async copy"
+          },
+          {
+            "from": "sec",
+            "to": "read",
+            "label": "-secondary endpoint",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Change",
+        "title": "Changing redundancy later",
+        "body": [
+          "Switching between LRS, GRS and RA-GRS is a simple setting change. Moving to or from zone redundancy (ZRS, GZRS) is a conversion that Azure performs in the background, or a data copy for some cases."
+        ],
+        "show": [
+          "prim",
+          "dc",
+          "z1",
+          "z2",
+          "z3",
+          "sec",
+          "read"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "prim",
+            "to": "dc"
+          },
+          {
+            "from": "prim",
+            "to": "z1"
+          },
+          {
+            "from": "prim",
+            "to": "z2"
+          },
+          {
+            "from": "prim",
+            "to": "z3"
+          },
+          {
+            "from": "prim",
+            "to": "sec",
+            "label": "async copy"
+          },
+          {
+            "from": "sec",
+            "to": "read",
+            "label": "-secondary endpoint"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Premium accounts and some features (for example Premium file shares) do not support geo-redundancy."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Redundancy",
+        "body": [
+          "More distance, more safety, more cost."
+        ],
+        "show": [
+          "prim",
+          "dc",
+          "z1",
+          "z2",
+          "z3",
+          "sec",
+          "read"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "prim",
+            "to": "dc"
+          },
+          {
+            "from": "prim",
+            "to": "z1"
+          },
+          {
+            "from": "prim",
+            "to": "z2"
+          },
+          {
+            "from": "prim",
+            "to": "z3"
+          },
+          {
+            "from": "prim",
+            "to": "sec",
+            "label": "async copy"
+          },
+          {
+            "from": "sec",
+            "to": "read",
+            "label": "-secondary endpoint"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "LRS: 3 copies, 1 datacenter",
+          "ZRS: 3 zones, 1 region",
+          "GRS / GZRS: plus an async copy in the paired region",
+          "RA-: readable secondary endpoint",
+          "LRS↔GRS is a setting; zone changes are conversions"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Change a storage account from LRS to RA-GRS",
+    "minutes": 10,
+    "costLevel": "free",
+    "cost": "Cents. Geo-redundancy costs a little more per GB; with no data it is close to zero.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A storage account in rg-az104-lab: Standard performance, LRS redundancy, default settings. Name it st<yourinitials><number> (lowercase letters and numbers only, globally unique)."
+    ],
+    "steps": [
+      {
+        "do": "Open the storage account > Data management > Redundancy.",
+        "see": "Current redundancy LRS and a map with one location."
+      },
+      {
+        "do": "Change the redundancy setting to Read-access geo-redundant storage (RA-GRS). Save.",
+        "see": "The map now shows a primary and a secondary region, with status Available for both after a short while."
+      },
+      {
+        "do": "Open Settings > Endpoints.",
+        "see": "Secondary endpoints such as https://<name>-secondary.blob.core.windows.net, because it is RA-GRS."
+      },
+      {
+        "do": "Back on Redundancy, open the redundancy list again.",
+        "see": "Zone-redundant options may require a conversion. Read the message, but do not convert."
+      },
+      {
+        "do": "Change back to LRS and Save.",
+        "see": "A single location on the map again."
+      }
+    ],
+    "check": [
+      "You saw the secondary region and the -secondary endpoint."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Azure Storage redundancy",
+        "url": "https://learn.microsoft.com/azure/storage/common/storage-redundancy"
+      },
+      {
+        "title": "Change how a storage account is replicated",
+        "url": "https://learn.microsoft.com/azure/storage/common/redundancy-migration"
+      }
+    ]
+  }
+}

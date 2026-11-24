@@ -1,0 +1,666 @@
+{
+  "id": "clf-support-resources",
+  "exam": "aws-clf-c02",
+  "title": "AWS technical resources, Support plans and the Partner ecosystem",
+  "objectiveIds": [
+    "CLFC02-4.3.1",
+    "CLFC02-4.3.2",
+    "CLFC02-4.3.3",
+    "CLFC02-4.3.4",
+    "CLFC02-4.3.5",
+    "CLFC02-4.3.6",
+    "CLFC02-4.3.7",
+    "CLFC02-4.3.8",
+    "CLFC02-4.3.9",
+    "CLFC02-4.3.10",
+    "CLFC02-4.3.11",
+    "CLFC02-4.3.12",
+    "CLFC02-4.3.13"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Locate official AWS documentation and technical resources, identify AWS Support plans and the Support Center, explain Trusted Advisor and AWS Health, report abuse to Trust & Safety, and describe AWS Partners, Marketplace, Professional Services and solutions architects.",
+  "prerequisites": [
+    {
+      "text": "Billing tools",
+      "objectiveId": "CLFC02-4.2.1",
+      "lessonId": "clf-billing-tools"
+    }
+  ],
+  "foundation": [
+    "Official resources: AWS documentation, whitepapers, blogs, AWS Prescriptive Guidance, AWS Knowledge Center and the AWS re:Post community.",
+    "AWS Support plans range from Basic (free: customer service, documentation, community, some Trusted Advisor checks) to paid plans with technical support engineers and faster response.",
+    "AWS Partners (consulting partners/system integrators and software vendors) and AWS Marketplace help you build and buy solutions; AWS Professional Services and solutions architects provide expert guidance."
+  ],
+  "engineer": [
+    "Support plans in the CLF-C02 guide: customer service and communities, Basic Support, AWS Business Support+, AWS Enterprise Support and AWS Unified Operations. AWS has updated its plan line-up, so check the AWS Support plans page for current features and response times; higher plans add faster response, architectural guidance, technical account management and full Trusted Advisor checks.",
+    "AWS Support Center: open and track cases (account and billing for everyone; technical cases on paid plans).",
+    "Trusted Advisor: checks across cost optimisation, security, fault tolerance, performance, service limits and operational excellence (the number of checks depends on the plan). AWS Health Dashboard: public status plus a personalised account view of events affecting your resources; the AWS Health API (paid plans) exposes events programmatically.",
+    "AWS Trust & Safety: report suspected abuse of AWS resources (spam, port scanning, DDoS, malware hosting) through the abuse form.",
+    "Partners: AWS Partner Network includes consulting/services partners (system integrators) and ISVs; benefits for partners include training and certification, events, funding and go-to-market support, and volume discounts. AWS Marketplace offers third-party software, data and services with flexible pricing, private offers, and features for cost management, governance and entitlement (license) management.",
+    "Technical assistance: AWS Professional Services (consulting teams), AWS solutions architects, AWS IQ/partners, AWS Prescriptive Guidance, whitepapers and the Well-Architected Framework."
+  ],
+  "animation": {
+    "id": "aws-billing-sim",
+    "caption": "Open 'Support and resources'."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "docs",
+        "label": "Docs, whitepapers, blogs",
+        "x": 0,
+        "y": 0,
+        "kind": "service"
+      },
+      {
+        "id": "repost",
+        "label": "re:Post + Knowledge Center",
+        "x": 0,
+        "y": 120,
+        "kind": "user"
+      },
+      {
+        "id": "support",
+        "label": "Support plans + Support Center",
+        "x": 260,
+        "y": 60,
+        "kind": "security"
+      },
+      {
+        "id": "ta",
+        "label": "Trusted Advisor + Health",
+        "x": 520,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "partners",
+        "label": "Partners, Marketplace, ProServe",
+        "x": 520,
+        "y": 140,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "docs",
+        "to": "support"
+      },
+      {
+        "from": "repost",
+        "to": "support"
+      },
+      {
+        "from": "support",
+        "to": "ta"
+      },
+      {
+        "from": "support",
+        "to": "partners"
+      }
+    ]
+  },
+  "example": {
+    "title": "Getting help the right way",
+    "body": [
+      "A startup uses documentation and re:Post for questions on Basic Support. Before launch it moves to a paid plan for production support, reviews Trusted Advisor checks, subscribes to AWS Health events, and hires a consulting partner from the AWS Partner Network for the migration. Spam from an unknown AWS IP is reported to AWS Trust & Safety."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "Support Center > Create case.",
+      "Trusted Advisor > Recommendations.",
+      "AWS Health Dashboard > Your account health.",
+      "AWS Marketplace > Discover products."
+    ],
+    "cli": "aws support describe-services\naws health describe-events --region us-east-1\naws support describe-trusted-advisor-checks --language en",
+    "powershell": "Get-ASAService\nGet-HLTHEvent -Region us-east-1"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-billing-sim",
+    "objective": "Practise choosing the right support resource.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Support and resources' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-support-correct",
+        "text": "Chose a correct support resource"
+      },
+      {
+        "id": "aws-support-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Cannot open a technical support case.",
+      "cause": "Basic Support only covers account and billing cases.",
+      "fix": "Upgrade to a paid support plan."
+    },
+    {
+      "symptom": "AWS Health API calls fail.",
+      "cause": "The API requires a paid support plan.",
+      "fix": "Use the console dashboard or upgrade."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Microsoft support plans / Azure Marketplace / Microsoft partners",
+      "difference": "Equivalent ecosystem on Azure."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Trusted Advisor is the same as Health Dashboard.",
+      "reality": "Trusted Advisor recommends best practices; Health reports AWS events affecting you."
+    },
+    {
+      "myth": "Basic Support includes 24/7 technical engineers.",
+      "reality": "Paid plans provide technical support."
+    }
+  ],
+  "architectureDecisions": [
+    "Choose a support plan by workload criticality; subscribe to AWS Health notifications."
+  ],
+  "docs": [
+    {
+      "title": "AWS Support plans",
+      "url": "https://aws.amazon.com/premiumsupport/plans/"
+    },
+    {
+      "title": "AWS Support Center",
+      "url": "https://docs.aws.amazon.com/awssupport/latest/user/getting-started.html"
+    },
+    {
+      "title": "AWS Trusted Advisor",
+      "url": "https://docs.aws.amazon.com/awssupport/latest/user/trusted-advisor.html"
+    },
+    {
+      "title": "AWS Health",
+      "url": "https://docs.aws.amazon.com/health/latest/ug/what-is-aws-health.html"
+    },
+    {
+      "title": "Report abuse of AWS resources",
+      "url": "https://repost.aws/knowledge-center/report-aws-abuse"
+    },
+    {
+      "title": "AWS Partner Network",
+      "url": "https://aws.amazon.com/partners/"
+    },
+    {
+      "title": "AWS Marketplace",
+      "url": "https://docs.aws.amazon.com/marketplace/latest/buyerguide/what-is-marketplace.html"
+    },
+    {
+      "title": "AWS Prescriptive Guidance",
+      "url": "https://aws.amazon.com/prescriptive-guidance/"
+    },
+    {
+      "title": "AWS Whitepapers",
+      "url": "https://aws.amazon.com/whitepapers/"
+    },
+    {
+      "title": "AWS Professional Services",
+      "url": "https://aws.amazon.com/professional-services/"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert. Support plan names follow the CLF-C02 guide v1.3; plan features change, so verify on the AWS Support plans page."
+  },
+  "walkthrough": {
+    "subtitle": "Get help with a problem: self-serve resources, a support plan, health and advisor tools, then partners.",
+    "learn": [
+      "Docs, whitepapers, re:Post, Knowledge Center, Prescriptive Guidance",
+      "AWS Support plans and Support Center",
+      "Trusted Advisor and AWS Health",
+      "Reporting abuse to AWS Trust & Safety",
+      "AWS Partners, Marketplace and Professional Services"
+    ],
+    "nodes": [
+      {
+        "id": "you",
+        "label": "You",
+        "x": 90,
+        "y": 220,
+        "kind": "user",
+        "sub": "something is wrong"
+      },
+      {
+        "id": "self",
+        "label": "Docs + re:Post",
+        "x": 300,
+        "y": 60,
+        "kind": "service",
+        "sub": "Knowledge Center, guidance"
+      },
+      {
+        "id": "plan",
+        "label": "Support plan",
+        "x": 300,
+        "y": 220,
+        "kind": "user",
+        "sub": "Basic → Unified Ops"
+      },
+      {
+        "id": "center",
+        "label": "Support Center",
+        "x": 540,
+        "y": 220,
+        "kind": "service",
+        "sub": "open cases"
+      },
+      {
+        "id": "ta",
+        "label": "Trusted Advisor",
+        "x": 540,
+        "y": 60,
+        "kind": "service",
+        "sub": "checks"
+      },
+      {
+        "id": "health",
+        "label": "AWS Health",
+        "x": 720,
+        "y": 140,
+        "kind": "globe",
+        "sub": "dashboard + API"
+      },
+      {
+        "id": "tns",
+        "label": "Trust & Safety",
+        "x": 300,
+        "y": 380,
+        "kind": "security",
+        "sub": "report abuse"
+      },
+      {
+        "id": "apn",
+        "label": "Partners + Marketplace",
+        "x": 560,
+        "y": 380,
+        "kind": "user",
+        "sub": "ISVs, integrators"
+      },
+      {
+        "id": "ps",
+        "label": "Professional Services",
+        "x": 690,
+        "y": 290,
+        "kind": "user",
+        "sub": "AWS experts"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Need help",
+        "title": "Something is wrong. Where do you go?",
+        "body": [
+          "Your app is slow, you suspect a service problem, someone is sending spam from an AWS IP address, and the team lacks skills for a big migration.",
+          "Each of these has a different place to go."
+        ],
+        "show": [
+          "you"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Self-serve",
+        "title": "Start with free resources",
+        "body": [
+          "AWS documentation, whitepapers and blogs cover every service. AWS re:Post is the community Q&A site. The AWS Knowledge Center answers common questions. AWS Prescriptive Guidance has proven patterns and migration strategies."
+        ],
+        "show": [
+          "you",
+          "self"
+        ],
+        "focus": [
+          "self"
+        ],
+        "edges": [
+          {
+            "from": "you",
+            "to": "self",
+            "label": "search",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Support plans",
+        "title": "Pick a support plan",
+        "body": [
+          "Basic Support is free for everyone: customer service for account and billing questions, documentation, re:Post, AWS Health, and core Trusted Advisor checks.",
+          "Paid plans (Business Support+, Enterprise Support and Unified Operations) add technical support cases, faster response times, more Trusted Advisor checks and, at higher plans, designated technical experts. Open and track cases in the AWS Support Center."
+        ],
+        "show": [
+          "you",
+          "self",
+          "plan",
+          "center"
+        ],
+        "focus": [
+          "plan",
+          "center"
+        ],
+        "edges": [
+          {
+            "from": "you",
+            "to": "self",
+            "label": "search"
+          },
+          {
+            "from": "you",
+            "to": "plan",
+            "fresh": true
+          },
+          {
+            "from": "plan",
+            "to": "center",
+            "label": "open case",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "AWS updates its plan line-up from time to time; check the AWS Support plans page for current features and response times."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Health + Advisor",
+        "title": "Is it AWS or is it you?",
+        "body": [
+          "The AWS Health Dashboard shows service events and, in your account view, events affecting your resources. The AWS Health API exposes them to your tools.",
+          "Trusted Advisor checks your account for cost savings, security, fault tolerance, performance and service limits."
+        ],
+        "show": [
+          "you",
+          "self",
+          "plan",
+          "center",
+          "ta",
+          "health"
+        ],
+        "focus": [
+          "ta",
+          "health"
+        ],
+        "edges": [
+          {
+            "from": "you",
+            "to": "self",
+            "label": "search"
+          },
+          {
+            "from": "you",
+            "to": "plan"
+          },
+          {
+            "from": "plan",
+            "to": "center",
+            "label": "open case"
+          },
+          {
+            "from": "health",
+            "to": "you",
+            "label": "events",
+            "fresh": true
+          },
+          {
+            "from": "ta",
+            "to": "you",
+            "label": "recommendations",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Abuse",
+        "title": "Report abuse to AWS Trust & Safety",
+        "body": [
+          "If AWS resources are being used for spam, port scanning, DDoS attacks or hosting malware, report it to the AWS Trust & Safety team using the abuse reporting form."
+        ],
+        "show": [
+          "you",
+          "self",
+          "plan",
+          "center",
+          "ta",
+          "health",
+          "tns"
+        ],
+        "focus": [
+          "tns"
+        ],
+        "edges": [
+          {
+            "from": "you",
+            "to": "self",
+            "label": "search"
+          },
+          {
+            "from": "you",
+            "to": "plan"
+          },
+          {
+            "from": "plan",
+            "to": "center",
+            "label": "open case"
+          },
+          {
+            "from": "health",
+            "to": "you",
+            "label": "events"
+          },
+          {
+            "from": "ta",
+            "to": "you",
+            "label": "recommendations"
+          },
+          {
+            "from": "you",
+            "to": "tns",
+            "label": "report",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Partners",
+        "title": "Bring in partners and experts",
+        "body": [
+          "The AWS Partner Network includes consulting partners (system integrators) who build and migrate for you, and ISVs whose software runs on AWS. AWS Marketplace sells their software with AWS billing, plus cost management, governance and entitlement features.",
+          "AWS Professional Services and AWS solutions architects provide expert help directly. Partners themselves benefit from training, certification, events and discounts."
+        ],
+        "show": [
+          "you",
+          "self",
+          "plan",
+          "center",
+          "ta",
+          "health",
+          "tns",
+          "apn",
+          "ps"
+        ],
+        "focus": [
+          "apn",
+          "ps"
+        ],
+        "edges": [
+          {
+            "from": "you",
+            "to": "self",
+            "label": "search"
+          },
+          {
+            "from": "you",
+            "to": "plan"
+          },
+          {
+            "from": "plan",
+            "to": "center",
+            "label": "open case"
+          },
+          {
+            "from": "health",
+            "to": "you",
+            "label": "events"
+          },
+          {
+            "from": "ta",
+            "to": "you",
+            "label": "recommendations"
+          },
+          {
+            "from": "you",
+            "to": "tns",
+            "label": "report"
+          },
+          {
+            "from": "you",
+            "to": "apn",
+            "fresh": true
+          },
+          {
+            "from": "you",
+            "to": "ps",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Help for every kind of problem",
+        "body": [
+          "Self-serve first, then a support plan, then experts."
+        ],
+        "show": [
+          "you",
+          "self",
+          "plan",
+          "center",
+          "ta",
+          "health",
+          "tns",
+          "apn",
+          "ps"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "you",
+            "to": "self",
+            "label": "search"
+          },
+          {
+            "from": "you",
+            "to": "plan"
+          },
+          {
+            "from": "plan",
+            "to": "center",
+            "label": "open case"
+          },
+          {
+            "from": "health",
+            "to": "you",
+            "label": "events"
+          },
+          {
+            "from": "ta",
+            "to": "you",
+            "label": "recommendations"
+          },
+          {
+            "from": "you",
+            "to": "tns",
+            "label": "report"
+          },
+          {
+            "from": "you",
+            "to": "apn"
+          },
+          {
+            "from": "you",
+            "to": "ps"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Docs, whitepapers, re:Post, Knowledge Center, Prescriptive Guidance",
+          "Basic is free; paid plans add technical cases and faster response",
+          "Health Dashboard + API for AWS events; Trusted Advisor for checks",
+          "Report abuse to Trust & Safety",
+          "Partners (integrators, ISVs), Marketplace, Professional Services"
+        ]
+      }
+    ]
+  }
+}

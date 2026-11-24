@@ -1,0 +1,222 @@
+{
+  "id": "az900-cloud-basics",
+  "exam": "az-900",
+  "title": "What cloud computing is, and who secures what",
+  "objectiveIds": [
+    "AZ900-1.1.1",
+    "AZ900-1.1.2"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Define cloud computing by its characteristics and explain the shared responsibility model for on-premises, IaaS, PaaS and SaaS.",
+  "prerequisites": [
+    {
+      "text": "Basic IT ideas: a server, a disk, a network"
+    }
+  ],
+  "foundation": [
+    "Cloud computing is the delivery of computing services (servers, storage, databases, networking, software, analytics) over the internet. Instead of buying and running hardware, you rent what you need and pay for what you use.",
+    "Think of electricity: you don't build a power station, you plug in and pay for the kilowatt-hours you consume. The cloud does the same for computing.",
+    "Shared responsibility: moving to the cloud doesn't hand all security to the provider. Microsoft always secures the physical datacenters. You always own your data, your devices, and your accounts and identities. The layers in between move from you to Microsoft as you go from IaaS to PaaS to SaaS.",
+    "If someone steals a user's password, that is the customer's problem in every model, even in SaaS."
+  ],
+  "engineer": [
+    "Five characteristics (the NIST definition Microsoft Learn uses): on-demand self-service (provision without asking a person), broad network access (any device, over the network), resource pooling (shared, multi-tenant hardware, isolated per customer), rapid elasticity (scale out and in quickly) and measured service (usage is metered and billed).",
+    "What you get: compute (VMs, containers, functions), storage (blobs, files, disks), networking (virtual networks, load balancers, gateways), and managed services (databases, AI, analytics) running in Microsoft's global datacenters.",
+    "Shared responsibility, layer by layer. Always customer: information and data; devices (mobile and PCs); accounts and identities. Always Microsoft: physical hosts, physical network, physical datacenter.",
+    "Varies by model. Identity and directory infrastructure: customer in IaaS, shared in PaaS and SaaS. Applications: customer in IaaS, shared in PaaS, Microsoft in SaaS. Network controls: customer in IaaS, shared in PaaS, Microsoft in SaaS. Operating system: customer in IaaS, Microsoft in PaaS and SaaS.",
+    "On-premises: the customer is responsible for every layer, including the building, power and hardware.",
+    "Practical effect: in IaaS you patch the guest OS and configure NSGs; in PaaS you secure your code and access configuration while Microsoft patches the OS; in SaaS you configure users, MFA and data sharing."
+  ],
+  "animation": {
+    "id": "az900-cloud-basics-sim",
+    "caption": "Match cloud characteristics, then assign each layer to the customer, Microsoft or both."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "cust",
+        "label": "Always customer: data, devices, accounts",
+        "x": 0,
+        "y": 0,
+        "kind": "user"
+      },
+      {
+        "id": "shift",
+        "label": "Shifts with the model: OS, network controls, apps, identity infrastructure",
+        "x": 260,
+        "y": 0,
+        "kind": "scope"
+      },
+      {
+        "id": "ms",
+        "label": "Always Microsoft: physical hosts, network, datacenter",
+        "x": 560,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "iaas",
+        "label": "IaaS: you manage OS and up",
+        "x": 140,
+        "y": 140,
+        "kind": "compute"
+      },
+      {
+        "id": "paas",
+        "label": "PaaS: you manage apps and data",
+        "x": 340,
+        "y": 140,
+        "kind": "compute"
+      },
+      {
+        "id": "saas",
+        "label": "SaaS: you manage data and access",
+        "x": 540,
+        "y": 140,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "shift",
+        "to": "iaas",
+        "label": "mostly customer"
+      },
+      {
+        "from": "shift",
+        "to": "paas",
+        "label": "shared"
+      },
+      {
+        "from": "shift",
+        "to": "saas",
+        "label": "mostly Microsoft"
+      }
+    ]
+  },
+  "example": {
+    "title": "A clinic moves to the cloud",
+    "body": [
+      "A clinic moves its booking app to Azure App Service (PaaS) and email to Microsoft 365 (SaaS). Microsoft now patches the web server OS and runs the email servers.",
+      "The clinic still owns patient data, staff laptops and user accounts. When a receptionist's password leaked, the clinic, not Microsoft, had to reset it and turn on MFA."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Sign in at portal.azure.com and open 'All services' to see the catalogue of rentable services.",
+      "Open a resource > Overview: note the location (a Microsoft datacenter region) and pricing tier.",
+      "Microsoft Defender for Cloud > Recommendations shows the customer-side security tasks for your resources."
+    ],
+    "cli": "az account show -o table\naz account list-locations -o table",
+    "powershell": "Get-AzContext\nGet-AzLocation | Select-Object DisplayName, Location"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-cloud-basics-sim",
+    "objective": "Recognise cloud characteristics and assign responsibilities correctly.",
+    "duration": 15,
+    "steps": [
+      "Cloud characteristics tab: match all five situations.",
+      "Shared responsibility tab: test SaaS + Information and data, IaaS + Operating system, PaaS + Applications.",
+      "Try On-premises + Physical datacenter to see the contrast."
+    ],
+    "expected": [
+      "Data, devices, accounts and identities are always the customer's",
+      "The OS moves to Microsoft in PaaS"
+    ],
+    "validation": [
+      {
+        "id": "cloud-traits-correct",
+        "text": "Chose the right cloud characteristic"
+      },
+      {
+        "id": "cloud-traits-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "responsibility-correct",
+        "text": "Assigned a responsibility correctly"
+      },
+      {
+        "id": "responsibility-wrong",
+        "text": "Corrected a wrong assignment"
+      }
+    ],
+    "failureScenarios": [
+      "Assuming a SaaS provider is responsible for your users' passwords",
+      "Assuming IaaS VMs are patched by Microsoft"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "A breach happened through a SaaS user account with a weak password.",
+      "cause": "Accounts and identities are always the customer's responsibility.",
+      "fix": "Enforce MFA and Conditional Access; train users."
+    },
+    {
+      "symptom": "A VM in Azure was compromised through an unpatched OS.",
+      "cause": "In IaaS the customer patches the guest OS.",
+      "fix": "Use Azure Update Manager and Defender for Cloud recommendations."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Traditional hosting",
+      "difference": "Fixed servers on a contract; no self-service elasticity or per-second metering."
+    },
+    {
+      "service": "AWS shared responsibility",
+      "difference": "Same idea: the provider secures 'of the cloud', the customer secures 'in the cloud'."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "In the cloud, the provider is responsible for security.",
+      "reality": "Security is shared. Data, devices, accounts and identities are always yours."
+    },
+    {
+      "myth": "Cloud means everything is public on the internet.",
+      "reality": "Cloud resources can be private, reachable only from your networks."
+    },
+    {
+      "myth": "Resource pooling means other customers can see your data.",
+      "reality": "Pooling shares hardware; tenants are logically isolated."
+    }
+  ],
+  "architectureDecisions": [
+    "Choose the model (IaaS/PaaS/SaaS) partly by how much responsibility you want to keep.",
+    "Whatever the model, invest in identity protection: it is always yours."
+  ],
+  "docs": [
+    {
+      "title": "Describe cloud computing (Microsoft Learn module)",
+      "url": "https://learn.microsoft.com/training/modules/describe-cloud-compute/"
+    },
+    {
+      "title": "Shared responsibility in the cloud",
+      "url": "https://learn.microsoft.com/azure/security/fundamentals/shared-responsibility"
+    },
+    {
+      "title": "What is cloud computing?",
+      "url": "https://azure.microsoft.com/resources/cloud-computing-dictionary/what-is-cloud-computing"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

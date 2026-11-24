@@ -1,0 +1,13 @@
+# Optional containerised run. Progress is stored in the named volume "cva-data".
+services:
+  backend:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    volumes: [cva-data:/data]
+    ports: ["8000:8000"]
+  frontend:
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    environment: { CVA_API: "http://backend:8000" }
+    ports: ["4173:4173"]
+    depends_on: [backend]
+volumes:
+  cva-data:

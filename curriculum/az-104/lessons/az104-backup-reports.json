@@ -1,0 +1,543 @@
+{
+  "id": "az104-backup-reports",
+  "exam": "az-104",
+  "title": "Backup reports and alerts",
+  "objectiveIds": [
+    "AZ104-5.2.7"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Configure Backup reports with Log Analytics and set up and interpret Azure Monitor alerts for backup and Site Recovery.",
+  "prerequisites": [
+    {
+      "text": "Backup policies, backup and restore",
+      "objectiveId": "AZ104-5.2.4",
+      "lessonId": "az104-backup-policy-restore"
+    },
+    {
+      "text": "Alert rules and action groups",
+      "objectiveId": "AZ104-5.1.4",
+      "lessonId": "az104-alerts"
+    }
+  ],
+  "foundation": [
+    "Backup reports show trends: job success rates, backed-up items, storage used and policy compliance across vaults and subscriptions.",
+    "Alerts tell you immediately when a backup or restore job fails."
+  ],
+  "engineer": [
+    "Reports: configure a diagnostic setting on each vault to send backup data (resource-specific mode tables such as AddonAzureBackupJobs, CoreAzureBackup) to a Log Analytics workspace; use Azure Policy to apply this at scale. Then open Backup reports in Business continuity center (or the vault): Summary, Backup items, Usage, Jobs, Policies, Optimize. Data can take up to 24 hours to appear initially.",
+    "Alerts: Azure Monitor built-in alerts for Azure Backup (for example backup job failures, security events like soft-deleted data) are raised automatically; route notifications with alert processing rules to action groups. Classic backup alerts have been replaced. You can also create log search alerts on the backup tables for custom conditions.",
+    "Site Recovery health and job alerts are also available through Azure Monitor alerts.",
+    "Backup jobs view in the vault shows per-job status and error codes with recommended actions."
+  ],
+  "animation": {
+    "id": "backup-dr-sim",
+    "caption": "Backup reports and alerts tab."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "v",
+        "label": "Vaults",
+        "x": 20,
+        "y": 120,
+        "kind": "storage"
+      },
+      {
+        "id": "ds",
+        "label": "Diagnostic settings (resource-specific)",
+        "x": 220,
+        "y": 40,
+        "kind": "service"
+      },
+      {
+        "id": "law",
+        "label": "Log Analytics",
+        "x": 450,
+        "y": 40,
+        "kind": "storage"
+      },
+      {
+        "id": "rep",
+        "label": "Backup reports",
+        "x": 660,
+        "y": 40,
+        "kind": "user"
+      },
+      {
+        "id": "al",
+        "label": "Built-in backup alerts",
+        "x": 220,
+        "y": 200,
+        "kind": "security"
+      },
+      {
+        "id": "apr",
+        "label": "Alert processing rule → action group",
+        "x": 450,
+        "y": 200,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "v",
+        "to": "ds"
+      },
+      {
+        "from": "ds",
+        "to": "law"
+      },
+      {
+        "from": "law",
+        "to": "rep"
+      },
+      {
+        "from": "v",
+        "to": "al"
+      },
+      {
+        "from": "al",
+        "to": "apr"
+      }
+    ]
+  },
+  "example": {
+    "title": "Weekly compliance",
+    "body": [
+      "An Azure Policy deploys vault diagnostic settings to law-backup. The weekly Backup report shows 98.7% job success; two failures were paged immediately through an alert processing rule to the backup team's action group."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with VMs to monitor or protect"
+    ],
+    "permissions": [
+      "Monitoring Contributor (alerts, diagnostic settings) or Backup Contributor (vaults, policies)"
+    ],
+    "limits": [
+      "See Azure Monitor / Azure Backup service limits"
+    ],
+    "portal": [
+      "Vault > Diagnostic settings > + Add: choose the Azure Backup categories, resource-specific destination table, workspace.",
+      "Business continuity center > Reports (or vault > Backup reports): select workspaces.",
+      "Monitor > Alerts > Alert processing rules: scope the vaults, add action group."
+    ],
+    "cli": "az monitor diagnostic-settings create -n backup-to-law --resource $VAULT_ID --workspace law-backup --export-to-resource-specific true --logs '[{\"category\":\"CoreAzureBackup\",\"enabled\":true},{\"category\":\"AddonAzureBackupJobs\",\"enabled\":true},{\"category\":\"AddonAzureBackupPolicy\",\"enabled\":true}]'\naz monitor alert-processing-rule create -g rg-bkp -n route-backup --scopes $VAULT_ID --rule-type AddActionGroups --action-groups $AG_ID",
+    "powershell": "$logs = 'CoreAzureBackup','AddonAzureBackupJobs','AddonAzureBackupPolicy' | % { New-AzDiagnosticSettingLogSettingsObject -Category $_ -Enabled $true }\nNew-AzDiagnosticSetting -Name backup-to-law -ResourceId $vaultId -WorkspaceId $lawId -Log $logs -LogAnalyticsDestinationType Dedicated"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "backup-dr-sim",
+    "objective": "Close the visibility gaps for backup reporting and alerting.",
+    "duration": 10,
+    "steps": [
+      "Run the default (no diagnostic settings).",
+      "Apply 'Enable diagnostics'.",
+      "Apply 'Route alerts'."
+    ],
+    "expected": [
+      "Reports need diagnostic settings to Log Analytics",
+      "Alerts need routing to an action group"
+    ],
+    "validation": [
+      {
+        "id": "backup-reports",
+        "text": "Configured reports and alert routing"
+      },
+      {
+        "id": "backup-visibility-gap",
+        "text": "Identified a reporting or alerting gap"
+      }
+    ],
+    "failureScenarios": [
+      "No diagnostic settings",
+      "Alerts without action group routing"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Backup reports are empty.",
+      "cause": "No diagnostic settings, wrong workspace or data not yet arrived.",
+      "fix": "Configure resource-specific diagnostic settings; wait up to 24 hours."
+    },
+    {
+      "symptom": "Backup failures don't notify anyone.",
+      "cause": "Built-in alerts not routed.",
+      "fix": "Create an alert processing rule with an action group."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS Backup Audit Manager",
+      "difference": "AWS compliance reporting for backups."
+    },
+    {
+      "service": "Vault Backup jobs blade",
+      "difference": "Real-time job view; reports show trends across vaults."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Backup reports work out of the box.",
+      "reality": "They need vault diagnostic settings to Log Analytics."
+    },
+    {
+      "myth": "Built-in alerts send emails automatically.",
+      "reality": "Route them to action groups."
+    }
+  ],
+  "architectureDecisions": [
+    "Deploy diagnostic settings with Azure Policy.",
+    "Use one workspace for backup reporting across subscriptions."
+  ],
+  "docs": [
+    {
+      "title": "Configure Azure Backup reports",
+      "url": "https://learn.microsoft.com/azure/backup/configure-reports"
+    },
+    {
+      "title": "Azure Monitor alerts for Azure Backup",
+      "url": "https://learn.microsoft.com/azure/backup/backup-azure-monitoring-built-in-monitor"
+    },
+    {
+      "title": "Monitor Site Recovery",
+      "url": "https://learn.microsoft.com/azure/site-recovery/monitor-log-analytics"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Know at a glance whether backups are working, and get told when they fail.",
+    "learn": [
+      "Built-in backup alerts with Azure Monitor",
+      "Routing alerts with action groups",
+      "Backup reports need a Log Analytics workspace",
+      "What the reports show"
+    ],
+    "nodes": [
+      {
+        "id": "vault",
+        "label": "Vaults",
+        "x": 120,
+        "y": 220,
+        "kind": "security"
+      },
+      {
+        "id": "alerts",
+        "label": "Backup alerts",
+        "x": 380,
+        "y": 100,
+        "kind": "service",
+        "sub": "job failed"
+      },
+      {
+        "id": "ag",
+        "label": "Action group",
+        "x": 650,
+        "y": 100,
+        "kind": "service",
+        "sub": "email the team"
+      },
+      {
+        "id": "diag",
+        "label": "Diagnostic setting",
+        "x": 380,
+        "y": 340,
+        "kind": "service",
+        "sub": "on each vault"
+      },
+      {
+        "id": "law",
+        "label": "Log Analytics",
+        "x": 650,
+        "y": 340,
+        "kind": "service"
+      },
+      {
+        "id": "rep",
+        "label": "Backup reports",
+        "x": 650,
+        "y": 220,
+        "kind": "service",
+        "sub": "workbook"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Silent failures",
+        "title": "Backups have been failing for a month",
+        "body": [
+          "Nobody noticed until a restore was needed. Backups must be checked automatically."
+        ],
+        "show": [
+          "vault"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Alerts",
+        "title": "Built-in alerts",
+        "body": [
+          "Azure Backup raises Azure Monitor alerts for problems such as job failures, security events (like deleting backup data) and more. They appear under Alerts in the vault and in Business Continuity Center."
+        ],
+        "show": [
+          "vault",
+          "alerts"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vault",
+            "to": "alerts",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Notify",
+        "title": "Send them somewhere",
+        "body": [
+          "Create an alert processing rule that routes backup alerts to an action group (email, SMS, ITSM, Logic App). Without that, alerts are only visible in the portal."
+        ],
+        "show": [
+          "vault",
+          "alerts",
+          "ag"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vault",
+            "to": "alerts"
+          },
+          {
+            "from": "alerts",
+            "to": "ag",
+            "label": "processing rule",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Configure notification routing yourself: alerts do not email anyone by default."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Reports",
+        "title": "Reports need data in Log Analytics",
+        "body": [
+          "Add a diagnostic setting on each vault that sends backup data (resource-specific tables) to a Log Analytics workspace. Backup reports then work across vaults, subscriptions and tenants."
+        ],
+        "show": [
+          "vault",
+          "alerts",
+          "ag",
+          "diag",
+          "law",
+          "rep"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vault",
+            "to": "alerts"
+          },
+          {
+            "from": "alerts",
+            "to": "ag",
+            "label": "processing rule"
+          },
+          {
+            "from": "vault",
+            "to": "diag",
+            "fresh": true
+          },
+          {
+            "from": "diag",
+            "to": "law",
+            "fresh": true
+          },
+          {
+            "from": "law",
+            "to": "rep",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Content",
+        "title": "What reports show",
+        "body": [
+          "Backup items, job success and failure trends, policy adherence, usage and billed storage, and optimisation tips such as inactive resources or retention you could reduce. Data can take up to 24 hours to appear."
+        ],
+        "show": [
+          "vault",
+          "alerts",
+          "ag",
+          "diag",
+          "law",
+          "rep"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vault",
+            "to": "alerts"
+          },
+          {
+            "from": "alerts",
+            "to": "ag",
+            "label": "processing rule"
+          },
+          {
+            "from": "vault",
+            "to": "diag"
+          },
+          {
+            "from": "diag",
+            "to": "law"
+          },
+          {
+            "from": "law",
+            "to": "rep"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Backup monitoring",
+        "body": [
+          "Alerts for now; reports for trends."
+        ],
+        "show": [
+          "vault",
+          "alerts",
+          "ag",
+          "diag",
+          "law",
+          "rep"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vault",
+            "to": "alerts"
+          },
+          {
+            "from": "alerts",
+            "to": "ag",
+            "label": "processing rule"
+          },
+          {
+            "from": "vault",
+            "to": "diag"
+          },
+          {
+            "from": "diag",
+            "to": "law"
+          },
+          {
+            "from": "law",
+            "to": "rep"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Azure Monitor backup alerts are built in",
+          "Route alerts to action groups with processing rules",
+          "Reports need vault diagnostic settings to Log Analytics",
+          "Reports: jobs, items, usage, optimisation",
+          "Allow up to 24 hours for report data"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Send vault data to Log Analytics and route backup alerts",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Free or cents for a little Log Analytics data.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "rsv-lab (from the vaults lab) and a Log Analytics workspace law-lab in the same region (create one if needed)."
+    ],
+    "steps": [
+      {
+        "do": "Open rsv-lab > Monitoring > Diagnostic settings > + Add diagnostic setting. Name diag-backup, tick the Azure Backup report categories (CoreAzureBackup, AddonAzureBackupJobs, AddonAzureBackupPolicy, AddonAzureBackupStorage, AddonAzureBackupProtectedInstance), destination law-lab, destination table: Resource specific. Save.",
+        "see": "diag-backup listed."
+      },
+      {
+        "do": "Search 'Business Continuity Center' (or 'Backup center') > Monitoring + Reporting > Reports (Backup reports). Select law-lab as the workspace.",
+        "see": "Report tabs: Summary, Backup items, Usage, Jobs, Policies, Optimize. Data appears within 24 hours of activity."
+      },
+      {
+        "do": "Open rsv-lab > Monitoring > Alerts.",
+        "see": "Built-in backup alerts (empty if nothing failed)."
+      },
+      {
+        "do": "Monitor > Alerts > Alert processing rules > + Create. Scope: rsv-lab. Filter: Monitor service = Azure Backup. Rule type: Apply action group, choose ag-lab (or create one with your email). Name apr-backup. Create.",
+        "see": "apr-backup listed. Future backup alerts will email you."
+      }
+    ],
+    "check": [
+      "The vault sends data to law-lab and backup alerts are routed to email."
+    ],
+    "cleanup": [
+      "Delete apr-backup.",
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Configure Azure Backup reports",
+        "url": "https://learn.microsoft.com/azure/backup/configure-reports"
+      },
+      {
+        "title": "Azure Monitor alerts for Azure Backup",
+        "url": "https://learn.microsoft.com/azure/backup/backup-azure-monitoring-alerts"
+      },
+      {
+        "title": "Monitor and report with Business Continuity Center",
+        "url": "https://learn.microsoft.com/azure/business-continuity-center/business-continuity-center-overview"
+      }
+    ]
+  }
+}

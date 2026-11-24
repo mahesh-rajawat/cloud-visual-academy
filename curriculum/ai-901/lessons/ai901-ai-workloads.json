@@ -1,0 +1,242 @@
+{
+  "id": "ai901-ai-workloads",
+  "exam": "ai-901",
+  "title": "Common AI workloads: generative, agentic, text, speech, vision and extraction",
+  "objectiveIds": [
+    "AI901-1.3.1"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Identify scenarios for common AI workloads, including generative and agentic AI, text analysis, speech, computer vision and information extraction.",
+  "prerequisites": [
+    {
+      "text": "No prior AI knowledge needed"
+    }
+  ],
+  "foundation": [
+    "Generative AI creates new content (text, code, images) from a prompt. Agentic AI goes further: an agent uses a model plus tools to take steps and complete a task.",
+    "Text analysis finds meaning in text (sentiment, entities, topics). Speech turns speech into text and text into speech. Computer vision understands images and video.",
+    "Information extraction pulls structured data (fields like invoice total, date) out of documents, images, audio and video.",
+    "Microsoft Foundry provides models for generative and agentic AI, plus Foundry Tools (formerly Azure AI services): Azure Language, Speech, Vision, Translator and Content Understanding."
+  ],
+  "engineer": [
+    "Generative AI scenarios: drafting emails and documents, summarising, answering questions over your data (RAG), writing code, creating images. Agentic AI scenarios: booking, ordering, research assistants, IT helpdesk automation: tasks needing tools, multiple steps and sometimes several agents.",
+    "Text analysis scenarios: review sentiment, extracting entities from contracts, detecting and redacting PII, language detection, summarising long reports. Speech scenarios: captions, call transcription and analytics, voice assistants, reading text aloud, speech translation.",
+    "Computer vision scenarios: image captions and tags for accessibility and search, object detection for retail shelves, OCR of receipts, visual inspection, answering questions about photos. Information extraction scenarios: invoices, forms, ID documents, call recordings, video indexing.",
+    "Choosing the approach: a prompt to a generative model is flexible; a Foundry Tool gives task-specific, consistent results with confidence scores; an agent adds tools and actions. Many solutions combine them, for example speech-to-text, then a model, then text-to-speech."
+  ],
+  "animation": {
+    "id": "ai901-workload-sim",
+    "caption": "Match scenarios to AI workloads, and decide between a model, an agent or a Foundry Tool."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "f",
+        "label": "Microsoft Foundry",
+        "x": 300,
+        "y": 0,
+        "kind": "service"
+      },
+      {
+        "id": "gen",
+        "label": "Generative AI (models)",
+        "x": 0,
+        "y": 120,
+        "kind": "ai"
+      },
+      {
+        "id": "agent",
+        "label": "Agentic AI (models + tools)",
+        "x": 180,
+        "y": 120,
+        "kind": "ai"
+      },
+      {
+        "id": "text",
+        "label": "Text: Azure Language",
+        "x": 360,
+        "y": 120,
+        "kind": "ai"
+      },
+      {
+        "id": "speech",
+        "label": "Speech: Azure Speech",
+        "x": 540,
+        "y": 120,
+        "kind": "ai"
+      },
+      {
+        "id": "vision",
+        "label": "Vision: Azure Vision / multimodal",
+        "x": 180,
+        "y": 240,
+        "kind": "ai"
+      },
+      {
+        "id": "cu",
+        "label": "Extraction: Content Understanding",
+        "x": 420,
+        "y": 240,
+        "kind": "ai"
+      }
+    ],
+    "edges": [
+      {
+        "from": "f",
+        "to": "gen"
+      },
+      {
+        "from": "f",
+        "to": "agent"
+      },
+      {
+        "from": "f",
+        "to": "text"
+      },
+      {
+        "from": "f",
+        "to": "speech"
+      },
+      {
+        "from": "f",
+        "to": "vision"
+      },
+      {
+        "from": "f",
+        "to": "cu"
+      }
+    ]
+  },
+  "example": {
+    "title": "A retailer's AI map",
+    "body": [
+      "Marketing drafts product descriptions with a chat model (generative). A returns agent checks the order system and creates labels (agentic).",
+      "Azure Language scores review sentiment; Azure Speech transcribes support calls; shelf cameras use object detection; Content Understanding reads supplier invoices."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Foundry portal > your project: explore Models, Agents, and Foundry Tools playgrounds (Language, Speech, Vision, Content Understanding)."
+    ],
+    "cli": "# One Foundry (AIServices) resource exposes Language, Speech, Vision and Content Understanding\naz cognitiveservices account show --name contoso-ai --resource-group rg-ai901 --query properties.endpoints",
+    "powershell": "(Get-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai).Properties.Endpoints"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-workload-sim",
+    "objective": "Match scenarios to workloads and approaches.",
+    "duration": 15,
+    "steps": [
+      "AI workloads tab: answer every scenario.",
+      "Generative, agentic or a Foundry Tool? tab: answer every scenario."
+    ],
+    "expected": [
+      "Using tools to act is agentic",
+      "Fields from documents is information extraction"
+    ],
+    "validation": [
+      {
+        "id": "ai-workload-correct",
+        "text": "Chose the right workload"
+      },
+      {
+        "id": "ai-workload-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "agentic-or-not-correct",
+        "text": "Chose the right approach"
+      },
+      {
+        "id": "agentic-or-not-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Calling any chatbot 'agentic'",
+      "Using a generative model where a consistent prebuilt service fits better"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Chatbot can't actually book appointments.",
+      "cause": "It has no tools.",
+      "fix": "Build an agent with a booking function or API tool."
+    },
+    {
+      "symptom": "Sentiment scores vary between runs.",
+      "cause": "A generative prompt without fixed scoring.",
+      "fix": "Use Azure Language sentiment for consistent scores."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Generative vs agentic AI",
+      "difference": "Generative produces content; agentic plans and acts with tools."
+    },
+    {
+      "service": "Text analysis vs information extraction",
+      "difference": "Text analysis finds meaning in text; extraction fills defined fields from documents and media."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Every AI feature needs a large language model.",
+      "reality": "Prebuilt Foundry Tools often fit better."
+    },
+    {
+      "myth": "Agents are just chatbots.",
+      "reality": "Agents call tools and take actions."
+    },
+    {
+      "myth": "Computer vision only means faces.",
+      "reality": "It covers captions, objects, OCR and more."
+    }
+  ],
+  "architectureDecisions": [
+    "Identify the workload before choosing services.",
+    "Prefer prebuilt tools for standard tasks needing consistency.",
+    "Add agents only when actions or tools are needed."
+  ],
+  "docs": [
+    {
+      "title": "What is Microsoft Foundry?",
+      "url": "https://learn.microsoft.com/azure/foundry/what-is-foundry"
+    },
+    {
+      "title": "Foundry Agent Service overview",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/agents/overview"
+    },
+    {
+      "title": "Azure Language overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/language-service/overview"
+    },
+    {
+      "title": "Azure Speech overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/speech-service/overview"
+    },
+    {
+      "title": "Content Understanding overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/content-understanding/overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

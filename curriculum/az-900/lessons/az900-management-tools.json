@@ -1,0 +1,237 @@
+{
+  "id": "az900-management-tools",
+  "exam": "az-900",
+  "title": "Azure portal, Cloud Shell, Azure CLI, Azure PowerShell and Azure Arc",
+  "objectiveIds": [
+    "AZ900-3.3.1",
+    "AZ900-3.3.2",
+    "AZ900-3.3.3"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Describe the Azure portal, Azure Cloud Shell, Azure CLI and Azure PowerShell, and the purpose of Azure Arc.",
+  "prerequisites": [
+    {
+      "text": "Management in the cloud",
+      "objectiveId": "AZ900-1.2.4",
+      "lessonId": "az900-security-manageability"
+    }
+  ],
+  "foundation": [
+    "Azure portal: a website (portal.azure.com) to create, manage and monitor everything in Azure with clicks, plus customisable dashboards.",
+    "Azure CLI and Azure PowerShell: command-line tools to do the same things with commands, which you can save as scripts and repeat. CLI commands start with az; PowerShell uses cmdlets like Get-AzVM.",
+    "Azure Cloud Shell: a command line in your browser, already signed in, with both tools installed. Nothing to install on your PC.",
+    "Azure Arc: brings servers, Kubernetes clusters and databases running outside Azure (on-premises, other clouds) into Azure, so you manage them with the same tools."
+  ],
+  "engineer": [
+    "Portal: build, manage and monitor from simple web apps to complex deployments; create custom dashboards; set accessibility options; designed for resiliency and continuous availability, present in every Azure datacenter, updated continuously with no downtime.",
+    "Cloud Shell: choose Bash or PowerShell; authenticated with your Azure credentials; includes Azure CLI, Azure PowerShell and common tools (git, kubectl, terraform, editors); optional file share for persistent $HOME storage. Open from the portal toolbar or shell.azure.com.",
+    "Azure CLI: cross-platform (Windows, macOS, Linux); syntax az <group> <command> --params, for example az vm create. Azure PowerShell: the Az module of cmdlets (Verb-Noun), for example New-AzVM; runs on Windows, macOS and Linux with PowerShell 7. Both are functionally equivalent for most tasks; pick the one your team knows. Both support interactive use and scripts.",
+    "Azure Arc: manage servers (Windows/Linux), Kubernetes clusters, Azure data services (SQL Managed Instance, PostgreSQL) and SQL Server outside Azure. Once connected they appear as Azure resources (projected into Azure Resource Manager): apply Azure Policy, RBAC, tags, monitoring (Azure Monitor), security (Defender for Cloud) and updates consistently.",
+    "Use Arc when: you have a hybrid or multicloud estate, need one governance model across environments, or want Azure services to run where your data lives."
+  ],
+  "animation": {
+    "id": "az900-tools-sim",
+    "caption": "Pick the management tool for each task and identify CLI and PowerShell commands."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "portal",
+        "label": "Azure portal (GUI)",
+        "x": 0,
+        "y": 0,
+        "kind": "user"
+      },
+      {
+        "id": "shell",
+        "label": "Cloud Shell (browser: Bash / PowerShell)",
+        "x": 0,
+        "y": 110,
+        "kind": "user"
+      },
+      {
+        "id": "cli",
+        "label": "Azure CLI / PowerShell (local scripts)",
+        "x": 0,
+        "y": 220,
+        "kind": "user"
+      },
+      {
+        "id": "arm",
+        "label": "Azure Resource Manager",
+        "x": 300,
+        "y": 110,
+        "kind": "security"
+      },
+      {
+        "id": "az",
+        "label": "Azure resources",
+        "x": 580,
+        "y": 40,
+        "kind": "compute"
+      },
+      {
+        "id": "arc",
+        "label": "Arc-enabled servers & Kubernetes (on-premises, AWS)",
+        "x": 580,
+        "y": 190,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "portal",
+        "to": "arm"
+      },
+      {
+        "from": "shell",
+        "to": "arm"
+      },
+      {
+        "from": "cli",
+        "to": "arm"
+      },
+      {
+        "from": "arm",
+        "to": "az"
+      },
+      {
+        "from": "arm",
+        "to": "arc",
+        "label": "Azure Arc"
+      }
+    ]
+  },
+  "example": {
+    "title": "A hybrid operations team",
+    "body": [
+      "Operators use the portal dashboards to watch production, run quick fixes from Cloud Shell on locked-down laptops, and schedule nightly Azure CLI scripts in a pipeline.",
+      "120 on-premises Linux servers and an AWS Kubernetes cluster are connected with Azure Arc, so the same tagging policy and Defender for Cloud plans apply everywhere."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "portal.azure.com: Dashboard > New dashboard.",
+      "Portal toolbar > Cloud Shell icon (Bash or PowerShell).",
+      "Azure Arc > Machines > Add/Create > Add a single server (generates an onboarding script)."
+    ],
+    "cli": "az login\naz group list -o table\naz connectedmachine list -o table",
+    "powershell": "Connect-AzAccount\nGet-AzResourceGroup | Format-Table ResourceGroupName, Location\nGet-AzConnectedMachine"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-tools-sim",
+    "objective": "Choose management tools.",
+    "duration": 15,
+    "steps": [
+      "Management tools tab: answer every task.",
+      "Azure CLI, PowerShell, Cloud Shell tab: identify every command."
+    ],
+    "expected": [
+      "az = CLI; Verb-AzNoun = PowerShell",
+      "Arc manages resources outside Azure"
+    ],
+    "validation": [
+      {
+        "id": "tools-correct",
+        "text": "Chose the right management tool"
+      },
+      {
+        "id": "tools-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "cli-or-ps-correct",
+        "text": "Chose the right tool"
+      },
+      {
+        "id": "cli-or-ps-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Installing tools on a locked-down PC instead of using Cloud Shell"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "'az' isn't recognised on a workstation.",
+      "cause": "Azure CLI isn't installed.",
+      "fix": "Install it or use Cloud Shell."
+    },
+    {
+      "symptom": "On-premises servers don't appear in Azure Policy compliance.",
+      "cause": "They aren't Arc-enabled.",
+      "fix": "Onboard them with the Arc Connected Machine agent."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure CLI vs Azure PowerShell",
+      "difference": "Same capabilities, different syntax: Bash-style commands vs PowerShell cmdlets and objects."
+    },
+    {
+      "service": "Azure Arc vs VPN",
+      "difference": "Arc projects resources into Azure management; VPN only connects networks."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Cloud Shell runs on your computer.",
+      "reality": "It runs in Azure, in a container, accessed through the browser."
+    },
+    {
+      "myth": "Azure PowerShell only runs on Windows.",
+      "reality": "PowerShell 7 is cross-platform."
+    },
+    {
+      "myth": "Arc migrates servers to Azure.",
+      "reality": "They stay where they are; Arc manages them."
+    }
+  ],
+  "architectureDecisions": [
+    "Use the portal to explore, scripts to repeat.",
+    "Standardise on CLI or PowerShell per team.",
+    "Use Arc for consistent hybrid governance."
+  ],
+  "docs": [
+    {
+      "title": "Describe features and tools for managing and deploying Azure resources (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-features-tools-manage-deploy-azure-resources/"
+    },
+    {
+      "title": "Azure Cloud Shell",
+      "url": "https://learn.microsoft.com/azure/cloud-shell/overview"
+    },
+    {
+      "title": "Azure CLI",
+      "url": "https://learn.microsoft.com/cli/azure/what-is-azure-cli"
+    },
+    {
+      "title": "Azure PowerShell",
+      "url": "https://learn.microsoft.com/powershell/azure/what-is-azure-powershell"
+    },
+    {
+      "title": "Azure Arc overview",
+      "url": "https://learn.microsoft.com/azure/azure-arc/overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

@@ -1,0 +1,214 @@
+{
+  "id": "ai901-image-generation",
+  "exam": "ai-901",
+  "title": "Create visual outputs with generative models",
+  "objectiveIds": [
+    "AI901-2.3.2"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Create new visual outputs by using image generation models in Microsoft Foundry, with good prompts and responsible-use safeguards.",
+  "prerequisites": [
+    {
+      "text": "Vision and image generation concepts",
+      "objectiveId": "AI901-1.3.4",
+      "lessonId": "ai901-vision-extraction"
+    }
+  ],
+  "foundation": [
+    "Image generation models create a brand-new picture from a text description, or edit an existing picture as you describe.",
+    "Detailed prompts give better images: say what the subject is, the style, colours, composition and lighting.",
+    "Every request and image passes through content filters; disallowed requests are refused."
+  ],
+  "engineer": [
+    "Deploy an image model (for example gpt-image-1) from the model catalog; try it in the Images playground (prompt, size, quality, number of images).",
+    "API: openai.images.generate(model='<deployment>', prompt='...', size='1024x1024' | '1536x1024' | '1024x1536', quality='low'|'medium'|'high', n=1); gpt-image-1 returns base64 data (b64_json) to decode and save. images.edit takes an input image (and optionally a mask) plus a prompt.",
+    "Prompt tips: subject + setting + style (photo, watercolour, flat vector) + composition (close-up, wide) + lighting + colours; avoid ambiguous wording; iterate with small changes.",
+    "Responsible use: content filters on prompts and outputs; provenance (C2PA content credentials) on generated images; don't generate likenesses of real people or copyrighted characters without rights; label AI-generated images. DALL-E 3 has been retired; use gpt-image models.",
+    "Cost and latency rise with size, quality and number of images; generate drafts at low quality, then final images at high quality."
+  ],
+  "animation": {
+    "id": "ai901-image-sim",
+    "caption": "Generate images and see content filters act; fix common image-generation problems."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "prompt",
+        "label": "Prompt: subject, style, composition",
+        "x": 0,
+        "y": 100,
+        "kind": "user"
+      },
+      {
+        "id": "filter1",
+        "label": "Content filter (prompt)",
+        "x": 220,
+        "y": 100,
+        "kind": "security"
+      },
+      {
+        "id": "model",
+        "label": "Image model deployment",
+        "x": 440,
+        "y": 100,
+        "kind": "ai"
+      },
+      {
+        "id": "filter2",
+        "label": "Content filter (image)",
+        "x": 660,
+        "y": 100,
+        "kind": "security"
+      },
+      {
+        "id": "out",
+        "label": "PNG (base64) + content credentials",
+        "x": 880,
+        "y": 100,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "prompt",
+        "to": "filter1"
+      },
+      {
+        "from": "filter1",
+        "to": "model"
+      },
+      {
+        "from": "model",
+        "to": "filter2"
+      },
+      {
+        "from": "filter2",
+        "to": "out"
+      }
+    ]
+  },
+  "example": {
+    "title": "Illustrations for claim guides",
+    "body": [
+      "A designer generates illustrations for a claims guide: 'Flat vector illustration of a friendly claims adjuster holding a tablet, teal and white palette, plain background', 1024x1536, high quality.",
+      "For a product page, images.edit replaces only the background of an existing product photo. Every published image is labelled AI-generated."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Deploy gpt-image-1 from the model catalog.",
+      "Images playground: prompt, size, quality, number of images; Generate.",
+      "Review content filter results for blocked prompts."
+    ],
+    "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name image-model --model-name gpt-image-1 --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50",
+    "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI",
+    "python": "# pip install \"azure-ai-projects>=2.3.0\" azure-identity\nimport os\nfrom azure.identity import DefaultAzureCredential\nfrom azure.ai.projects import AIProjectClient\n\nproject = AIProjectClient(endpoint=os.environ[\"FOUNDRY_PROJECT_ENDPOINT\"], credential=DefaultAzureCredential())\nopenai = project.get_openai_client()\n\n# Generate and edit images (openai = project.get_openai_client())\nimport base64\nresult = openai.images.generate(\n    model=\"image-model\",  # deployment of gpt-image-1\n    prompt=\"Flat vector illustration of a friendly claims adjuster holding a tablet, teal and white palette, plain background\",\n    size=\"1024x1536\",     # 1024x1024, 1536x1024 or 1024x1536\n    quality=\"high\",\n    n=1,\n)\nwith open(\"adjuster.png\", \"wb\") as f:\n    f.write(base64.b64decode(result.data[0].b64_json))\n\n# Edit: change the background of an existing image\nedited = openai.images.edit(model=\"image-model\", image=open(\"product.png\", \"rb\"), prompt=\"Replace the background with a sunny kitchen\")\nwith open(\"product-kitchen.png\", \"wb\") as f:\n    f.write(base64.b64decode(edited.data[0].b64_json))\n"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-image-sim",
+    "objective": "Generate images and fix prompt problems.",
+    "duration": 15,
+    "steps": [
+      "Vision in and images out tab: switch to image generation; try each preset including the filtered one.",
+      "Better image generation tab: answer every problem."
+    ],
+    "expected": [
+      "Detailed prompts give better images",
+      "Content filters can block requests"
+    ],
+    "validation": [
+      {
+        "id": "ai-image-generated",
+        "text": "Generated an image"
+      },
+      {
+        "id": "ai-vision-error",
+        "text": "Saw a request blocked or failing"
+      },
+      {
+        "id": "image-prompt-correct",
+        "text": "Chose the right fix"
+      },
+      {
+        "id": "image-prompt-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Expecting a URL from gpt-image-1 instead of base64 data",
+      "Requesting disallowed content"
+    ],
+    "cleanup": [
+      "Simulation: use Reset.",
+      "If you ran it in Azure: az group delete --name rg-ai901 --yes (deletes the Foundry resource, projects and deployments)."
+    ],
+    "cost": "Simulation: free. Optional real run: model tokens and Foundry Tools transactions are billed per use; delete the resource group afterwards."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Request rejected with a content filter error.",
+      "cause": "Prompt violates content policy.",
+      "fix": "Rephrase within policy."
+    },
+    {
+      "symptom": "Code fails reading image.url.",
+      "cause": "gpt-image-1 returns b64_json.",
+      "fix": "Decode data[0].b64_json and save it."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Generate vs edit",
+      "difference": "Generate creates from text only; edit modifies an existing image."
+    },
+    {
+      "service": "Image generation vs vision input",
+      "difference": "Generation outputs images; vision input interprets images."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Generated images are free of safeguards.",
+      "reality": "Filters and provenance apply."
+    },
+    {
+      "myth": "Short prompts give the most creative results.",
+      "reality": "Specific prompts give more controllable results."
+    }
+  ],
+  "architectureDecisions": [
+    "Draft at low quality, finalise at high quality.",
+    "Label generated images.",
+    "Keep a library of prompt templates."
+  ],
+  "docs": [
+    {
+      "title": "Image generation in Foundry (gpt-image-1)",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/how-to/dall-e"
+    },
+    {
+      "title": "Content filtering",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/concepts/content-filter"
+    },
+    {
+      "title": "Content credentials",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/concepts/content-credentials"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

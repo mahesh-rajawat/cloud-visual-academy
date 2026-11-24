@@ -1,0 +1,219 @@
+{
+  "id": "az900-storage-services",
+  "exam": "az-900",
+  "title": "Azure Storage services and storage account types",
+  "objectiveIds": [
+    "AZ900-2.3.1",
+    "AZ900-2.3.4"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Compare Blob, Files, Queue, Table and Disk storage, and describe storage account types and their options.",
+  "prerequisites": [
+    {
+      "text": "Resource groups",
+      "objectiveId": "AZ900-2.1.4",
+      "lessonId": "az900-resource-hierarchy"
+    }
+  ],
+  "foundation": [
+    "A storage account is a container for your Azure Storage data with a globally unique name (it becomes part of the URL).",
+    "Blob Storage: huge amounts of unstructured data (images, video, backups, logs). Azure Files: file shares you can mount over SMB or NFS. Queue Storage: messages between parts of an app. Table Storage: simple NoSQL key/attribute data. Disk Storage: block disks attached to VMs.",
+    "Different account types trade cost for performance: Standard (HDD-backed, most uses) or Premium (SSD-backed, low latency)."
+  ],
+  "engineer": [
+    "Blob: block blobs (text and binary, up to about 190 TiB), append blobs (logs), page blobs (random access, VHDs). Access over HTTP/HTTPS, REST, SDKs, AzCopy. Uses: serving images or documents to browsers, streaming video, backup and archive, data for analysis.",
+    "Azure Files: fully managed SMB and NFS shares; mount concurrently from cloud or on-premises; replace or supplement file servers; cache on Windows Server with Azure File Sync.",
+    "Queue Storage: millions of messages, each up to 64 KB, accessed over HTTP/HTTPS; used to create a backlog of work processed asynchronously.",
+    "Table Storage: NoSQL structured data with a schemaless design (Azure Cosmos DB for Table is the premium option). Disk Storage: managed disks (Standard HDD, Standard SSD, Premium SSD, Premium SSD v2, Ultra Disk).",
+    "Account types: Standard general-purpose v2 (blobs including Data Lake Storage, queues, tables, files; LRS, GRS, RA-GRS, ZRS, GZRS, RA-GZRS); Premium block blobs (LRS, ZRS); Premium file shares (LRS, ZRS); Premium page blobs (LRS, ZRS).",
+    "Endpoints: https://<account>.blob.core.windows.net, .file., .queue., .table., .dfs. (Data Lake). Names: 3–24 lowercase letters and numbers, unique across Azure."
+  ],
+  "animation": {
+    "id": "az900-storage-sim",
+    "caption": "Pick the storage service, tier or redundancy, then the right account type."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "acct",
+        "label": "Storage account (unique name)",
+        "x": 260,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "blob",
+        "label": "Blob",
+        "x": 0,
+        "y": 140,
+        "kind": "storage"
+      },
+      {
+        "id": "files",
+        "label": "Files (SMB/NFS)",
+        "x": 170,
+        "y": 140,
+        "kind": "storage"
+      },
+      {
+        "id": "queue",
+        "label": "Queue",
+        "x": 340,
+        "y": 140,
+        "kind": "storage"
+      },
+      {
+        "id": "table",
+        "label": "Table",
+        "x": 510,
+        "y": 140,
+        "kind": "storage"
+      },
+      {
+        "id": "disk",
+        "label": "Managed disks (separate)",
+        "x": 260,
+        "y": 260,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "acct",
+        "to": "blob"
+      },
+      {
+        "from": "acct",
+        "to": "files"
+      },
+      {
+        "from": "acct",
+        "to": "queue"
+      },
+      {
+        "from": "acct",
+        "to": "table"
+      }
+    ]
+  },
+  "example": {
+    "title": "A photo-sharing app",
+    "body": [
+      "Uploaded photos go to Blob Storage; an upload message goes to Queue Storage; a worker reads the queue to create thumbnails.",
+      "Photo metadata is stored in Table Storage, the worker VM's OS runs on a Premium SSD managed disk, and the design team shares assets on Azure Files."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Create a resource > Storage account: performance (Standard/Premium), account kind, redundancy.",
+      "Storage account > Containers / File shares / Queues / Tables."
+    ],
+    "cli": "az storage account create -g <rg> -n st$RANDOM -l westeurope --sku Standard_LRS --kind StorageV2\naz storage container create --account-name <account> -n photos --auth-mode login",
+    "powershell": "New-AzStorageAccount -ResourceGroupName <rg> -Name <account> -Location westeurope -SkuName Standard_LRS -Kind StorageV2"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-storage-sim",
+    "objective": "Choose storage services and account types.",
+    "duration": 15,
+    "steps": [
+      "Storage choice tab: answer every requirement.",
+      "Storage account types tab: answer every requirement."
+    ],
+    "expected": [
+      "Blob for objects, Files for shares, Queue for messages",
+      "Premium accounts support only LRS or ZRS"
+    ],
+    "validation": [
+      {
+        "id": "storage-correct",
+        "text": "Chose the right storage option"
+      },
+      {
+        "id": "storage-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "account-type-correct",
+        "text": "Chose the right account type"
+      },
+      {
+        "id": "account-type-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing Queue Storage for files",
+      "Expecting geo-redundancy on a premium account"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Storage account name rejected.",
+      "cause": "Names must be 3–24 lowercase letters and numbers and globally unique.",
+      "fix": "Choose another name."
+    },
+    {
+      "symptom": "Can't select GRS on a premium account.",
+      "cause": "Premium accounts support LRS and ZRS only.",
+      "fix": "Use Standard general-purpose v2 for geo-redundancy."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Blob vs Files",
+      "difference": "Blob is object storage over HTTP; Files is a mountable file share over SMB/NFS."
+    },
+    {
+      "service": "Queue Storage vs Service Bus",
+      "difference": "Queue Storage is simple and cheap; Service Bus adds ordering, topics and transactions."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Managed disks are stored in your storage account.",
+      "reality": "Managed disks are separate resources managed by Azure."
+    },
+    {
+      "myth": "Each storage service needs its own account.",
+      "reality": "A general-purpose v2 account holds all four."
+    }
+  ],
+  "architectureDecisions": [
+    "Use Standard GPv2 unless you need premium performance.",
+    "Use Blob for anything served over HTTP.",
+    "Use Azure Files to lift-and-shift file shares."
+  ],
+  "docs": [
+    {
+      "title": "Describe Azure storage services (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-azure-storage-services/"
+    },
+    {
+      "title": "Introduction to Azure Storage",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-introduction"
+    },
+    {
+      "title": "Storage account overview",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-account-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

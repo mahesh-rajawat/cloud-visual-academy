@@ -1,0 +1,686 @@
+{
+  "id": "clf-networking",
+  "exam": "aws-clf-c02",
+  "title": "AWS network services: VPC, security, Route 53 and connectivity",
+  "objectiveIds": [
+    "CLFC02-3.5.1",
+    "CLFC02-3.5.2",
+    "CLFC02-3.5.3",
+    "CLFC02-3.5.4",
+    "CLFC02-3.5.5"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Identify VPC components, understand security groups and network ACLs (plus Inspector), describe Route 53, and choose connectivity options such as VPN and Direct Connect.",
+  "prerequisites": [
+    {
+      "text": "Global infrastructure",
+      "objectiveId": "CLFC02-3.2.1",
+      "lessonId": "clf-global-infrastructure"
+    }
+  ],
+  "foundation": [
+    "Amazon VPC is your own isolated network in AWS, divided into subnets in different AZs.",
+    "Security groups act as firewalls for instances (stateful, allow rules only); network ACLs filter traffic at the subnet level (stateless, allow and deny rules).",
+    "Route 53 is AWS's DNS service. Connect your office or data center with AWS VPN (encrypted over the internet) or AWS Direct Connect (private dedicated connection)."
+  ],
+  "engineer": [
+    "VPC components: CIDR block, subnets (public: route to an internet gateway; private: no direct internet route), route tables, internet gateway, NAT gateway (outbound internet for private subnets), VPC endpoints/PrivateLink, VPC peering, Transit Gateway, Elastic IPs.",
+    "Security groups: attached to ENIs/instances, allow rules only, stateful (return traffic allowed). Network ACLs: per subnet, numbered allow/deny rules evaluated in order, stateless (allow ephemeral ports for responses). Amazon Inspector checks network reachability and vulnerabilities; AWS Network Firewall adds managed stateful inspection.",
+    "Amazon Route 53: domain registration, DNS hosting, health checks, routing policies (simple, weighted, latency, failover, geolocation, geoproximity, multivalue).",
+    "Connectivity: AWS Site-to-Site VPN, AWS Client VPN, AWS Direct Connect (dedicated or hosted connections; consistent latency; not encrypted by default), AWS Global Accelerator, CloudFront, API Gateway."
+  ],
+  "animation": {
+    "id": "aws-tech-sim",
+    "caption": "Open 'VPC: reach a web server' and fix the configuration."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "inet",
+        "label": "Internet",
+        "x": 0,
+        "y": 60,
+        "kind": "globe"
+      },
+      {
+        "id": "igw",
+        "label": "Internet gateway",
+        "x": 170,
+        "y": 60,
+        "kind": "network"
+      },
+      {
+        "id": "rt",
+        "label": "Route table 0.0.0.0/0 → igw",
+        "x": 340,
+        "y": 60,
+        "kind": "network"
+      },
+      {
+        "id": "nacl",
+        "label": "Network ACL (stateless)",
+        "x": 510,
+        "y": 60,
+        "kind": "security"
+      },
+      {
+        "id": "sg",
+        "label": "Security group (stateful)",
+        "x": 680,
+        "y": 60,
+        "kind": "security"
+      },
+      {
+        "id": "ec2",
+        "label": "EC2 (public IP)",
+        "x": 850,
+        "y": 60,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "inet",
+        "to": "igw"
+      },
+      {
+        "from": "igw",
+        "to": "rt"
+      },
+      {
+        "from": "rt",
+        "to": "nacl"
+      },
+      {
+        "from": "nacl",
+        "to": "sg"
+      },
+      {
+        "from": "sg",
+        "to": "ec2"
+      }
+    ]
+  },
+  "example": {
+    "title": "A standard two-tier VPC",
+    "body": [
+      "Web servers sit in public subnets in two AZs behind an ALB; databases sit in private subnets with no internet route, reaching updates through a NAT gateway. Security groups allow 443 to the ALB and only the ALB's security group to the web servers. Route 53 latency routing sends users to the nearest Region; the head office connects with Direct Connect plus a VPN backup."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "VPC > Your VPCs > Create VPC (VPC and more).",
+      "VPC > Security groups / Network ACLs.",
+      "Route 53 > Hosted zones."
+    ],
+    "cli": "aws ec2 describe-vpcs\naws ec2 describe-route-tables --filters Name=vpc-id,Values=<vpc-id>\naws ec2 describe-security-groups --group-ids <sg-id>\naws route53 list-hosted-zones",
+    "powershell": "Get-EC2Vpc\nGet-EC2RouteTable\nGet-EC2SecurityGroup\nGet-R53HostedZoneList"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-tech-sim",
+    "objective": "Make an EC2 web server reachable, step by step.",
+    "duration": 15,
+    "steps": [
+      "Run the default and find the failing stage.",
+      "Fix it, then apply each preset and fix again."
+    ],
+    "expected": [
+      "All five layers must allow traffic"
+    ],
+    "validation": [
+      {
+        "id": "aws-vpc-blocked",
+        "text": "Diagnosed a blocked path"
+      },
+      {
+        "id": "aws-vpc-ok",
+        "text": "Made the server reachable"
+      }
+    ],
+    "failureScenarios": [
+      "No route to IGW",
+      "NACL without ephemeral ports",
+      "SG without 443"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Instance unreachable although the SG allows 443.",
+      "cause": "No IGW route or public IP, or NACL blocking.",
+      "fix": "Check route table, public IP and NACL in/out rules."
+    },
+    {
+      "symptom": "Responses dropped.",
+      "cause": "NACL outbound blocks ephemeral ports.",
+      "fix": "Allow 1024–65535 outbound in the NACL."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure VNet/NSG",
+      "difference": "NSGs are stateful with allow and deny rules and priorities; AWS splits into stateful allow-only SGs and stateless NACLs."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Security groups can deny traffic.",
+      "reality": "They contain allow rules only."
+    },
+    {
+      "myth": "NACLs are stateful.",
+      "reality": "NACLs are stateless."
+    }
+  ],
+  "architectureDecisions": [
+    "Use private subnets for data tiers; restrict SGs by referencing other SGs."
+  ],
+  "docs": [
+    {
+      "title": "What is Amazon VPC?",
+      "url": "https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html"
+    },
+    {
+      "title": "Security groups",
+      "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html"
+    },
+    {
+      "title": "Network ACLs",
+      "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
+    },
+    {
+      "title": "Amazon Route 53",
+      "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html"
+    },
+    {
+      "title": "AWS Direct Connect",
+      "url": "https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html"
+    },
+    {
+      "title": "AWS Site-to-Site VPN",
+      "url": "https://docs.aws.amazon.com/vpn/latest/s2svpn/VPC_VPN.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Build a private network for a web app, lock it down, give it a name, and connect the office.",
+    "learn": [
+      "VPC, subnets and gateways",
+      "Security groups vs network ACLs (and Amazon Inspector)",
+      "Amazon Route 53",
+      "Connecting to AWS: VPN and Direct Connect"
+    ],
+    "nodes": [
+      {
+        "id": "net",
+        "label": "Internet",
+        "x": 90,
+        "y": 60,
+        "kind": "globe"
+      },
+      {
+        "id": "r53",
+        "label": "Route 53",
+        "x": 300,
+        "y": 60,
+        "kind": "network",
+        "sub": "shop.example → IP"
+      },
+      {
+        "id": "igw",
+        "label": "Internet gateway",
+        "x": 90,
+        "y": 200,
+        "kind": "network",
+        "sub": "VPC ↔ internet"
+      },
+      {
+        "id": "pub",
+        "label": "Public subnet",
+        "x": 320,
+        "y": 200,
+        "kind": "network",
+        "sub": "load balancer, NAT"
+      },
+      {
+        "id": "priv",
+        "label": "Private subnet",
+        "x": 560,
+        "y": 200,
+        "kind": "network",
+        "sub": "app + database"
+      },
+      {
+        "id": "sg",
+        "label": "Security group",
+        "x": 560,
+        "y": 70,
+        "kind": "security",
+        "sub": "per instance, stateful"
+      },
+      {
+        "id": "nacl",
+        "label": "Network ACL",
+        "x": 560,
+        "y": 330,
+        "kind": "security",
+        "sub": "per subnet, stateless"
+      },
+      {
+        "id": "office",
+        "label": "Office",
+        "x": 90,
+        "y": 370,
+        "kind": "user"
+      },
+      {
+        "id": "vpn",
+        "label": "VPN / Direct Connect",
+        "x": 320,
+        "y": 370,
+        "kind": "network",
+        "sub": "private link"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Private network",
+        "title": "Your app needs its own network",
+        "body": [
+          "Your web servers must be reachable from the internet, but the database must not be. The office also needs a private connection.",
+          "On AWS this starts with a VPC."
+        ],
+        "show": [
+          "net"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "VPC + subnets",
+        "title": "A VPC with public and private subnets",
+        "body": [
+          "An Amazon VPC is your own isolated network in a Region. You split it into subnets, each in one AZ.",
+          "A public subnet has a route to an internet gateway; put load balancers there. A private subnet doesn't; put the app and database there."
+        ],
+        "show": [
+          "net",
+          "igw",
+          "pub",
+          "priv"
+        ],
+        "focus": [
+          "pub",
+          "priv"
+        ],
+        "edges": [
+          {
+            "from": "net",
+            "to": "igw",
+            "fresh": true
+          },
+          {
+            "from": "igw",
+            "to": "pub",
+            "label": "route",
+            "fresh": true
+          },
+          {
+            "from": "pub",
+            "to": "priv",
+            "label": "app traffic",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "A NAT gateway in the public subnet lets private instances reach the internet for updates without being reachable from it."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Firewalls",
+        "title": "Two firewalls: security groups and NACLs",
+        "body": [
+          "Security groups protect instances. They only allow traffic (no deny rules) and are stateful: replies are automatically allowed.",
+          "Network ACLs protect whole subnets. They allow and deny traffic and are stateless: return traffic needs its own rule."
+        ],
+        "show": [
+          "net",
+          "igw",
+          "pub",
+          "priv",
+          "sg",
+          "nacl"
+        ],
+        "focus": [
+          "sg",
+          "nacl"
+        ],
+        "edges": [
+          {
+            "from": "net",
+            "to": "igw"
+          },
+          {
+            "from": "igw",
+            "to": "pub",
+            "label": "route"
+          },
+          {
+            "from": "pub",
+            "to": "priv",
+            "label": "app traffic"
+          },
+          {
+            "from": "sg",
+            "to": "priv",
+            "label": "instance level",
+            "fresh": true
+          },
+          {
+            "from": "nacl",
+            "to": "priv",
+            "label": "subnet level",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Security group = instance, allow-only, stateful. NACL = subnet, allow + deny, stateless."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Inspector",
+        "title": "Check for weaknesses",
+        "body": [
+          "Amazon Inspector scans your EC2 instances, container images and Lambda functions for software vulnerabilities and unintended network exposure.",
+          "Firewalls control traffic; Inspector tells you what's still exposed or out of date."
+        ],
+        "show": [
+          "net",
+          "igw",
+          "pub",
+          "priv",
+          "sg",
+          "nacl"
+        ],
+        "focus": [
+          "priv"
+        ],
+        "edges": [
+          {
+            "from": "net",
+            "to": "igw"
+          },
+          {
+            "from": "igw",
+            "to": "pub",
+            "label": "route"
+          },
+          {
+            "from": "pub",
+            "to": "priv",
+            "label": "app traffic"
+          },
+          {
+            "from": "sg",
+            "to": "priv",
+            "label": "instance level"
+          },
+          {
+            "from": "nacl",
+            "to": "priv",
+            "label": "subnet level"
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Route 53",
+        "title": "Route 53 gives the app a name",
+        "body": [
+          "Amazon Route 53 is AWS's DNS service. It translates shop.example into an IP address, can register domain names, checks endpoint health, and can route users by latency, location or weight, or fail over to a backup."
+        ],
+        "show": [
+          "net",
+          "igw",
+          "pub",
+          "priv",
+          "sg",
+          "nacl",
+          "r53"
+        ],
+        "focus": [
+          "r53"
+        ],
+        "edges": [
+          {
+            "from": "net",
+            "to": "igw"
+          },
+          {
+            "from": "igw",
+            "to": "pub",
+            "label": "route"
+          },
+          {
+            "from": "pub",
+            "to": "priv",
+            "label": "app traffic"
+          },
+          {
+            "from": "sg",
+            "to": "priv",
+            "label": "instance level"
+          },
+          {
+            "from": "nacl",
+            "to": "priv",
+            "label": "subnet level"
+          },
+          {
+            "from": "net",
+            "to": "r53",
+            "label": "DNS lookup",
+            "fresh": true
+          },
+          {
+            "from": "r53",
+            "to": "pub",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Connect office",
+        "title": "Connect the office privately",
+        "body": [
+          "AWS Site-to-Site VPN creates an encrypted tunnel over the internet. It's quick to set up and cheaper.",
+          "AWS Direct Connect is a dedicated private connection from your data center to AWS that doesn't use the public internet. It gives more consistent performance and takes longer to set up."
+        ],
+        "show": [
+          "net",
+          "igw",
+          "pub",
+          "priv",
+          "sg",
+          "nacl",
+          "r53",
+          "office",
+          "vpn"
+        ],
+        "focus": [
+          "vpn"
+        ],
+        "edges": [
+          {
+            "from": "net",
+            "to": "igw"
+          },
+          {
+            "from": "igw",
+            "to": "pub",
+            "label": "route"
+          },
+          {
+            "from": "pub",
+            "to": "priv",
+            "label": "app traffic"
+          },
+          {
+            "from": "sg",
+            "to": "priv",
+            "label": "instance level"
+          },
+          {
+            "from": "nacl",
+            "to": "priv",
+            "label": "subnet level"
+          },
+          {
+            "from": "net",
+            "to": "r53",
+            "label": "DNS lookup"
+          },
+          {
+            "from": "r53",
+            "to": "pub"
+          },
+          {
+            "from": "office",
+            "to": "vpn",
+            "fresh": true
+          },
+          {
+            "from": "vpn",
+            "to": "priv",
+            "label": "private",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Network, guards, name, link",
+        "body": [
+          "Public in front, private behind, with guards at each level."
+        ],
+        "show": [
+          "net",
+          "igw",
+          "pub",
+          "priv",
+          "sg",
+          "nacl",
+          "r53",
+          "office",
+          "vpn"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "igw"
+          },
+          {
+            "from": "igw",
+            "to": "pub",
+            "label": "route"
+          },
+          {
+            "from": "pub",
+            "to": "priv",
+            "label": "app traffic"
+          },
+          {
+            "from": "sg",
+            "to": "priv",
+            "label": "instance level"
+          },
+          {
+            "from": "nacl",
+            "to": "priv",
+            "label": "subnet level"
+          },
+          {
+            "from": "net",
+            "to": "r53",
+            "label": "DNS lookup"
+          },
+          {
+            "from": "r53",
+            "to": "pub"
+          },
+          {
+            "from": "office",
+            "to": "vpn"
+          },
+          {
+            "from": "vpn",
+            "to": "priv",
+            "label": "private"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "VPC = your network; subnets per AZ; internet gateway for public subnets",
+          "Security groups (instance, stateful) and NACLs (subnet, stateless)",
+          "Inspector finds vulnerabilities",
+          "Route 53 = DNS, health checks, routing",
+          "VPN over the internet vs Direct Connect private line"
+        ]
+      }
+    ]
+  }
+}

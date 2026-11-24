@@ -1,0 +1,553 @@
+{
+  "id": "az104-files-identity",
+  "exam": "az-104",
+  "title": "Identity-based access for Azure Files (SMB)",
+  "objectiveIds": [
+    "AZ104-2.1.5"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Enable an identity source for Azure Files, grant share-level permissions with RBAC, set NTFS permissions, and troubleshoot SMB access.",
+  "prerequisites": [
+    {
+      "text": "File shares",
+      "lessonId": "az104-containers-shares",
+      "objectiveId": "AZ104-2.3.1"
+    },
+    {
+      "text": "Synced (hybrid) identities",
+      "lessonId": "az104-entra-users-groups",
+      "objectiveId": "AZ104-1.1.1"
+    }
+  ],
+  "foundation": [
+    "Azure file shares can be mounted like a Windows file server share. Instead of using the storage account key, users can sign in with their normal domain identity.",
+    "Access is checked twice: first a share-level permission (an Azure role on the share), then the usual Windows NTFS permissions on folders and files. Both must allow the action.",
+    "SMB uses TCP port 445, which some internet providers block."
+  ],
+  "engineer": [
+    "Identity sources (one per storage account): on-premises AD DS (the account is joined to AD with the AzFilesHybrid module; users must be synced to Entra ID), Microsoft Entra Domain Services, or Microsoft Entra Kerberos for hybrid identities (clients get Kerberos tickets from Entra ID, so no line of sight to a domain controller is needed for authentication).",
+    "Share-level permissions are Azure RBAC data roles assigned at the share (or account) scope: Storage File Data SMB Share Reader, Storage File Data SMB Share Contributor, and Storage File Data SMB Share Elevated Contributor (which can also change NTFS ACLs). Alternatively set a default share-level permission that applies to all authenticated identities.",
+    "Directory- and file-level permissions are Windows ACLs set with icacls or File Explorer, usually after mounting with the storage account key or as a user with Elevated Contributor. The effective permission is the more restrictive of the share-level and NTFS permissions.",
+    "Role assignments for share-level permissions must target identities synced to Entra ID (for AD DS and Entra Kerberos). Cloud-only accounts cannot be used with AD DS authentication.",
+    "Networking: outbound TCP 445 from the client, plus the storage firewall rules. Over the internet, SMB 3.x with encryption is required. Use VPN, ExpressRoute or private endpoints where 445 is blocked."
+  ],
+  "animation": {
+    "id": "storage-access-sim",
+    "caption": "Switch to the Azure Files tab: change the identity source, share-level role, NTFS rights and port 445."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "client",
+        "label": "Domain-joined client",
+        "x": 0,
+        "y": 60,
+        "kind": "user"
+      },
+      {
+        "id": "kdc",
+        "label": "AD DS / Entra Kerberos (ticket)",
+        "x": 220,
+        "y": 0,
+        "kind": "identity"
+      },
+      {
+        "id": "rbac",
+        "label": "Share-level: SMB Share Contributor (RBAC)",
+        "x": 220,
+        "y": 130,
+        "kind": "security"
+      },
+      {
+        "id": "ntfs",
+        "label": "NTFS ACLs on folders/files",
+        "x": 480,
+        "y": 130,
+        "kind": "security"
+      },
+      {
+        "id": "share",
+        "label": "\\\\stcontoso.file.core.windows.net\\finance",
+        "x": 480,
+        "y": 0,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "client",
+        "to": "kdc",
+        "label": "authenticate"
+      },
+      {
+        "from": "client",
+        "to": "rbac",
+        "label": "SMB 445"
+      },
+      {
+        "from": "rbac",
+        "to": "ntfs",
+        "label": "and"
+      },
+      {
+        "from": "ntfs",
+        "to": "share"
+      }
+    ]
+  },
+  "example": {
+    "title": "Replacing an on-premises file server",
+    "body": [
+      "Contoso migrates the finance file server to an Azure file share and joins the storage account to AD DS. The group 'Finance-Users' gets Storage File Data SMB Share Contributor on the share, and existing NTFS ACLs are copied with Robocopy.",
+      "Users map Z: with their own credentials. A remote worker cannot connect because their ISP blocks 445; the team adds Azure VPN Gateway point-to-site."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Users synced to Entra ID (AD DS / Entra Kerberos)",
+      "Domain-joined (or Entra-joined for Kerberos) clients",
+      "TCP 445 reachable"
+    ],
+    "permissions": [
+      "Storage Account Contributor to enable identity-based auth",
+      "Owner or User Access Administrator to assign share-level roles",
+      "Storage File Data SMB Share Elevated Contributor or account key to set NTFS ACLs"
+    ],
+    "limits": [
+      "One identity source per storage account",
+      "Share-level and NTFS permissions both apply",
+      "SMB requires TCP 445"
+    ],
+    "portal": [
+      "Storage account > Data storage > File shares > Identity-based access: configure AD DS, Microsoft Entra Domain Services or Microsoft Entra Kerberos.",
+      "Same blade: Default share-level permissions (optional).",
+      "File share > Access control (IAM): assign Storage File Data SMB Share roles to users or groups.",
+      "File share > Connect: copy the mount script; then set NTFS permissions with icacls or File Explorer."
+    ],
+    "cli": "az storage account update -g rg-data -n stcontoso --enable-files-aadkerb true\naz storage account update -g rg-data -n stcontoso --default-share-permission StorageFileDataSmbShareReader\naz role assignment create --role \"Storage File Data SMB Share Contributor\" --assignee finance-users@contoso.com \\\n  --scope \"$(az storage account show -g rg-data -n stcontoso --query id -o tsv)/fileServices/default/fileshares/finance\"",
+    "powershell": "# AD DS: from a domain-joined machine with the AzFilesHybrid module\nJoin-AzStorageAccount -ResourceGroupName rg-data -StorageAccountName stcontoso -DomainAccountType ComputerAccount\n# Microsoft Entra Kerberos:\nSet-AzStorageAccount -ResourceGroupName rg-data -Name stcontoso -EnableAzureActiveDirectoryKerberosForFile $true\n# Test connectivity to port 445\nTest-NetConnection -ComputerName stcontoso.file.core.windows.net -Port 445\n# NTFS permissions on the mounted share\nicacls Z:\\Budgets /grant 'CONTOSO\\Finance-Users:(OI)(CI)M'"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "storage-access-sim",
+    "objective": "Identify which of the two permission layers, or which prerequisite, blocks an SMB operation.",
+    "duration": 10,
+    "steps": [
+      "Open the Azure Files tab. Try 'Write a file' with Share Contributor and NTFS read. Read the denial.",
+      "Raise NTFS to modify and try again.",
+      "Block TCP 445, or make the user cloud-only, and observe the failure.",
+      "Remove the role and instead set a default share-level permission."
+    ],
+    "expected": [
+      "Both layers must allow",
+      "445 and synced identities are prerequisites",
+      "Default share-level permission substitutes for a role"
+    ],
+    "validation": [
+      {
+        "id": "files-ntfs-blocked",
+        "text": "Saw NTFS permissions block an operation"
+      },
+      {
+        "id": "files-ok",
+        "text": "Granted access successfully"
+      }
+    ],
+    "failureScenarios": [
+      "Share Reader role with NTFS Full Control",
+      "Cloud-only user with AD DS auth",
+      "ISP blocks 445"
+    ],
+    "cleanup": [
+      "Simulation only."
+    ],
+    "cost": "None."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "System error 53 or 'network path not found' when mounting.",
+      "cause": "Outbound TCP 445 blocked.",
+      "fix": "Test-NetConnection -Port 445; use VPN, ExpressRoute or a private endpoint."
+    },
+    {
+      "symptom": "Access denied although NTFS allows the user.",
+      "cause": "No share-level role and no default share-level permission.",
+      "fix": "Assign a Storage File Data SMB Share role on the share."
+    },
+    {
+      "symptom": "A user cannot change ACLs.",
+      "cause": "Requires Elevated Contributor (or mounting with the account key).",
+      "fix": "Assign Storage File Data SMB Share Elevated Contributor to admins."
+    },
+    {
+      "symptom": "Kerberos authentication fails for a cloud-only user.",
+      "cause": "AD DS and Entra Kerberos require hybrid identities.",
+      "fix": "Use a synced identity, or check current support for cloud-only identities."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Account key mount",
+      "difference": "Gives superuser access to the share and bypasses identity-based permissions; use it only for administration."
+    },
+    {
+      "service": "Amazon FSx for Windows File Server",
+      "difference": "A managed Windows file server joined to AD; Azure Files is a PaaS share that offers identity-based auth through AD DS, Entra DS or Entra Kerberos."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "An RBAC share role alone grants access to every folder.",
+      "reality": "NTFS ACLs still apply; the more restrictive layer wins."
+    },
+    {
+      "myth": "Azure Files works over the internet from anywhere.",
+      "reality": "Port 445 is often blocked and SMB 3.x encryption is required."
+    },
+    {
+      "myth": "A storage account can use AD DS and Entra DS at the same time.",
+      "reality": "Only one identity source per account."
+    }
+  ],
+  "architectureDecisions": [
+    "Assign share-level roles to groups and keep NTFS ACLs aligned with the old file server.",
+    "Prefer Microsoft Entra Kerberos for hybrid users on Entra-joined clients without line of sight to a domain controller.",
+    "Use private endpoints for SMB over private connectivity."
+  ],
+  "docs": [
+    {
+      "title": "Overview of Azure Files identity-based authentication",
+      "url": "https://learn.microsoft.com/azure/storage/files/storage-files-active-directory-overview"
+    },
+    {
+      "title": "Assign share-level permissions",
+      "url": "https://learn.microsoft.com/azure/storage/files/storage-files-identity-assign-share-level-permissions"
+    },
+    {
+      "title": "Configure directory and file-level permissions",
+      "url": "https://learn.microsoft.com/azure/storage/files/storage-files-identity-configure-file-level-permissions"
+    },
+    {
+      "title": "Enable Microsoft Entra Kerberos authentication for Azure Files",
+      "url": "https://learn.microsoft.com/azure/storage/files/storage-files-identity-auth-hybrid-identities-enable"
+    },
+    {
+      "title": "Troubleshoot Azure Files SMB connectivity",
+      "url": "https://learn.microsoft.com/troubleshoot/azure/azure-storage/files/connectivity/files-troubleshoot-smb-connectivity"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert. Support for cloud-only identities with Entra Kerberos is evolving; check current documentation."
+  },
+  "walkthrough": {
+    "subtitle": "Let employees open a cloud file share with their normal sign-in, and keep folder permissions like on a file server.",
+    "learn": [
+      "Why use identities instead of the account key",
+      "Identity sources for Azure Files",
+      "Share-level permissions with RBAC",
+      "Folder and file permissions with Windows ACLs"
+    ],
+    "nodes": [
+      {
+        "id": "user",
+        "label": "Employee PC",
+        "x": 110,
+        "y": 220,
+        "kind": "user",
+        "sub": "domain sign-in"
+      },
+      {
+        "id": "idp",
+        "label": "Identity source",
+        "x": 380,
+        "y": 80,
+        "kind": "identity",
+        "sub": "AD DS / Entra"
+      },
+      {
+        "id": "share",
+        "label": "File share",
+        "x": 640,
+        "y": 220,
+        "kind": "storage",
+        "sub": "SMB"
+      },
+      {
+        "id": "rbac",
+        "label": "Share-level role",
+        "x": 380,
+        "y": 220,
+        "kind": "security",
+        "sub": "SMB Share Contributor"
+      },
+      {
+        "id": "acl",
+        "label": "Windows ACLs",
+        "x": 640,
+        "y": 380,
+        "kind": "security",
+        "sub": "folders and files"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Shared key",
+        "title": "Everyone mounts the share with the storage key",
+        "body": [
+          "The storage account key gives full control to anyone who has it, and you cannot tell users apart. You want per-person access, like an office file server."
+        ],
+        "show": [
+          "user",
+          "share"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "share",
+            "label": "account key",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Identity",
+        "title": "Sign in with a domain identity",
+        "body": [
+          "Azure Files can check users' identities over SMB (Kerberos). Identity sources: on-premises Active Directory Domain Services, Microsoft Entra Domain Services, or Microsoft Entra Kerberos for hybrid identities. A storage account uses one source at a time."
+        ],
+        "show": [
+          "user",
+          "share",
+          "idp"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "share",
+            "label": "account key"
+          },
+          {
+            "from": "user",
+            "to": "idp",
+            "label": "Kerberos ticket",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Share level",
+        "title": "Step 1: who can open the share",
+        "body": [
+          "Assign an RBAC role on the share or storage account: Storage File Data SMB Share Reader, Contributor or Elevated Contributor. Or set a default share-level permission for all authenticated users."
+        ],
+        "show": [
+          "user",
+          "share",
+          "idp",
+          "rbac"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "share",
+            "label": "account key"
+          },
+          {
+            "from": "user",
+            "to": "idp",
+            "label": "Kerberos ticket"
+          },
+          {
+            "from": "idp",
+            "to": "rbac",
+            "fresh": true
+          },
+          {
+            "from": "rbac",
+            "to": "share",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "File level",
+        "title": "Step 2: what they can do inside",
+        "body": [
+          "Windows ACLs (NTFS permissions) on folders and files decide the details, exactly as on a Windows file server. Both levels must allow an action."
+        ],
+        "show": [
+          "user",
+          "share",
+          "idp",
+          "rbac",
+          "acl"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "share",
+            "label": "account key"
+          },
+          {
+            "from": "user",
+            "to": "idp",
+            "label": "Kerberos ticket"
+          },
+          {
+            "from": "idp",
+            "to": "rbac"
+          },
+          {
+            "from": "rbac",
+            "to": "share"
+          },
+          {
+            "from": "share",
+            "to": "acl",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Share-level RBAC roles do not apply when users connect with the storage account key."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Azure Files identity",
+        "body": [
+          "Two gates: share-level role, then file ACLs."
+        ],
+        "show": [
+          "user",
+          "share",
+          "idp",
+          "rbac",
+          "acl"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "share",
+            "label": "account key"
+          },
+          {
+            "from": "user",
+            "to": "idp",
+            "label": "Kerberos ticket"
+          },
+          {
+            "from": "idp",
+            "to": "rbac"
+          },
+          {
+            "from": "rbac",
+            "to": "share"
+          },
+          {
+            "from": "share",
+            "to": "acl"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Use identities instead of the shared key",
+          "AD DS, Entra Domain Services or Entra Kerberos",
+          "Share level: SMB Share Reader / Contributor / Elevated Contributor",
+          "File level: Windows ACLs",
+          "Both levels must allow the action"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Set share-level permissions on an Azure file share",
+    "minutes": 15,
+    "costLevel": "free",
+    "cost": "Cents. A few small files in a Standard LRS account cost almost nothing; delete the account at the end.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A storage account in rg-az104-lab: Standard performance, LRS redundancy, default settings. Name it st<yourinitials><number> (lowercase letters and numbers only, globally unique).",
+      "grp-it-lab from the identity labs (or any group)."
+    ],
+    "steps": [
+      {
+        "do": "Open the storage account > Data storage > File shares > + File share. Name: team, keep the default tier. Create.",
+        "see": "The team share in the list."
+      },
+      {
+        "do": "Open File shares and select the 'Identity-based access' setting (shown as 'Not configured').",
+        "see": "The identity sources: AD DS, Microsoft Entra Domain Services and Microsoft Entra Kerberos. Read them; do not enable one, they need a domain."
+      },
+      {
+        "do": "On the same page, find 'Default share-level permissions'. Read the options: no default, or a role for all authenticated identities."
+      },
+      {
+        "do": "Open the team share > Access control (IAM) > Add role assignment. Role: Storage File Data SMB Share Contributor. Members: grp-it-lab. Review + assign.",
+        "see": "The role listed under Role assignments for the share."
+      },
+      {
+        "do": "Open the team share > Connect. Choose Windows and read the script.",
+        "see": "A PowerShell script that mounts the share with the storage account key. This is the key-based method that ignores RBAC."
+      },
+      {
+        "do": "Optional, on a Windows PC: run the script to mount the share as a drive.",
+        "see": "A new drive letter. If it times out, your internet provider probably blocks port 445."
+      }
+    ],
+    "check": [
+      "grp-it-lab has the SMB Share Contributor role on the team share."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Overview of identity-based authentication for Azure Files",
+        "url": "https://learn.microsoft.com/azure/storage/files/storage-files-active-directory-overview"
+      },
+      {
+        "title": "Assign share-level permissions",
+        "url": "https://learn.microsoft.com/azure/storage/files/storage-files-identity-assign-share-level-permissions"
+      },
+      {
+        "title": "Mount an SMB file share on Windows",
+        "url": "https://learn.microsoft.com/azure/storage/files/storage-how-to-use-files-windows"
+      }
+    ]
+  }
+}

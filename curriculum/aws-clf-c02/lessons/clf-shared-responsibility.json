@@ -1,0 +1,650 @@
+{
+  "id": "clf-shared-responsibility",
+  "exam": "aws-clf-c02",
+  "title": "AWS shared responsibility model",
+  "objectiveIds": [
+    "CLFC02-2.1.1",
+    "CLFC02-2.1.2",
+    "CLFC02-2.1.3",
+    "CLFC02-2.1.4",
+    "CLFC02-2.1.5",
+    "CLFC02-2.1.6"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Describe AWS's responsibilities, the customer's responsibilities, shared controls, and how the split changes between EC2, RDS, Lambda and S3.",
+  "prerequisites": [
+    {
+      "text": "Cloud benefits",
+      "objectiveId": "CLFC02-1.1.1",
+      "lessonId": "clf-benefits"
+    }
+  ],
+  "foundation": [
+    "AWS is responsible for security OF the cloud: the hardware, software, networking and facilities that run AWS services.",
+    "You are responsible for security IN the cloud: your data, who can access it, and how you configure services.",
+    "The more managed the service, the more AWS takes on. With EC2 you patch the operating system; with RDS and Lambda, AWS does."
+  ],
+  "engineer": [
+    "AWS: physical security of data centers, hardware, global network, hypervisor and the software that runs managed services.",
+    "Customer: customer data, platform/application/identity and access management, OS/network/firewall configuration (for EC2), client-side and server-side encryption choices, network traffic protection.",
+    "Shared controls: patch management (AWS patches infrastructure, customer patches guest OS/apps), configuration management, awareness and training (AWS trains its staff, customers train theirs).",
+    "By service: EC2 (IaaS): customer manages guest OS, apps, security groups and data. RDS: AWS manages OS and database engine patching, backups infrastructure; customer manages database users, network access, data and encryption settings. Lambda: AWS manages runtime and OS; customer manages code, permissions and data. S3: customer manages bucket policies, Block Public Access, encryption options and data."
+  ],
+  "animation": {
+    "id": "aws-security-sim",
+    "caption": "Open 'Shared responsibility by service' and assign tasks."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "aws",
+        "label": "AWS: security OF the cloud (facilities, hardware, network, hypervisor)",
+        "x": 220,
+        "y": 160,
+        "kind": "security"
+      },
+      {
+        "id": "cust",
+        "label": "Customer: security IN the cloud (data, IAM, configuration, OS on EC2)",
+        "x": 220,
+        "y": 0,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "cust",
+        "to": "aws",
+        "label": "builds on"
+      }
+    ]
+  },
+  "example": {
+    "title": "Same app, different split",
+    "body": [
+      "On EC2, the team patches Amazon Linux monthly. After moving the database to RDS, AWS patches the database engine during the maintenance window, but the team still manages database users, security groups and encryption."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "EC2 > Instances: you manage the OS (Systems Manager Patch Manager).",
+      "RDS > Maintenance window: AWS-managed engine patching.",
+      "S3 > Block Public Access settings: your responsibility."
+    ],
+    "cli": "aws ssm describe-patch-baselines\naws rds describe-pending-maintenance-actions\naws s3api get-public-access-block --bucket <bucket>",
+    "powershell": "Get-SSMPatchBaseline\nGet-RDSPendingMaintenanceAction"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-security-sim",
+    "objective": "Assign responsibilities correctly across services.",
+    "duration": 10,
+    "steps": [
+      "Try each service with 'Patching the guest operating system' and 'Patching the database engine'.",
+      "Try data encryption and physical security."
+    ],
+    "expected": [
+      "The split shifts with the service"
+    ],
+    "validation": [
+      {
+        "id": "aws-shared-correct",
+        "text": "Assigned correctly"
+      },
+      {
+        "id": "aws-shared-wrong",
+        "text": "Learned from a mistake"
+      }
+    ],
+    "failureScenarios": [
+      "Assuming AWS secures your S3 bucket policies"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Public S3 bucket leaked data.",
+      "cause": "Customer misconfiguration (bucket policy/ACLs).",
+      "fix": "Enable S3 Block Public Access and review policies."
+    },
+    {
+      "symptom": "Vulnerable OS on EC2.",
+      "cause": "Guest OS patching is the customer's job.",
+      "fix": "Use Systems Manager Patch Manager."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure shared responsibility",
+      "difference": "Same model; Microsoft draws the split per IaaS/PaaS/SaaS."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "AWS is responsible for securing your data in S3.",
+      "reality": "You control access and encryption choices."
+    },
+    {
+      "myth": "RDS customers patch the database engine.",
+      "reality": "AWS does; customers set the maintenance window."
+    }
+  ],
+  "architectureDecisions": [
+    "Prefer managed services to shift operational security tasks to AWS."
+  ],
+  "docs": [
+    {
+      "title": "Shared responsibility model",
+      "url": "https://aws.amazon.com/compliance/shared-responsibility-model/"
+    },
+    {
+      "title": "Security pillar: shared responsibility",
+      "url": "https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/shared-responsibility.html"
+    },
+    {
+      "title": "Amazon RDS security",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Ask \"who patches what?\" for three services and watch the line between AWS and you move.",
+    "learn": [
+      "Security OF the cloud vs IN the cloud",
+      "What AWS is responsible for",
+      "What the customer is responsible for",
+      "Shared controls",
+      "How the split shifts with EC2, RDS and Lambda"
+    ],
+    "nodes": [
+      {
+        "id": "aws",
+        "label": "AWS",
+        "x": 200,
+        "y": 60,
+        "kind": "globe",
+        "sub": "security OF the cloud"
+      },
+      {
+        "id": "you",
+        "label": "You",
+        "x": 600,
+        "y": 60,
+        "kind": "user",
+        "sub": "security IN the cloud"
+      },
+      {
+        "id": "infra",
+        "label": "Data centers + hardware",
+        "x": 200,
+        "y": 170,
+        "kind": "security",
+        "sub": "Regions, AZs, network"
+      },
+      {
+        "id": "data",
+        "label": "Data + identities",
+        "x": 600,
+        "y": 170,
+        "kind": "identity",
+        "sub": "IAM, encryption, config"
+      },
+      {
+        "id": "ec2",
+        "label": "Amazon EC2",
+        "x": 140,
+        "y": 330,
+        "kind": "compute",
+        "sub": "IaaS"
+      },
+      {
+        "id": "rds",
+        "label": "Amazon RDS",
+        "x": 400,
+        "y": 330,
+        "kind": "database",
+        "sub": "managed"
+      },
+      {
+        "id": "lambda",
+        "label": "AWS Lambda",
+        "x": 660,
+        "y": 330,
+        "kind": "compute",
+        "sub": "serverless"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Who patches?",
+        "title": "A server is hacked. Whose fault is it?",
+        "body": [
+          "A company runs a web server on AWS. Attackers get in through an old, unpatched operating system.",
+          "Is that AWS's problem or the company's? The shared responsibility model answers this."
+        ],
+        "show": [
+          "aws",
+          "you"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "aws",
+            "to": "you",
+            "label": "shared",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "AWS's side",
+        "title": "AWS: security OF the cloud",
+        "body": [
+          "AWS protects the infrastructure that runs every service: the data centers, the hardware, the network, and the software that runs the services.",
+          "You can't visit or configure any of this, so AWS is responsible for it."
+        ],
+        "show": [
+          "aws",
+          "you",
+          "infra"
+        ],
+        "focus": [
+          "aws",
+          "infra"
+        ],
+        "edges": [
+          {
+            "from": "aws",
+            "to": "you",
+            "label": "shared"
+          },
+          {
+            "from": "aws",
+            "to": "infra",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Your side",
+        "title": "You: security IN the cloud",
+        "body": [
+          "You are responsible for what you put in the cloud and how you configure it: your data, who has access (IAM), encryption choices, network and firewall settings, and on EC2 the guest operating system and your apps."
+        ],
+        "show": [
+          "aws",
+          "you",
+          "infra",
+          "data"
+        ],
+        "focus": [
+          "you",
+          "data"
+        ],
+        "edges": [
+          {
+            "from": "aws",
+            "to": "you",
+            "label": "shared"
+          },
+          {
+            "from": "aws",
+            "to": "infra"
+          },
+          {
+            "from": "you",
+            "to": "data",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "key",
+          "text": "If you can configure it, you are usually responsible for configuring it securely."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Shared",
+        "title": "Some controls are shared",
+        "body": [
+          "Patch management: AWS patches the infrastructure; you patch your guest OS and apps. Configuration management: AWS configures its devices; you configure your OS, databases and apps.",
+          "Awareness and training: AWS trains its staff; you train yours."
+        ],
+        "show": [
+          "aws",
+          "you",
+          "infra",
+          "data"
+        ],
+        "focus": [
+          "infra",
+          "data"
+        ],
+        "edges": [
+          {
+            "from": "aws",
+            "to": "you",
+            "label": "shared"
+          },
+          {
+            "from": "aws",
+            "to": "infra"
+          },
+          {
+            "from": "you",
+            "to": "data"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "case",
+        "label": "EC2",
+        "title": "Case 1: Amazon EC2 (most yours)",
+        "body": [
+          "With EC2 you get a virtual server. AWS secures the host and the hypervisor. You patch the guest OS, install and update apps, configure security groups, and protect your data.",
+          "So the hacked server from step 1 is the customer's responsibility."
+        ],
+        "show": [
+          "aws",
+          "you",
+          "infra",
+          "data",
+          "ec2"
+        ],
+        "focus": [
+          "ec2"
+        ],
+        "edges": [
+          {
+            "from": "aws",
+            "to": "you",
+            "label": "shared"
+          },
+          {
+            "from": "aws",
+            "to": "infra"
+          },
+          {
+            "from": "you",
+            "to": "data"
+          },
+          {
+            "from": "infra",
+            "to": "ec2",
+            "label": "AWS: host",
+            "fresh": true
+          },
+          {
+            "from": "data",
+            "to": "ec2",
+            "label": "you: OS, apps",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "case",
+        "label": "RDS",
+        "title": "Case 2: Amazon RDS (shared)",
+        "body": [
+          "With RDS, AWS also patches the database engine and the OS under it, and runs backups if you enable them.",
+          "You still manage database users and permissions, network access, encryption settings, and your data."
+        ],
+        "show": [
+          "aws",
+          "you",
+          "infra",
+          "data",
+          "ec2",
+          "rds"
+        ],
+        "focus": [
+          "rds"
+        ],
+        "edges": [
+          {
+            "from": "aws",
+            "to": "you",
+            "label": "shared"
+          },
+          {
+            "from": "aws",
+            "to": "infra"
+          },
+          {
+            "from": "you",
+            "to": "data"
+          },
+          {
+            "from": "infra",
+            "to": "ec2",
+            "label": "AWS: host"
+          },
+          {
+            "from": "data",
+            "to": "ec2",
+            "label": "you: OS, apps"
+          },
+          {
+            "from": "infra",
+            "to": "rds",
+            "label": "AWS: OS, engine",
+            "fresh": true
+          },
+          {
+            "from": "data",
+            "to": "rds",
+            "label": "you: users, data",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "case",
+        "label": "Lambda",
+        "title": "Case 3: AWS Lambda (most AWS)",
+        "body": [
+          "With Lambda there is no server for you to see. AWS runs the OS, the runtime and the scaling.",
+          "You are responsible for your function code, its IAM permissions, and the data it handles."
+        ],
+        "show": [
+          "aws",
+          "you",
+          "infra",
+          "data",
+          "ec2",
+          "rds",
+          "lambda"
+        ],
+        "focus": [
+          "lambda"
+        ],
+        "edges": [
+          {
+            "from": "aws",
+            "to": "you",
+            "label": "shared"
+          },
+          {
+            "from": "aws",
+            "to": "infra"
+          },
+          {
+            "from": "you",
+            "to": "data"
+          },
+          {
+            "from": "infra",
+            "to": "ec2",
+            "label": "AWS: host"
+          },
+          {
+            "from": "data",
+            "to": "ec2",
+            "label": "you: OS, apps"
+          },
+          {
+            "from": "infra",
+            "to": "rds",
+            "label": "AWS: OS, engine"
+          },
+          {
+            "from": "data",
+            "to": "rds",
+            "label": "you: users, data"
+          },
+          {
+            "from": "infra",
+            "to": "lambda",
+            "label": "AWS: OS, runtime",
+            "fresh": true
+          },
+          {
+            "from": "data",
+            "to": "lambda",
+            "label": "you: code, IAM",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "The more managed the service, the more AWS takes on. But your data and access are always yours."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "The line moves, the rule doesn't",
+        "body": [
+          "AWS secures the cloud itself; you secure what you put in it."
+        ],
+        "show": [
+          "aws",
+          "you",
+          "infra",
+          "data",
+          "ec2",
+          "rds",
+          "lambda"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "aws",
+            "to": "you",
+            "label": "shared"
+          },
+          {
+            "from": "aws",
+            "to": "infra"
+          },
+          {
+            "from": "you",
+            "to": "data"
+          },
+          {
+            "from": "infra",
+            "to": "ec2",
+            "label": "AWS: host"
+          },
+          {
+            "from": "data",
+            "to": "ec2",
+            "label": "you: OS, apps"
+          },
+          {
+            "from": "infra",
+            "to": "rds",
+            "label": "AWS: OS, engine"
+          },
+          {
+            "from": "data",
+            "to": "rds",
+            "label": "you: users, data"
+          },
+          {
+            "from": "infra",
+            "to": "lambda",
+            "label": "AWS: OS, runtime"
+          },
+          {
+            "from": "data",
+            "to": "lambda",
+            "label": "you: code, IAM"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "AWS: facilities, hardware, network, managed service software",
+          "You: data, IAM, encryption, configuration",
+          "Shared: patching, configuration, training (each on its own layer)",
+          "EC2: you patch the guest OS",
+          "RDS: AWS patches the engine; you manage users and data",
+          "Lambda: you own code and permissions"
+        ]
+      }
+    ]
+  }
+}

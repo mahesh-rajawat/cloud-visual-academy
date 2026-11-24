@@ -1,0 +1,233 @@
+{
+  "id": "ai901-vision-extraction",
+  "exam": "ai-901",
+  "title": "Computer vision, image generation and information extraction",
+  "objectiveIds": [
+    "AI901-1.3.4",
+    "AI901-1.3.5"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Identify features of computer vision and image-generation models, and techniques to extract information from text, images, audio and video.",
+  "prerequisites": [
+    {
+      "text": "AI workloads",
+      "objectiveId": "AI901-1.3.1",
+      "lessonId": "ai901-ai-workloads"
+    }
+  ],
+  "foundation": [
+    "Computer vision lets software understand images: describe them, tag them, find objects, and read text in them (OCR).",
+    "Image generation models do the opposite: they create new images from a text description, or edit existing ones.",
+    "Information extraction pulls specific facts out of content: the total from an invoice, the speaker's main complaint from a call, the scenes in a video. Azure Content Understanding does this for documents, images, audio and video."
+  ],
+  "engineer": [
+    "Vision capabilities: captioning (one sentence for the whole image; dense captions for regions), tagging, object detection (bounding boxes with labels), OCR / Read (printed and handwritten text with positions), people detection, smart cropping. Multimodal models add free-form visual question answering and reasoning about charts, screenshots and photos.",
+    "Image generation (for example gpt-image-1): text-to-image, image editing with a reference image or mask, size and quality options; prompts and outputs pass content filters; outputs can include content credentials (C2PA provenance). DALL-E 3 has been retired in Foundry; use gpt-image models.",
+    "Extraction techniques by modality: text: NER, key phrases, PII, custom extraction with prompts; documents: OCR + layout (tables, selection marks, structure) + fields; images: descriptions, detected objects and text; audio: transcription with diarization, then fields such as summary or sentiment; video: segmentation into scenes, key frames, transcripts and per-segment descriptions.",
+    "Azure Content Understanding: analyzers (prebuilt such as prebuilt-invoice, prebuilt-imageSearch, prebuilt-audioSearch, prebuilt-videoSearch, or custom with a field schema). Field methods: Extract (documents only; value as it appears), Classify (pick from categories), Generate (create a value such as a summary). Results include confidence and grounding (where a value came from).",
+    "Azure Document Intelligence remains available for classic form and document extraction with prebuilt and custom models."
+  ],
+  "animation": {
+    "id": "ai901-vision-sim",
+    "caption": "Pick vision capabilities and image generation for each need, and choose Extract, Classify or Generate for extracted fields."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "img",
+        "label": "Image / video frame",
+        "x": 0,
+        "y": 60,
+        "kind": "user"
+      },
+      {
+        "id": "vis",
+        "label": "Caption, tags, objects, OCR",
+        "x": 240,
+        "y": 0,
+        "kind": "ai"
+      },
+      {
+        "id": "mm",
+        "label": "Multimodal model: ask about it",
+        "x": 240,
+        "y": 110,
+        "kind": "ai"
+      },
+      {
+        "id": "gen",
+        "label": "Image generation: text → image",
+        "x": 240,
+        "y": 220,
+        "kind": "ai"
+      },
+      {
+        "id": "cu",
+        "label": "Content Understanding: fields from docs, images, audio, video",
+        "x": 520,
+        "y": 110,
+        "kind": "ai"
+      },
+      {
+        "id": "fields",
+        "label": "Fields + confidence + grounding",
+        "x": 780,
+        "y": 110,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "img",
+        "to": "vis"
+      },
+      {
+        "from": "img",
+        "to": "mm"
+      },
+      {
+        "from": "img",
+        "to": "cu"
+      },
+      {
+        "from": "cu",
+        "to": "fields"
+      }
+    ]
+  },
+  "example": {
+    "title": "An insurer's claims pipeline",
+    "body": [
+      "Customers upload damage photos: a multimodal model describes the damage; OCR reads the licence plate. Content Understanding extracts policy number and date from the claim PDF (Extract), classifies the claim type (Classify) and summarises the recorded phone call (Generate).",
+      "Marketing uses gpt-image-1 to create illustrations for claim guides, labelled as AI-generated."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User or Cognitive Services User"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Foundry portal > Vision playgrounds (image analysis, OCR).",
+      "Chat playground with a vision model: attach an image.",
+      "Content Understanding in the Foundry portal: try prebuilt analyzers on sample files."
+    ],
+    "cli": "ENDPOINT=$(az cognitiveservices account show -n contoso-ai -g rg-ai901 --query properties.endpoint -o tsv)\nKEY=$(az cognitiveservices account keys list -n contoso-ai -g rg-ai901 --query key1 -o tsv)\ncurl -i -X POST \"${ENDPOINT}contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\" \\\n  -H \"Ocp-Apim-Subscription-Key: $KEY\" -H \"Content-Type: application/json\" \\\n  -d '{\"inputs\":[{\"url\":\"https://contoso.example/invoices/inv-1001.pdf\"}]}'\n# Copy the Operation-Location header, then poll:\ncurl -H \"Ocp-Apim-Subscription-Key: $KEY\" \"<Operation-Location>\"",
+    "powershell": "$endpoint = (Get-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai).Endpoint\n$key = (Get-AzCognitiveServicesAccountKey -ResourceGroupName rg-ai901 -Name contoso-ai).Key1\n$r = Invoke-WebRequest -Method Post -Uri \"$($endpoint)contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\" `\n  -Headers @{ 'Ocp-Apim-Subscription-Key' = $key } -ContentType 'application/json' -Body '{\"inputs\":[{\"url\":\"https://contoso.example/invoices/inv-1001.pdf\"}]}'\n$op = $r.Headers['Operation-Location']\ndo { Start-Sleep 2; $res = Invoke-RestMethod -Uri \"$op\" -Headers @{ 'Ocp-Apim-Subscription-Key' = $key } } while ($res.status -notin 'Succeeded','Failed')\n$res.result.contents[0].fields",
+    "python": "# pip install requests\nimport os, time, requests\n\nendpoint = os.environ[\"CU_ENDPOINT\"].rstrip(\"/\")  # https://<resource>.services.ai.azure.com\nheaders = {\"Ocp-Apim-Subscription-Key\": os.environ[\"CU_KEY\"], \"Content-Type\": \"application/json\"}\nurl = f\"{endpoint}/contentunderstanding/analyzers/prebuilt-invoice:analyze?api-version=2025-11-01\"\n\nresp = requests.post(url, headers=headers, json={\"inputs\": [{\"url\": \"https://contoso.example/invoices/inv-1001.pdf\"}]})\nresp.raise_for_status()  # expect 202 Accepted\noperation = resp.headers[\"Operation-Location\"]\n\nwhile True:\n    result = requests.get(operation, headers=headers).json()\n    if result[\"status\"] in (\"Succeeded\", \"Failed\"):\n        break\n    time.sleep(2)\n\nfor name, field in result[\"result\"][\"contents\"][0].get(\"fields\", {}).items():\n    print(name, field.get(\"valueString\") or field.get(\"valueNumber\") or field.get(\"valueDate\"), field.get(\"confidence\"))"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-vision-sim",
+    "objective": "Choose vision and extraction techniques.",
+    "duration": 15,
+    "steps": [
+      "Computer vision and image generation tab: answer every need.",
+      "Content Understanding field methods tab: answer every field."
+    ],
+    "expected": [
+      "Object detection gives bounding boxes",
+      "Extract is documents only"
+    ],
+    "validation": [
+      {
+        "id": "vision-task-correct",
+        "text": "Chose the right capability"
+      },
+      {
+        "id": "vision-task-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "cu-method-correct",
+        "text": "Chose the right field method"
+      },
+      {
+        "id": "cu-method-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Using captioning when positions of objects are needed",
+      "Using Extract on audio"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "OCR misses text in a photo.",
+      "cause": "Low resolution or skewed image.",
+      "fix": "Use higher-resolution, well-lit images."
+    },
+    {
+      "symptom": "Extract field returns nothing for a video.",
+      "cause": "Extract works on documents only.",
+      "fix": "Use Generate or Classify for audio and video."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Captioning vs object detection",
+      "difference": "Captions describe the image; detection locates objects with boxes."
+    },
+    {
+      "service": "Content Understanding vs Azure Language",
+      "difference": "Content Understanding extracts schema fields across modalities; Language analyses text."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "OCR is the same as image captioning.",
+      "reality": "OCR reads text; captioning describes scenes."
+    },
+    {
+      "myth": "Generated images have no safeguards.",
+      "reality": "Content filters and provenance credentials apply."
+    },
+    {
+      "myth": "Extraction only works on documents.",
+      "reality": "Also images, audio and video."
+    }
+  ],
+  "architectureDecisions": [
+    "Use prebuilt analyzers first, then custom schemas.",
+    "Route low-confidence fields to human review.",
+    "Label AI-generated images."
+  ],
+  "docs": [
+    {
+      "title": "Content Understanding overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/content-understanding/overview"
+    },
+    {
+      "title": "Content Understanding analyzers",
+      "url": "https://learn.microsoft.com/azure/ai-services/content-understanding/concepts/analyzer-reference"
+    },
+    {
+      "title": "Vision-enabled chat models",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/how-to/gpt-with-vision"
+    },
+    {
+      "title": "Image generation (gpt-image-1)",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/how-to/dall-e"
+    },
+    {
+      "title": "Azure Vision overview",
+      "url": "https://learn.microsoft.com/azure/ai-services/computer-vision/overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

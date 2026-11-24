@@ -1,0 +1,229 @@
+{
+  "id": "az900-compute-types",
+  "exam": "az-900",
+  "title": "Compute types and virtual machine options",
+  "objectiveIds": [
+    "AZ900-2.2.1",
+    "AZ900-2.2.2"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Compare VMs, containers and functions, and describe Azure Virtual Machines, Virtual Machine Scale Sets, availability sets and Azure Virtual Desktop.",
+  "prerequisites": [
+    {
+      "text": "IaaS and PaaS",
+      "objectiveId": "AZ900-1.3.1",
+      "lessonId": "az900-iaas-paas-saas"
+    }
+  ],
+  "foundation": [
+    "Virtual machines: a whole computer in the cloud with its own OS. Most control, you manage the OS.",
+    "Containers: a lightweight package of an app and its dependencies that shares the host's OS kernel. Start in seconds, run the same everywhere.",
+    "Functions: small pieces of code that run in response to an event (serverless). No servers to think about; billed per execution.",
+    "VM options: one VM; an availability set (VMs spread across racks); a Virtual Machine Scale Set (identical VMs that scale automatically); Azure Virtual Desktop (cloud-hosted Windows desktops for users)."
+  ],
+  "engineer": [
+    "Compare: VMs virtualise hardware (full OS each, minutes to start, total control). Containers virtualise the OS (share kernel, seconds to start, portable). Functions abstract everything but your code (event-driven, scale to zero on consumption plans).",
+    "Azure container options: Azure Container Instances (single containers, fastest start), Azure Container Apps (serverless microservices), Azure Kubernetes Service (orchestration at scale). Docker is the common container format.",
+    "Azure Virtual Machines: choose image, size, disks and networking. Use cases: test and development, running applications in the cloud, extending your datacenter, disaster recovery, lift-and-shift migration.",
+    "Availability sets: group VMs across fault domains (separate power/network racks, up to 3) and update domains (rebooted at different times during planned maintenance, up to 20). No extra cost; you pay for the VMs. Protects within one datacenter.",
+    "Virtual Machine Scale Sets: create and manage a group of identical, load-balanced VMs; scale automatically on demand or schedule; can span availability zones. Ideal for compute, big-data and container workloads.",
+    "Azure Virtual Desktop: desktop and app virtualisation in Azure; centralised security with Microsoft Entra ID and MFA; data stays off user devices; multi-session Windows 10/11 Enterprise lets many users share one VM."
+  ],
+  "animation": {
+    "id": "az900-compute-sim",
+    "caption": "Pick compute types for each requirement, then the right VM availability or scale option."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "vm",
+        "label": "Virtual machine: full OS",
+        "x": 0,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "ctr",
+        "label": "Container: app + dependencies",
+        "x": 230,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "fn",
+        "label": "Function: code on events",
+        "x": 460,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "vmss",
+        "label": "Scale set: identical VMs + autoscale",
+        "x": 0,
+        "y": 190,
+        "kind": "compute"
+      },
+      {
+        "id": "aset",
+        "label": "Availability set: fault & update domains",
+        "x": 230,
+        "y": 190,
+        "kind": "security"
+      },
+      {
+        "id": "avd",
+        "label": "Azure Virtual Desktop",
+        "x": 460,
+        "y": 190,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "vm",
+        "to": "vmss"
+      },
+      {
+        "from": "vm",
+        "to": "aset"
+      },
+      {
+        "from": "vm",
+        "to": "avd"
+      }
+    ]
+  },
+  "example": {
+    "title": "An e-commerce platform",
+    "body": [
+      "The legacy ERP runs on two VMs in an availability set. The shop front end runs on a scale set across zones that grows from 4 to 20 VMs on Black Friday.",
+      "Order emails are sent by an Azure Function, the recommendation service runs in containers on Container Apps, and call-centre staff use Azure Virtual Desktop."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Create a resource > Virtual machine: Availability options.",
+      "Create a resource > Virtual machine scale set: scaling and orchestration.",
+      "Azure Virtual Desktop > Host pools."
+    ],
+    "cli": "az vm availability-set create -g <rg> -n avset1 --platform-fault-domain-count 2 --platform-update-domain-count 5\naz vmss create -g <rg> -n vmss1 --image Ubuntu2404 --instance-count 2 --zones 1 2 3 --generate-ssh-keys",
+    "powershell": "New-AzAvailabilitySet -ResourceGroupName <rg> -Name avset1 -Location westeurope -Sku Aligned -PlatformFaultDomainCount 2 -PlatformUpdateDomainCount 5"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-compute-sim",
+    "objective": "Choose compute types and VM options.",
+    "duration": 15,
+    "steps": [
+      "Compute choice tab: answer every requirement.",
+      "VM availability and scale options tab: answer every requirement."
+    ],
+    "expected": [
+      "Functions for event-driven code",
+      "Scale sets for identical, autoscaling VMs"
+    ],
+    "validation": [
+      {
+        "id": "compute-correct",
+        "text": "Chose the right compute option"
+      },
+      {
+        "id": "compute-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "vm-options-correct",
+        "text": "Chose the right VM option"
+      },
+      {
+        "id": "vm-options-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Using an availability set to survive a datacenter failure",
+      "Running one VM per user instead of multi-session AVD"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Both VMs rebooted at the same time during maintenance.",
+      "cause": "They aren't in an availability set or zones.",
+      "fix": "Use an availability set (update domains) or zones."
+    },
+    {
+      "symptom": "Scale set doesn't add VMs under load.",
+      "cause": "No autoscale rule, or maximum reached.",
+      "fix": "Configure autoscale rules and limits."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Containers vs VMs",
+      "difference": "Containers are lighter and faster but share the host kernel; VMs isolate a full OS."
+    },
+    {
+      "service": "Scale set vs availability set",
+      "difference": "Scale sets manage identical VMs and autoscale; availability sets only spread VMs across racks."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Containers include a full operating system.",
+      "reality": "They share the host kernel."
+    },
+    {
+      "myth": "Availability sets protect against datacenter failure.",
+      "reality": "Use availability zones for that."
+    },
+    {
+      "myth": "Azure Virtual Desktop needs one VM per user.",
+      "reality": "Multi-session lets users share VMs."
+    }
+  ],
+  "architectureDecisions": [
+    "Use functions for short, event-driven work.",
+    "Use containers for portable microservices.",
+    "Use scale sets across zones for scalable, resilient VM workloads."
+  ],
+  "docs": [
+    {
+      "title": "Describe Azure compute and networking services (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-azure-compute-networking-services/"
+    },
+    {
+      "title": "Virtual Machine Scale Sets",
+      "url": "https://learn.microsoft.com/azure/virtual-machine-scale-sets/overview"
+    },
+    {
+      "title": "Availability sets overview",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/availability-set-overview"
+    },
+    {
+      "title": "Azure Virtual Desktop",
+      "url": "https://learn.microsoft.com/azure/virtual-desktop/overview"
+    },
+    {
+      "title": "Containers on Azure",
+      "url": "https://azure.microsoft.com/products/category/containers"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

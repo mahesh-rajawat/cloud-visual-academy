@@ -1,0 +1,554 @@
+{
+  "id": "az104-containers-shares",
+  "exam": "az-104",
+  "title": "Blob containers and Azure file shares",
+  "objectiveIds": [
+    "AZ104-2.3.1",
+    "AZ104-2.3.2"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Create and configure blob containers (naming, anonymous access level) and file shares (protocol, tier, quota, mounting).",
+  "prerequisites": [
+    {
+      "text": "Storage accounts",
+      "lessonId": "az104-storage-accounts",
+      "objectiveId": "AZ104-2.2.1"
+    },
+    {
+      "text": "Azure Files and Blob Storage (AZ-900)",
+      "objectiveId": "AZ900-2.3.1"
+    }
+  ],
+  "foundation": [
+    "Blob Storage keeps objects (files of any kind) in containers, which are like top-level folders in a storage account.",
+    "Azure Files offers file shares that computers mount like a network drive using SMB (Windows, Linux, macOS) or NFS (Linux).",
+    "Containers are private by default. You can allow anonymous read access only if the storage account allows it."
+  ],
+  "engineer": [
+    "Container names: 3–63 characters, lowercase letters, numbers and hyphens, starting with a letter or number, with no consecutive hyphens. Blob names can include '/' to simulate folders, unless hierarchical namespace provides real directories.",
+    "Anonymous access levels: Private (default), Blob (anonymous read of blobs by URL), Container (anonymous read and list). They are available only when the account setting 'Allow blob anonymous access' is enabled.",
+    "Blob types: block blobs (most data), append blobs (logging), page blobs (random read/write, for example VHDs). Container-level features include immutability policies (time-based retention, legal hold), metadata and stored access policies.",
+    "File shares on Standard GPv2 accounts use the pay-as-you-go tiers Transaction optimized, Hot and Cool, with SMB only. A share quota up to 5 TiB, or up to 100 TiB with large file shares enabled. Premium file shares (FileStorage accounts) are provisioned, offer SMB or NFS 4.1, and support up to 100 TiB.",
+    "Mounting: SMB over TCP 445. The portal's Connect blade generates net use / mount scripts. Use a private endpoint or VPN when 445 is blocked. Azure File Sync caches shares on Windows Servers on-premises.",
+    "Hierarchical namespace accounts (Data Lake Storage Gen2) expose containers as file systems with POSIX ACLs and a dfs endpoint."
+  ],
+  "animation": {
+    "id": "storage-account-sim",
+    "caption": "Create containers and file shares and see which names, access levels, protocols, tiers and quotas are valid."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "acct",
+        "label": "stcontoso01",
+        "x": 220,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "c1",
+        "label": "container: reports (Private)",
+        "x": 0,
+        "y": 120,
+        "kind": "storage"
+      },
+      {
+        "id": "c2",
+        "label": "container: public-assets (Blob)",
+        "x": 220,
+        "y": 120,
+        "kind": "storage"
+      },
+      {
+        "id": "s1",
+        "label": "share: finance (SMB, Hot, 1 TiB)",
+        "x": 440,
+        "y": 120,
+        "kind": "storage"
+      },
+      {
+        "id": "pc",
+        "label": "Windows client: net use Z:",
+        "x": 440,
+        "y": 240,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "acct",
+        "to": "c1"
+      },
+      {
+        "from": "acct",
+        "to": "c2"
+      },
+      {
+        "from": "acct",
+        "to": "s1"
+      },
+      {
+        "from": "pc",
+        "to": "s1",
+        "label": "SMB 445"
+      }
+    ]
+  },
+  "example": {
+    "title": "Website assets and team shares",
+    "body": [
+      "Marketing serves product images from a container with Blob-level anonymous access in a dedicated account (anonymous access allowed only there), fronted by Azure Front Door.",
+      "The finance team's share 'finance' (Hot tier, 2 TiB quota) is mounted as Z: on their PCs through a private endpoint, with identity-based access."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "A storage account of the right type",
+      "Anonymous access allowed on the account, for public containers"
+    ],
+    "permissions": [
+      "Storage Blob Data Contributor (data plane) or Contributor (control plane) to create containers",
+      "Storage Account Contributor to create file shares (control plane)"
+    ],
+    "limits": [
+      "Container/share names 3–63 characters",
+      "Standard share quota 5 TiB, or 100 TiB with large file shares",
+      "NFS needs Premium file shares"
+    ],
+    "portal": [
+      "Storage account > Data storage > Containers > + Container: name and anonymous access level.",
+      "Data storage > File shares > + File share: name, tier (Transaction optimized/Hot/Cool or premium provisioned), protocol (premium), quota; backup option.",
+      "File share > Connect: choose OS and drive letter, copy the script.",
+      "Configuration: Large file shares = Enabled."
+    ],
+    "cli": "az storage container create --account-name stcontoso01 --name reports --auth-mode login --public-access off\naz storage account update -g rg-data -n stcontoso01 --enable-large-file-share\naz storage share-rm create -g rg-data --storage-account stcontoso01 --name finance --quota 2048 --access-tier Hot\naz storage share-rm create -g rg-data --storage-account stpremfiles --name linuxdata --quota 1024 --enabled-protocols NFS",
+    "powershell": "$ctx = New-AzStorageContext -StorageAccountName stcontoso01 -UseConnectedAccount\nNew-AzStorageContainer -Name reports -Context $ctx -Permission Off\nNew-AzRmStorageShare -ResourceGroupName rg-data -StorageAccountName stcontoso01 -Name finance -QuotaGiB 2048 -AccessTier Hot\nnet use Z: \\\\stcontoso01.file.core.windows.net\\finance",
+    "bicep": "resource blobSvc 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' existing = {\n  name: 'stcontoso01/default'\n}\nresource reports 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {\n  parent: blobSvc\n  name: 'reports'\n  properties: { publicAccess: 'None' }\n}\nresource fileSvc 'Microsoft.Storage/storageAccounts/fileServices@2023-05-01' existing = {\n  name: 'stcontoso01/default'\n}\nresource finance 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-05-01' = {\n  parent: fileSvc\n  name: 'finance'\n  properties: { shareQuota: 2048, accessTier: 'Hot' }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "storage-account-sim",
+    "objective": "Create a valid container and a valid file share, fixing each validation error.",
+    "duration": 10,
+    "steps": [
+      "Open Containers & file shares. Create 'Reports_2026' and fix the name.",
+      "Choose access level Blob while the account disallows anonymous access, then fix it either way.",
+      "Create share 'finance' with NFS on a Standard account and 6000 GiB, and fix both errors."
+    ],
+    "expected": [
+      "Name and access rules enforced",
+      "NFS requires premium",
+      "Large file shares raise the quota limit"
+    ],
+    "validation": [
+      {
+        "id": "container-created",
+        "text": "Created a container"
+      },
+      {
+        "id": "share-validation",
+        "text": "Hit a file share validation error"
+      },
+      {
+        "id": "share-created",
+        "text": "Created a file share"
+      }
+    ],
+    "failureScenarios": [
+      "Uppercase container name",
+      "Public container on an account that disallows anonymous access",
+      "NFS on Standard"
+    ],
+    "cleanup": [
+      "Simulation only."
+    ],
+    "cost": "None in the simulation. Standard shares are billed by used capacity and transactions; premium shares by provisioned size."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Anonymous access level options are greyed out.",
+      "cause": "The account has 'Allow blob anonymous access' disabled.",
+      "fix": "Enable it on the account (if policy permits), or use SAS / Entra ID."
+    },
+    {
+      "symptom": "Public URL returns 404 ResourceNotFound.",
+      "cause": "Container is Private; anonymous requests get 404 rather than 403.",
+      "fix": "Set the level to Blob, or use a SAS."
+    },
+    {
+      "symptom": "Cannot set a share quota above 5 TiB.",
+      "cause": "Large file shares not enabled.",
+      "fix": "Enable large file shares (a one-way change)."
+    },
+    {
+      "symptom": "Linux NFS mount fails.",
+      "cause": "NFS requires a premium file share and private network access, and has its own secure-transfer requirements.",
+      "fix": "Use a FileStorage account with a private endpoint or service endpoint, and follow the NFS mounting guidance."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon S3 buckets / EFS / FSx",
+      "difference": "S3 buckets correspond to containers (but have a global namespace per bucket); EFS (NFS) and FSx correspond to Azure file shares."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Folders exist in flat Blob Storage.",
+      "reality": "They are virtual prefixes in blob names unless hierarchical namespace is enabled."
+    },
+    {
+      "myth": "Any storage account supports NFS shares.",
+      "reality": "NFS shares need Premium file shares."
+    }
+  ],
+  "architectureDecisions": [
+    "Separate public content into its own account so anonymous access can stay disabled everywhere else.",
+    "Use premium shares for latency-sensitive or NFS workloads, and standard Hot/Cool for general file shares."
+  ],
+  "docs": [
+    {
+      "title": "Manage blob containers (portal)",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/blob-containers-portal"
+    },
+    {
+      "title": "Configure anonymous read access for containers and blobs",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/anonymous-read-access-configure"
+    },
+    {
+      "title": "Create an Azure file share",
+      "url": "https://learn.microsoft.com/azure/storage/files/storage-how-to-create-file-share"
+    },
+    {
+      "title": "Planning for an Azure Files deployment",
+      "url": "https://learn.microsoft.com/azure/storage/files/storage-files-planning"
+    },
+    {
+      "title": "Mount an SMB Azure file share on Windows",
+      "url": "https://learn.microsoft.com/azure/storage/files/storage-how-to-use-files-windows"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert. Azure Files billing models (for example provisioned v2) are evolving; check current documentation."
+  },
+  "walkthrough": {
+    "subtitle": "Two ways to store files: blob containers for apps and the web, file shares for drives that people and servers mount.",
+    "learn": [
+      "Blob containers and access levels",
+      "Anonymous access is off by default",
+      "Azure file shares: SMB and NFS",
+      "Share tiers and quotas"
+    ],
+    "nodes": [
+      {
+        "id": "sa",
+        "label": "Storage account",
+        "x": 400,
+        "y": 60,
+        "kind": "storage"
+      },
+      {
+        "id": "cont",
+        "label": "Blob container",
+        "x": 200,
+        "y": 200,
+        "kind": "storage",
+        "sub": "images"
+      },
+      {
+        "id": "web",
+        "label": "Web browser",
+        "x": 200,
+        "y": 370,
+        "kind": "user",
+        "sub": "via URL"
+      },
+      {
+        "id": "share",
+        "label": "File share",
+        "x": 600,
+        "y": 200,
+        "kind": "storage",
+        "sub": "team-drive"
+      },
+      {
+        "id": "pc",
+        "label": "PC or server",
+        "x": 600,
+        "y": 370,
+        "kind": "compute",
+        "sub": "mapped drive"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Two needs",
+        "title": "Images for a website, and a shared drive for staff",
+        "body": [
+          "The website needs files reachable by URL. Staff want a drive letter like the old file server."
+        ],
+        "show": [
+          "sa"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Containers",
+        "title": "Blob containers hold objects",
+        "body": [
+          "A container groups blobs, like a folder. Its access level is Private (default), Blob (anyone can read blobs if they know the URL) or Container (anyone can also list the blobs)."
+        ],
+        "show": [
+          "sa",
+          "cont"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sa",
+            "to": "cont",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Anonymous",
+        "title": "Public access needs two switches",
+        "body": [
+          "Anonymous read works only if the account allows anonymous access (off by default) and the container's level is Blob or Container."
+        ],
+        "show": [
+          "sa",
+          "cont",
+          "web"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sa",
+            "to": "cont"
+          },
+          {
+            "from": "web",
+            "to": "cont",
+            "label": "URL",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Most data should stay Private. Use SAS links or a CDN for sharing."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "File shares",
+        "title": "File shares behave like a network drive",
+        "body": [
+          "Azure Files offers shares over SMB (Windows, Linux, macOS) or NFS (Linux, Premium only). Mount them as a drive, or cache them on-premises with Azure File Sync."
+        ],
+        "show": [
+          "sa",
+          "cont",
+          "web",
+          "share",
+          "pc"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sa",
+            "to": "cont"
+          },
+          {
+            "from": "web",
+            "to": "cont",
+            "label": "URL"
+          },
+          {
+            "from": "sa",
+            "to": "share",
+            "fresh": true
+          },
+          {
+            "from": "pc",
+            "to": "share",
+            "label": "SMB 445",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Tiers",
+        "title": "Choose a tier and a size",
+        "body": [
+          "Standard shares offer transaction optimized, hot and cool tiers. Premium shares run on SSDs in a FileStorage account. A quota caps the share's size."
+        ],
+        "show": [
+          "sa",
+          "cont",
+          "web",
+          "share",
+          "pc"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sa",
+            "to": "cont"
+          },
+          {
+            "from": "web",
+            "to": "cont",
+            "label": "URL"
+          },
+          {
+            "from": "sa",
+            "to": "share"
+          },
+          {
+            "from": "pc",
+            "to": "share",
+            "label": "SMB 445"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "SMB uses TCP port 445, which many home internet providers block."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Containers and shares",
+        "body": [
+          "Blobs for URLs; shares for drives."
+        ],
+        "show": [
+          "sa",
+          "cont",
+          "web",
+          "share",
+          "pc"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "sa",
+            "to": "cont"
+          },
+          {
+            "from": "web",
+            "to": "cont",
+            "label": "URL"
+          },
+          {
+            "from": "sa",
+            "to": "share"
+          },
+          {
+            "from": "pc",
+            "to": "share",
+            "label": "SMB 445"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Container access: Private, Blob, Container",
+          "Anonymous needs the account setting AND the container level",
+          "File shares: SMB or NFS (Premium)",
+          "Standard tiers: transaction optimized, hot, cool; Premium on SSD",
+          "SMB uses port 445"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create a private container and a file share",
+    "minutes": 15,
+    "costLevel": "free",
+    "cost": "Cents. A few small files in a Standard LRS account cost almost nothing; delete the account at the end.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A storage account in rg-az104-lab: Standard performance, LRS redundancy, default settings. Name it st<yourinitials><number> (lowercase letters and numbers only, globally unique)."
+    ],
+    "steps": [
+      {
+        "do": "Open the storage account > Containers > + Container. Name: site, anonymous access level: Private. Create.",
+        "see": "The site container with access level Private."
+      },
+      {
+        "do": "Upload a small image to site. Open it and copy its URL into a private browser window.",
+        "see": "An error: the resource is not found or not public."
+      },
+      {
+        "do": "Open the container's 'Change access level'.",
+        "see": "Blob and Container are greyed out, because the account does not allow anonymous access."
+      },
+      {
+        "do": "Open the account > File shares > + File share. Name: team-drive. Keep the default tier and create.",
+        "see": "team-drive in the list."
+      },
+      {
+        "do": "Open team-drive > Browse > + Add directory: reports. Upload a file into reports.",
+        "see": "The folder and file in the share."
+      },
+      {
+        "do": "Open team-drive > Edit quota (or Properties) and read the quota setting.",
+        "see": "The maximum size of the share."
+      }
+    ],
+    "check": [
+      "The container is private; the share has a folder and a file."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: upload, download and list blobs in the portal",
+        "url": "https://learn.microsoft.com/azure/storage/blobs/storage-quickstart-blobs-portal"
+      },
+      {
+        "title": "Create an SMB Azure file share",
+        "url": "https://learn.microsoft.com/azure/storage/files/storage-how-to-create-file-share"
+      },
+      {
+        "title": "Configure anonymous read access for containers and blobs",
+        "url": "https://learn.microsoft.com/azure/storage/blobs/anonymous-read-access-configure"
+      }
+    ]
+  }
+}

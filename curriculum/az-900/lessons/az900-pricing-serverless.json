@@ -1,0 +1,231 @@
+{
+  "id": "az900-pricing-serverless",
+  "exam": "az-900",
+  "title": "Consumption-based pricing, pricing models and serverless",
+  "objectiveIds": [
+    "AZ900-1.1.5",
+    "AZ900-1.1.6",
+    "AZ900-1.1.7"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Explain the consumption-based model (CapEx vs OpEx), compare Azure pricing models, and describe serverless computing.",
+  "prerequisites": [
+    {
+      "text": "Cloud computing basics",
+      "objectiveId": "AZ900-1.1.1",
+      "lessonId": "az900-cloud-basics"
+    }
+  ],
+  "foundation": [
+    "Capital expenditure (CapEx): a large, up-front purchase of something you own, such as servers, paid once and depreciated over years.",
+    "Operational expenditure (OpEx): spending on services as you use them, billed regularly. Cloud computing is OpEx.",
+    "Consumption-based model: no up-front cost, pay only for what you use, stop paying when you stop using it. You don't buy capacity for the busiest day of the year and leave it idle the rest of the time.",
+    "Serverless: you don't manage servers at all. You give Azure your code or workflow, it runs when triggered, scales automatically, and you pay only while it runs."
+  ],
+  "engineer": [
+    "Consumption model benefits: no up-front infrastructure cost; no need to buy and manage infrastructure you might not use; pay for additional resources when needed; stop paying when you no longer need them.",
+    "Pricing models compared: pay-as-you-go (per second/hour, no commitment); Azure Reservations (commit to specific resources for 1 or 3 years for a discount); Azure savings plan for compute (commit to an hourly compute spend for 1 or 3 years, flexible across sizes and regions); Spot VMs (discounted spare capacity that can be evicted); Azure Hybrid Benefit (reuse eligible Windows Server and SQL Server licences).",
+    "Choosing: unknown or short-lived usage → pay-as-you-go. Steady, predictable usage of one resource → reservation. Steady spend but changing resources → savings plan. Interruptible batch → spot. Existing licences → Hybrid Benefit. They can be combined.",
+    "Serverless on Azure: Azure Functions (event-driven code: an HTTP request, a queue message, a timer, a new blob), Azure Logic Apps (low-code workflows with connectors), and serverless containers in Azure Container Apps. On consumption plans, billing is per execution and resources consumed, and they can scale to zero.",
+    "Serverless still has servers: the provider manages them, their patching and scaling. You focus on code and business logic.",
+    "Cost visibility: the pricing calculator estimates before you deploy; Cost Management shows actual spend afterwards."
+  ],
+  "animation": {
+    "id": "az900-pricing-sim",
+    "caption": "Compare fixed capacity with consumption billing, then pick the pricing option for each workload."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "capex",
+        "label": "CapEx: buy servers up front",
+        "x": 0,
+        "y": 0,
+        "kind": "compute"
+      },
+      {
+        "id": "opex",
+        "label": "OpEx: pay for use monthly",
+        "x": 260,
+        "y": 0,
+        "kind": "compute"
+      },
+      {
+        "id": "paygo",
+        "label": "Pay-as-you-go",
+        "x": 120,
+        "y": 140,
+        "kind": "scope"
+      },
+      {
+        "id": "res",
+        "label": "Reservations / savings plan",
+        "x": 330,
+        "y": 140,
+        "kind": "scope"
+      },
+      {
+        "id": "spot",
+        "label": "Spot",
+        "x": 540,
+        "y": 140,
+        "kind": "scope"
+      },
+      {
+        "id": "sls",
+        "label": "Serverless: pay per execution",
+        "x": 540,
+        "y": 0,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "opex",
+        "to": "paygo"
+      },
+      {
+        "from": "opex",
+        "to": "res"
+      },
+      {
+        "from": "opex",
+        "to": "spot"
+      },
+      {
+        "from": "opex",
+        "to": "sls"
+      }
+    ]
+  },
+  "example": {
+    "title": "Ticket sales spikes",
+    "body": [
+      "A concert promoter sells tickets for a few hours when shows are announced. Owning servers for that peak (CapEx) would leave them idle for weeks.",
+      "In Azure, the web tier autoscales on pay-as-you-go, the steady database uses a 3-year reservation, and confirmation emails are sent by an Azure Function billed per execution."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Reservations and savings plans are commitments: refunds and exchanges have limits",
+      "Spot VMs can be evicted with 30 seconds' notice"
+    ],
+    "portal": [
+      "Pricing calculator: add a VM and compare pay-as-you-go with 1-year and 3-year reserved prices.",
+      "Reservations > Add: purchase options (scope, term, billing frequency).",
+      "Function App > Create > Hosting: choose a consumption-based plan."
+    ],
+    "cli": "az functionapp create -g <rg> -n <app> --storage-account <st> --consumption-plan-location westeurope --runtime python --functions-version 4\naz reservations reservation-order list -o table",
+    "powershell": "Get-AzReservationOrder"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-pricing-sim",
+    "objective": "Compare spending models and choose pricing options.",
+    "duration": 15,
+    "steps": [
+      "CapEx vs consumption tab: run the default, then apply each preset.",
+      "Pricing models tab: answer every workload."
+    ],
+    "expected": [
+      "Variable demand favours consumption",
+      "Commitments suit steady workloads"
+    ],
+    "validation": [
+      {
+        "id": "pricing-compared",
+        "text": "Compared fixed and consumption costs"
+      },
+      {
+        "id": "pricing-model-correct",
+        "text": "Chose the right pricing option"
+      },
+      {
+        "id": "pricing-model-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Buying reservations for a short experiment",
+      "Running production on Spot VMs that cannot tolerate eviction"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "A reservation shows low utilisation.",
+      "cause": "The reserved VM size or region no longer matches what runs.",
+      "fix": "Exchange the reservation or use a savings plan for flexibility."
+    },
+    {
+      "symptom": "A Spot VM disappeared during a job.",
+      "cause": "Azure evicted it to reclaim capacity.",
+      "fix": "Use spot only for interruptible work, with checkpoints."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Reservations vs savings plan",
+      "difference": "Reservations target specific resources; savings plans commit to an hourly spend across eligible compute."
+    },
+    {
+      "service": "Serverless vs PaaS web app",
+      "difference": "A web app on a dedicated plan is billed while the plan exists; consumption serverless is billed per execution."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Serverless means there are no servers.",
+      "reality": "Servers exist; Microsoft manages them."
+    },
+    {
+      "myth": "Cloud is always cheaper.",
+      "reality": "Steady workloads may need reservations to be cost-effective; unused resources still cost money."
+    },
+    {
+      "myth": "Consumption-based means unpredictable bills.",
+      "reality": "Budgets, alerts and forecasts make spend predictable."
+    }
+  ],
+  "architectureDecisions": [
+    "Start on pay-as-you-go, then commit once usage is stable.",
+    "Use serverless for event-driven, spiky workloads.",
+    "Apply Hybrid Benefit wherever you own eligible licences."
+  ],
+  "docs": [
+    {
+      "title": "Describe cloud computing (Learn: consumption model)",
+      "url": "https://learn.microsoft.com/training/modules/describe-cloud-compute/"
+    },
+    {
+      "title": "Azure Functions overview",
+      "url": "https://learn.microsoft.com/azure/azure-functions/functions-overview"
+    },
+    {
+      "title": "What are Azure Reservations?",
+      "url": "https://learn.microsoft.com/azure/cost-management-billing/reservations/save-compute-costs-reservations"
+    },
+    {
+      "title": "Azure savings plan for compute",
+      "url": "https://learn.microsoft.com/azure/cost-management-billing/savings-plan/savings-plan-compute-overview"
+    },
+    {
+      "title": "Azure Spot Virtual Machines",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/spot-vms"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

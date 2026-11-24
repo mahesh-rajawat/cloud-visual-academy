@@ -1,0 +1,715 @@
+{
+  "id": "az104-load-balancer",
+  "exam": "az-104",
+  "title": "Azure Load Balancer: configure and troubleshoot",
+  "objectiveIds": [
+    "AZ104-4.3.2",
+    "AZ104-4.3.3"
+  ],
+  "estimatedMinutes": 50,
+  "learningObjective": "Configure a public or internal Standard load balancer with frontends, backend pools, health probes and rules, and troubleshoot load balancing failures.",
+  "prerequisites": [
+    {
+      "text": "NSGs and ASGs",
+      "objectiveId": "AZ104-4.2.1",
+      "lessonId": "az104-nsg-asg"
+    },
+    {
+      "text": "Availability sets and zones",
+      "objectiveId": "AZ104-3.2.6",
+      "lessonId": "az104-vm-availability"
+    }
+  ],
+  "foundation": [
+    "Azure Load Balancer spreads TCP/UDP traffic across healthy VMs. It works at layer 4: it doesn't look at URLs or cookies.",
+    "Public load balancer: internet traffic to a public frontend IP. Internal load balancer: traffic inside the VNet (or from peered/on-premises networks) to a private frontend IP."
+  ],
+  "engineer": [
+    "Components: frontend IP configuration, backend pool (NICs or IP addresses in one VNet), health probe (TCP, HTTP or HTTPS, interval and threshold), load-balancing rule (frontend port → backend port, protocol, probe, session persistence: None (5-tuple), Client IP, or Client IP and protocol), inbound NAT rules (port-forward to one VM), and outbound rules.",
+    "SKU: Standard (Basic was retired on 30 September 2025). Standard is zone-redundant or zonal, secure by default (backend NSG must allow traffic), supports HA ports on internal load balancers and gives multi-dimensional metrics.",
+    "Health probes come from 168.63.129.16 (service tag AzureLoadBalancer). The default NSG rule AllowAzureLoadBalancerInBound allows them; a custom deny rule with higher priority breaks probing. Instances failing the probe stop receiving new flows.",
+    "Troubleshooting: Health Probe Status and Data Path Availability metrics, Load Balancer Insights, check that the app listens on the probe port/path (HTTP probe needs 200), guest firewall, NSGs, backend in the pool, and that clients aren't backend members calling their own internal frontend (not supported for the same VM).",
+    "Choose Application Gateway for layer 7 (paths, TLS, WAF), Front Door for global HTTP, Traffic Manager for DNS-based global routing."
+  ],
+  "animation": {
+    "id": "dns-lb-sim",
+    "caption": "Load balancer and troubleshooting, and Choose a load balancing service tabs."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "c",
+        "label": "Clients",
+        "x": 20,
+        "y": 120,
+        "kind": "user"
+      },
+      {
+        "id": "fe",
+        "label": "Frontend IP (public or private)",
+        "x": 200,
+        "y": 120,
+        "kind": "network"
+      },
+      {
+        "id": "rule",
+        "label": "Rule TCP 80 + probe /health",
+        "x": 400,
+        "y": 120,
+        "kind": "service"
+      },
+      {
+        "id": "v1",
+        "label": "vm1",
+        "x": 620,
+        "y": 40,
+        "kind": "compute"
+      },
+      {
+        "id": "v2",
+        "label": "vm2",
+        "x": 620,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "v3",
+        "label": "vm3 (probe failing)",
+        "x": 620,
+        "y": 200,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "c",
+        "to": "fe"
+      },
+      {
+        "from": "fe",
+        "to": "rule"
+      },
+      {
+        "from": "rule",
+        "to": "v1"
+      },
+      {
+        "from": "rule",
+        "to": "v2"
+      },
+      {
+        "from": "rule",
+        "to": "v3",
+        "label": "out of rotation"
+      }
+    ]
+  },
+  "example": {
+    "title": "Three web servers across zones",
+    "body": [
+      "A zone-redundant public Standard load balancer fronts three VMs in zones 1–3 with an HTTP probe on /health. During patching, one VM fails the probe and is removed from rotation automatically; users don't notice.",
+      "An internal load balancer fronts the SQL tier with HA ports for an availability group listener."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription and a resource group (rg-net)"
+    ],
+    "permissions": [
+      "Network Contributor on the resource group"
+    ],
+    "limits": [
+      "Backend pool members must be in one VNet",
+      "HA ports only on internal Standard load balancers"
+    ],
+    "portal": [
+      "Create a resource > Load balancer: SKU Standard, type Public or Internal, tier Regional.",
+      "Add a frontend IP, a backend pool (VMs or IPs), a health probe (HTTP 80 /health), and a load-balancing rule.",
+      "Monitor: Load balancer > Insights; Metrics > Health Probe Status."
+    ],
+    "cli": "az network lb create -g rg-net -n lb-web --sku Standard --public-ip-address pip-lb --frontend-ip-name fe-web --backend-pool-name be-web\naz network lb probe create -g rg-net --lb-name lb-web -n hp-http --protocol Http --port 80 --path /health\naz network lb rule create -g rg-net --lb-name lb-web -n rule-http --protocol Tcp --frontend-port 80 --backend-port 80 --frontend-ip-name fe-web --backend-pool-name be-web --probe-name hp-http\naz network nic ip-config address-pool add -g rg-net --nic-name vm1-nic --ip-config-name ipconfig1 --lb-name lb-web --address-pool be-web\n# Internal LB\naz network lb create -g rg-net -n lb-sql --sku Standard --vnet-name vnet-app --subnet snet-db --private-ip-address 10.1.2.10 --frontend-ip-name fe-sql --backend-pool-name be-sql",
+    "powershell": "$fe = New-AzLoadBalancerFrontendIpConfig -Name fe-web -PublicIpAddress (Get-AzPublicIpAddress -Name pip-lb -ResourceGroupName rg-net)\n$be = New-AzLoadBalancerBackendAddressPoolConfig -Name be-web\n$hp = New-AzLoadBalancerProbeConfig -Name hp-http -Protocol Http -Port 80 -RequestPath /health -IntervalInSeconds 5 -ProbeCount 1\n$rule = New-AzLoadBalancerRuleConfig -Name rule-http -FrontendIpConfiguration $fe -BackendAddressPool $be -Probe $hp -Protocol Tcp -FrontendPort 80 -BackendPort 80\nNew-AzLoadBalancer -ResourceGroupName rg-net -Name lb-web -Location eastus -Sku Standard -FrontendIpConfiguration $fe -BackendAddressPool $be -Probe $hp -LoadBalancingRule $rule"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "dns-lb-sim",
+    "objective": "Configure a Standard load balancer and fix four common failures.",
+    "duration": 20,
+    "steps": [
+      "Run the default and read why clients are blocked.",
+      "Apply 'Allow client traffic'.",
+      "Apply 'Probe on wrong port', 'NSG blocks the probe' and 'One VM down'.",
+      "Switch Type to Internal.",
+      "Choose a load balancing service: answer every case."
+    ],
+    "expected": [
+      "Standard LB needs NSG allow rules",
+      "Failed probes remove instances",
+      "Layer 4 vs layer 7 choice"
+    ],
+    "validation": [
+      {
+        "id": "lb-public",
+        "text": "Load balanced public traffic"
+      },
+      {
+        "id": "lb-internal",
+        "text": "Configured an internal load balancer"
+      },
+      {
+        "id": "lb-troubleshoot",
+        "text": "Diagnosed a load balancing failure"
+      },
+      {
+        "id": "lb-degraded",
+        "text": "Saw a failed instance taken out of rotation"
+      },
+      {
+        "id": "lb-choice-correct",
+        "text": "Chose the right load balancing service"
+      }
+    ],
+    "failureScenarios": [
+      "NSG missing allow rule",
+      "Probe port without listener",
+      "NSG denies AzureLoadBalancer"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "All backends unhealthy.",
+      "cause": "Probe port/path wrong, app down, or NSG/guest firewall blocks 168.63.129.16.",
+      "fix": "Fix the probe, allow AzureLoadBalancer, check the app returns 200."
+    },
+    {
+      "symptom": "Clients time out on a public Standard LB.",
+      "cause": "Backend NSG doesn't allow the client traffic.",
+      "fix": "Add an inbound allow rule."
+    },
+    {
+      "symptom": "Traffic always goes to one VM.",
+      "cause": "Session persistence Client IP with few clients, or others unhealthy.",
+      "fix": "Check probe status and distribution mode."
+    },
+    {
+      "symptom": "A backend VM can't reach the internal LB frontend.",
+      "cause": "Backend calling its own frontend isn't supported.",
+      "fix": "Call the service directly or use a separate client."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Application Gateway",
+      "difference": "Layer 7 regional with path routing, TLS and WAF."
+    },
+    {
+      "service": "AWS Network Load Balancer",
+      "difference": "AWS layer 4 equivalent; Application Load Balancer is layer 7."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Load Balancer can route by URL path.",
+      "reality": "It's layer 4; use Application Gateway."
+    },
+    {
+      "myth": "Standard LB allows traffic without NSGs.",
+      "reality": "Standard is secure by default; NSGs must allow traffic."
+    }
+  ],
+  "architectureDecisions": [
+    "Use zone-redundant Standard load balancers for production.",
+    "Use HTTP probes on a health endpoint that checks dependencies lightly.",
+    "Use NAT gateway or outbound rules for predictable outbound."
+  ],
+  "docs": [
+    {
+      "title": "What is Azure Load Balancer?",
+      "url": "https://learn.microsoft.com/azure/load-balancer/load-balancer-overview"
+    },
+    {
+      "title": "Health probes",
+      "url": "https://learn.microsoft.com/azure/load-balancer/load-balancer-custom-probe-overview"
+    },
+    {
+      "title": "Troubleshoot Azure Load Balancer",
+      "url": "https://learn.microsoft.com/azure/load-balancer/load-balancer-troubleshoot"
+    },
+    {
+      "title": "Load balancing options",
+      "url": "https://learn.microsoft.com/azure/architecture/guide/technology-choices/load-balancing-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Spread traffic across several VMs, and fix it when it stops working.",
+    "learn": [
+      "Public vs internal load balancers",
+      "Frontend, backend pool, health probe, rule",
+      "Session persistence and NAT rules",
+      "Troubleshooting probes and NSGs",
+      "Load Balancer vs Application Gateway"
+    ],
+    "nodes": [
+      {
+        "id": "users",
+        "label": "Users",
+        "x": 110,
+        "y": 220,
+        "kind": "user"
+      },
+      {
+        "id": "fe",
+        "label": "Frontend IP",
+        "x": 320,
+        "y": 220,
+        "kind": "network",
+        "sub": "public or private"
+      },
+      {
+        "id": "rule",
+        "label": "LB rule",
+        "x": 520,
+        "y": 100,
+        "kind": "network",
+        "sub": "TCP 80 → 80"
+      },
+      {
+        "id": "probe",
+        "label": "Health probe",
+        "x": 520,
+        "y": 340,
+        "kind": "service",
+        "sub": "HTTP /health"
+      },
+      {
+        "id": "vm1",
+        "label": "VM 1",
+        "x": 700,
+        "y": 160,
+        "kind": "compute"
+      },
+      {
+        "id": "vm2",
+        "label": "VM 2",
+        "x": 700,
+        "y": 290,
+        "kind": "compute"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "One server",
+        "title": "One web server cannot handle the load, or survive a failure",
+        "body": [
+          "You add a second VM. Now something must share the traffic and stop sending it to a VM that is down."
+        ],
+        "show": [
+          "users",
+          "vm1"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "vm1",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Types",
+        "title": "Azure Load Balancer works at layer 4",
+        "body": [
+          "It balances TCP and UDP traffic, without looking at URLs. A public load balancer has a public frontend IP for internet traffic; an internal one has a private frontend IP for traffic inside the VNet. Standard SKU is the one to use (Basic was retired)."
+        ],
+        "show": [
+          "users",
+          "vm1",
+          "fe",
+          "vm2"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "vm1"
+          },
+          {
+            "from": "users",
+            "to": "fe",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Parts",
+        "title": "Four parts to configure",
+        "body": [
+          "Frontend IP configuration; backend pool (the VMs or scale set); health probe (TCP, HTTP or HTTPS check, every few seconds); load-balancing rule (frontend port to backend port, using a probe)."
+        ],
+        "show": [
+          "users",
+          "vm1",
+          "fe",
+          "vm2",
+          "rule",
+          "probe"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "vm1"
+          },
+          {
+            "from": "users",
+            "to": "fe"
+          },
+          {
+            "from": "fe",
+            "to": "rule",
+            "fresh": true
+          },
+          {
+            "from": "rule",
+            "to": "vm1",
+            "fresh": true
+          },
+          {
+            "from": "rule",
+            "to": "vm2",
+            "fresh": true
+          },
+          {
+            "from": "probe",
+            "to": "vm1",
+            "fresh": true
+          },
+          {
+            "from": "probe",
+            "to": "vm2",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Options",
+        "title": "Persistence and NAT rules",
+        "body": [
+          "Session persistence: None (spread every connection), Client IP, or Client IP and protocol (keep a user on one VM). Inbound NAT rules forward a port to one specific VM, for example 50001 to VM 1 port 22. Outbound rules give the backend VMs internet access."
+        ],
+        "show": [
+          "users",
+          "vm1",
+          "fe",
+          "vm2",
+          "rule",
+          "probe"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "vm1"
+          },
+          {
+            "from": "users",
+            "to": "fe"
+          },
+          {
+            "from": "fe",
+            "to": "rule"
+          },
+          {
+            "from": "rule",
+            "to": "vm1"
+          },
+          {
+            "from": "rule",
+            "to": "vm2"
+          },
+          {
+            "from": "probe",
+            "to": "vm1"
+          },
+          {
+            "from": "probe",
+            "to": "vm2"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "case",
+        "label": "Troubleshoot",
+        "title": "Case: the load balancer returns nothing",
+        "body": [
+          "Check: is the health probe passing? (The app must answer on the probe port and path.) Does the VM's NSG allow the traffic, and the AzureLoadBalancer service tag for the probe? Standard load balancers are closed by default, so an NSG must allow the client traffic. Is the VM in the backend pool?"
+        ],
+        "show": [
+          "users",
+          "vm1",
+          "fe",
+          "vm2",
+          "rule",
+          "probe"
+        ],
+        "focus": [
+          "probe"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "vm1"
+          },
+          {
+            "from": "users",
+            "to": "fe"
+          },
+          {
+            "from": "fe",
+            "to": "rule"
+          },
+          {
+            "from": "rule",
+            "to": "vm1"
+          },
+          {
+            "from": "rule",
+            "to": "vm2"
+          },
+          {
+            "from": "probe",
+            "to": "vm1"
+          },
+          {
+            "from": "probe",
+            "to": "vm2"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "All probes failing = no traffic is sent anywhere."
+        }
+      },
+      {
+        "kind": "concept",
+        "label": "Compare",
+        "title": "When to use something else",
+        "body": [
+          "Need URL paths, TLS termination or a web application firewall: Application Gateway (layer 7, regional). Global HTTP with caching: Front Door. DNS-based global routing: Traffic Manager."
+        ],
+        "show": [
+          "users",
+          "vm1",
+          "fe",
+          "vm2",
+          "rule",
+          "probe"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "vm1"
+          },
+          {
+            "from": "users",
+            "to": "fe"
+          },
+          {
+            "from": "fe",
+            "to": "rule"
+          },
+          {
+            "from": "rule",
+            "to": "vm1"
+          },
+          {
+            "from": "rule",
+            "to": "vm2"
+          },
+          {
+            "from": "probe",
+            "to": "vm1"
+          },
+          {
+            "from": "probe",
+            "to": "vm2"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Load Balancer",
+        "body": [
+          "Frontend, pool, probe, rule."
+        ],
+        "show": [
+          "users",
+          "vm1",
+          "fe",
+          "vm2",
+          "rule",
+          "probe"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "vm1"
+          },
+          {
+            "from": "users",
+            "to": "fe"
+          },
+          {
+            "from": "fe",
+            "to": "rule"
+          },
+          {
+            "from": "rule",
+            "to": "vm1"
+          },
+          {
+            "from": "rule",
+            "to": "vm2"
+          },
+          {
+            "from": "probe",
+            "to": "vm1"
+          },
+          {
+            "from": "probe",
+            "to": "vm2"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Layer 4; public or internal; Standard SKU",
+          "Frontend, backend pool, health probe, rule",
+          "Persistence: None / Client IP / Client IP + protocol",
+          "Probes and NSGs are the usual problems",
+          "Layer 7 needs: Application Gateway"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Balance two web VMs and break the health probe",
+    "minutes": 45,
+    "costLevel": "watch",
+    "cost": "About US$0.05 per hour for two B1s VMs, a Standard load balancer and a public IP. Do it in one sitting and delete straight after.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A virtual network vnet-lab (10.10.0.0/16) in rg-az104-lab with a subnet snet-app (10.10.1.0/24): Virtual networks > + Create > IP addresses tab. For these labs, untick 'Enable private subnet' on snet-app so lab VMs can reach the internet (in production use a NAT gateway instead)."
+    ],
+    "steps": [
+      {
+        "do": "Create two VMs, vm-web1 and vm-web2, in vnet-lab / snet-app (Ubuntu 24.04, Standard_B1s, no public IP, NIC NSG Basic, inbound ports None)."
+      },
+      {
+        "do": "Run a command without SSH: open the VM > Operations > Run command > RunShellScript, type the command, Run. On each VM run the command in the box. It starts a tiny web server with Python, which Ubuntu already has, so no internet access is needed.",
+        "see": "The command completes. Each VM now serves a page with its own name on port 80.",
+        "code": "sudo mkdir -p /srv/web && echo \"Hello from $(hostname)\" | sudo tee /srv/web/index.html && sudo systemd-run --unit web python3 -m http.server 80 --directory /srv/web"
+      },
+      {
+        "do": "Search 'Load balancers' > + Create. Group rg-az104-lab, name lb-lab, SKU Standard, type Public, tier Regional."
+      },
+      {
+        "do": "Frontend IP configuration: add fe-lab with a new public IP pip-lb. Backend pools: add pool-web, vnet-lab, add both VMs' NICs."
+      },
+      {
+        "do": "Inbound rules: add a load balancing rule: frontend fe-lab, port 80, backend port 80, pool-web, new health probe HTTP port 80 path /. Session persistence: None. Review + create > Create.",
+        "see": "Deployment completes."
+      },
+      {
+        "do": "On each VM's NSG add an inbound rule allowing TCP 80 from Any (priority 300).",
+        "see": "Standard load balancers are secure by default: without this the page never loads."
+      },
+      {
+        "do": "Browse to the load balancer's public IP and refresh a few times (or use curl from Cloud Shell).",
+        "see": "'Hello from vm-web1' and 'Hello from vm-web2' alternate."
+      },
+      {
+        "do": "Run a command without SSH: open the VM > Operations > Run command > RunShellScript, type the command, Run. On vm-web1 run: sudo systemctl stop web",
+        "see": "After about 15 seconds every request goes to vm-web2: the probe marked vm-web1 unhealthy."
+      },
+      {
+        "do": "Open lb-lab > Monitoring > Insights or Metrics > Health Probe Status.",
+        "see": "Probe status dropping for one backend."
+      }
+    ],
+    "check": [
+      "Traffic was shared across both VMs, then moved away from the failed one."
+    ],
+    "cleanup": [
+      "Delete the resource group now: this lab is billed hourly.",
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: create a public load balancer in the portal",
+        "url": "https://learn.microsoft.com/azure/load-balancer/quickstart-load-balancer-standard-public-portal"
+      },
+      {
+        "title": "Health probes",
+        "url": "https://learn.microsoft.com/azure/load-balancer/load-balancer-custom-probe-overview"
+      },
+      {
+        "title": "Troubleshoot Azure Load Balancer",
+        "url": "https://learn.microsoft.com/azure/load-balancer/load-balancer-troubleshoot"
+      },
+      {
+        "title": "Load-balancing options",
+        "url": "https://learn.microsoft.com/azure/architecture/guide/technology-choices/load-balancing-overview"
+      }
+    ]
+  }
+}

@@ -1,0 +1,642 @@
+{
+  "id": "az104-app-service-ops",
+  "exam": "az-104",
+  "title": "App Service backups, networking and deployment slots",
+  "objectiveIds": [
+    "AZ104-3.4.6",
+    "AZ104-3.4.7",
+    "AZ104-3.4.8"
+  ],
+  "estimatedMinutes": 50,
+  "learningObjective": "Configure backup and restore, inbound and outbound networking (access restrictions, private endpoints, VNet integration), and deployment slots with safe swaps.",
+  "prerequisites": [
+    {
+      "text": "App Service plans",
+      "objectiveId": "AZ104-3.4.1",
+      "lessonId": "az104-app-service-plans"
+    },
+    {
+      "text": "Private endpoints",
+      "objectiveId": "AZ104-4.2.5"
+    }
+  ],
+  "foundation": [
+    "Backups keep copies of your app's content and configuration so you can restore after a mistake.",
+    "Networking settings control who can reach your app (inbound) and what your app can reach (outbound), such as a database on a private network.",
+    "Deployment slots are extra copies of your app, such as 'staging'. You deploy there, test it, then swap it into production with no downtime."
+  ],
+  "engineer": [
+    "Backups: automatic backups (platform-managed, hourly, kept 30 days) are available in Basic and higher. Automatic backups need no storage account and have a 30 GB limit. Custom backups are also available from Basic (on Basic, only the production slot can be backed up): they go to your storage account on demand or on a schedule (at most every 2 hours), have a 10 GB limit including any linked database, and keep backups 0–30 days or indefinitely. Automatic backups never include databases; support for linked databases in custom backups ends on 31 March 2028, so plan database-native backups. Restore to the same app, another app or a slot.",
+    "Inbound networking: access restrictions (priority-ordered allow/deny rules by IP range, service tag or VNet subnet with service endpoint; separate rules for the SCM/Kudu site); private endpoints (Basic and higher) give the app a private IP and can be combined with disabling public network access, plus privatelink.azurewebsites.net private DNS.",
+    "Outbound networking: regional VNet integration (Basic and higher) lets the app call resources in or through a VNet (private endpoints, VMs, on-premises over gateways) from a dedicated, delegated integration subnet; enable route-all (vnetRouteAllEnabled) to send all outbound traffic through the VNet for NSGs, UDRs and NAT gateway. Hybrid connections reach specific host:port endpoints on-premises.",
+    "Deployment slots (Standard: 5, Premium/Isolated: 20): each slot has its own hostname and can be deployed independently. Swap exchanges content and non-sticky settings; settings marked 'Deployment slot setting' stay with the slot. Some settings never swap: custom domains, TLS bindings, scale settings, IP restrictions, Always On, VNet integration, managed identities, WebJobs schedulers and diagnostic settings.",
+    "Swap safety: the target slot's settings are applied to the source instances, which are warmed up (applicationInitialization) before routing switches. Swap with preview (multi-phase) pauses so you can validate. Auto swap is available for Windows apps. Testing in production routes a percentage of traffic to a slot. Rollback = swap again."
+  ],
+  "animation": {
+    "id": "appservice-sim",
+    "caption": "Open 'Deployment slots' and 'Backup and networking'."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "users",
+        "label": "Users",
+        "x": 0,
+        "y": 60,
+        "kind": "user"
+      },
+      {
+        "id": "pe",
+        "label": "Private endpoint (inbound)",
+        "x": 220,
+        "y": 0,
+        "kind": "network"
+      },
+      {
+        "id": "prod",
+        "label": "app-contoso (production)",
+        "x": 440,
+        "y": 0,
+        "kind": "globe"
+      },
+      {
+        "id": "stg",
+        "label": "app-contoso-staging (slot)",
+        "x": 440,
+        "y": 130,
+        "kind": "globe"
+      },
+      {
+        "id": "vnet",
+        "label": "VNet integration → SQL private endpoint",
+        "x": 680,
+        "y": 60,
+        "kind": "network"
+      },
+      {
+        "id": "st",
+        "label": "Backup storage account",
+        "x": 680,
+        "y": 180,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "users",
+        "to": "pe"
+      },
+      {
+        "from": "pe",
+        "to": "prod"
+      },
+      {
+        "from": "stg",
+        "to": "prod",
+        "label": "swap"
+      },
+      {
+        "from": "prod",
+        "to": "vnet",
+        "label": "outbound"
+      },
+      {
+        "from": "prod",
+        "to": "st",
+        "label": "backups"
+      }
+    ]
+  },
+  "example": {
+    "title": "Zero-downtime releases",
+    "body": [
+      "Every release deploys to the staging slot, which has its own sticky connection string to a staging database. A smoke test runs against app-contoso-staging.azurewebsites.net, then a swap with preview promotes it.",
+      "The production app is reachable only through a private endpoint from Front Door, calls Azure SQL through VNet integration, and has daily custom backups to a storage account."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Basic tier for backups (Standard for deployment slots)",
+      "Integration subnet (delegated to Microsoft.Web/serverFarms) for VNet integration",
+      "Storage account for custom backups"
+    ],
+    "permissions": [
+      "Website Contributor",
+      "Network Contributor on the VNet/subnet",
+      "Storage Blob Data Contributor or SAS for backup storage"
+    ],
+    "limits": [
+      "Slots: Standard 5, Premium/Isolated 20",
+      "Custom backup limit 10 GB including databases",
+      "Some settings never swap"
+    ],
+    "portal": [
+      "Web app > Backups: configure custom backups (storage container, schedule, databases); restore.",
+      "Web app > Networking: Access restriction, Private endpoints, VNet integration, Hybrid connections.",
+      "Web app > Deployment slots > Add slot; Swap (with preview); Traffic %.",
+      "Configuration: tick 'Deployment slot setting' on app settings that must stay with a slot."
+    ],
+    "cli": "az webapp config backup create -g rg-web --webapp-name app-contoso --backup-name manual1 --container-url \"<container-SAS-URL>\"\naz webapp config backup update -g rg-web --webapp-name app-contoso --container-url \"<container-SAS-URL>\" --frequency 1d --retain-one true --retention 30\naz webapp config access-restriction add -g rg-web -n app-contoso --rule-name office --action Allow --ip-address 203.0.113.0/24 --priority 100\naz webapp vnet-integration add -g rg-web -n app-contoso --vnet vnet-app --subnet snet-integration\naz resource update -g rg-web -n app-contoso --resource-type Microsoft.Web/sites --set properties.vnetRouteAllEnabled=true\naz webapp deployment slot create -g rg-web -n app-contoso --slot staging\naz webapp config appsettings set -g rg-web -n app-contoso --slot staging --slot-settings ConnectionStrings__Db=\"<staging-db>\"\naz webapp traffic-routing set -g rg-web -n app-contoso --distribution staging=10\naz webapp deployment slot swap -g rg-web -n app-contoso --slot staging --target-slot production",
+    "powershell": "New-AzWebAppBackup -ResourceGroupName rg-web -Name app-contoso -StorageAccountUrl '<container-SAS-URL>'\nNew-AzWebAppSlot -ResourceGroupName rg-web -Name app-contoso -Slot staging\nSwitch-AzWebAppSlot -ResourceGroupName rg-web -Name app-contoso -SourceSlotName staging -DestinationSlotName production\nAdd-AzWebAppAccessRestrictionRule -ResourceGroupName rg-web -WebAppName app-contoso -Name office -Priority 100 -Action Allow -IpAddress 203.0.113.0/24"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "appservice-sim",
+    "objective": "Configure backups and private networking, and perform a safe slot swap.",
+    "duration": 15,
+    "steps": [
+      "Deployment slots: run with defaults, then apply 'Staging DB string not sticky' and 'Basic tier'.",
+      "Backup and networking: run with defaults, then apply 'Free tier backup' and 'No VNet integration'."
+    ],
+    "expected": [
+      "Slots need Standard+",
+      "Non-sticky connection strings swap into production",
+      "Backups need Basic or higher",
+      "Private DB access needs VNet integration"
+    ],
+    "validation": [
+      {
+        "id": "slot-problem",
+        "text": "Found a slot swap risk"
+      },
+      {
+        "id": "slot-swapped",
+        "text": "Swapped slots safely"
+      },
+      {
+        "id": "app-backup",
+        "text": "Configured a backup"
+      },
+      {
+        "id": "app-networking",
+        "text": "Configured private inbound and outbound networking"
+      }
+    ],
+    "failureScenarios": [
+      "Swapping production DB settings",
+      "Basic tier for slots",
+      "Calling a private endpoint without VNet integration"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "After a swap, production uses the staging database.",
+      "cause": "Connection string not marked as a deployment slot setting.",
+      "fix": "Mark it sticky, swap back, then swap again."
+    },
+    {
+      "symptom": "App cannot reach SQL through its private endpoint.",
+      "cause": "No VNet integration, or private DNS not resolving from the integration subnet.",
+      "fix": "Enable VNet integration and link privatelink.database.windows.net to the VNet."
+    },
+    {
+      "symptom": "403 from the office after adding access restrictions.",
+      "cause": "Rule priority or missing allow rule for the office range.",
+      "fix": "Check rules; remember the implicit deny once any allow rule exists."
+    },
+    {
+      "symptom": "Backup fails.",
+      "cause": "Content plus database exceeds 10 GB or storage SAS expired.",
+      "fix": "Exclude files, renew SAS, or use database-native backups."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Front Door + private link to App Service",
+      "difference": "Global entry point with WAF in front of a privately reachable app."
+    },
+    {
+      "service": "AWS Elastic Beanstalk environment swap",
+      "difference": "Similar blue/green CNAME swap."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Slot swaps cause downtime.",
+      "reality": "Instances are warmed before routing switches."
+    },
+    {
+      "myth": "All settings swap.",
+      "reality": "Sticky settings and a list of platform settings never swap."
+    },
+    {
+      "myth": "VNet integration makes the app private.",
+      "reality": "It is outbound only; use private endpoints/access restrictions for inbound."
+    }
+  ],
+  "architectureDecisions": [
+    "Use staging slots plus swap with preview for every production release.",
+    "Combine private endpoints (inbound) and VNet integration (outbound) for private apps.",
+    "Back up databases with their native features as well."
+  ],
+  "docs": [
+    {
+      "title": "Back up and restore your app",
+      "url": "https://learn.microsoft.com/azure/app-service/manage-backup"
+    },
+    {
+      "title": "Set up staging environments (slots)",
+      "url": "https://learn.microsoft.com/azure/app-service/deploy-staging-slots"
+    },
+    {
+      "title": "App Service networking features",
+      "url": "https://learn.microsoft.com/azure/app-service/networking-features"
+    },
+    {
+      "title": "Integrate your app with a VNet",
+      "url": "https://learn.microsoft.com/azure/app-service/overview-vnet-integration"
+    },
+    {
+      "title": "Access restrictions",
+      "url": "https://learn.microsoft.com/azure/app-service/app-service-ip-restrictions"
+    },
+    {
+      "title": "Private endpoints for App Service",
+      "url": "https://learn.microsoft.com/azure/app-service/overview-private-endpoint"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Back up a web app, connect it privately to your network, and release new versions without downtime.",
+    "learn": [
+      "Backups and restore",
+      "Inbound: access restrictions and private endpoints",
+      "Outbound: VNet integration",
+      "Deployment slots, swap and sticky settings"
+    ],
+    "nodes": [
+      {
+        "id": "prod",
+        "label": "Production slot",
+        "x": 400,
+        "y": 90,
+        "kind": "compute",
+        "sub": "v1"
+      },
+      {
+        "id": "stage",
+        "label": "Staging slot",
+        "x": 400,
+        "y": 230,
+        "kind": "compute",
+        "sub": "v2"
+      },
+      {
+        "id": "users",
+        "label": "Users",
+        "x": 130,
+        "y": 90,
+        "kind": "user"
+      },
+      {
+        "id": "bk",
+        "label": "Backups",
+        "x": 670,
+        "y": 90,
+        "kind": "storage"
+      },
+      {
+        "id": "vnet",
+        "label": "VNet integration",
+        "x": 670,
+        "y": 230,
+        "kind": "network",
+        "sub": "outbound"
+      },
+      {
+        "id": "db",
+        "label": "Private database",
+        "x": 670,
+        "y": 380,
+        "kind": "database"
+      },
+      {
+        "id": "rules",
+        "label": "Access restrictions",
+        "x": 130,
+        "y": 230,
+        "kind": "security",
+        "sub": "inbound"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Release day",
+        "title": "Friday release, Monday outage",
+        "body": [
+          "Deploying straight to production means users see errors while the new version starts. And the app must reach a database that has no public access."
+        ],
+        "show": [
+          "users",
+          "prod"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "prod",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Slots",
+        "title": "Deployment slots and swap",
+        "body": [
+          "A slot is a live copy of the app with its own URL (Standard: 5 slots, Premium: 20). Deploy to staging, warm it up, then swap: production now runs v2 with no downtime. Swap back if something breaks."
+        ],
+        "show": [
+          "users",
+          "prod",
+          "stage"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "prod"
+          },
+          {
+            "from": "stage",
+            "to": "prod",
+            "label": "swap",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Settings marked 'Deployment slot setting' (sticky) stay with the slot; others move with the code. Make database connection strings sticky."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Backups",
+        "title": "Backups",
+        "body": [
+          "Basic tier and higher take automatic backups. Custom backups (with a storage account and schedule) let you choose what and how often, including linked databases. Restore to the same app, another app or a slot."
+        ],
+        "show": [
+          "users",
+          "prod",
+          "stage",
+          "bk"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "prod"
+          },
+          {
+            "from": "stage",
+            "to": "prod",
+            "label": "swap"
+          },
+          {
+            "from": "prod",
+            "to": "bk",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Inbound",
+        "title": "Control who can reach the app",
+        "body": [
+          "Access restrictions allow or deny by IP range, service tag or VNet subnet, in priority order. A private endpoint gives the app a private IP and can remove public access."
+        ],
+        "show": [
+          "users",
+          "prod",
+          "stage",
+          "bk",
+          "rules"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "prod"
+          },
+          {
+            "from": "stage",
+            "to": "prod",
+            "label": "swap"
+          },
+          {
+            "from": "prod",
+            "to": "bk"
+          },
+          {
+            "from": "rules",
+            "to": "prod",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Outbound",
+        "title": "Let the app reach private resources",
+        "body": [
+          "VNet integration sends the app's outbound traffic into a subnet of your VNet, so it can reach private endpoints and databases. It does not make the app private for inbound users."
+        ],
+        "show": [
+          "users",
+          "prod",
+          "stage",
+          "bk",
+          "rules",
+          "vnet",
+          "db"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "prod"
+          },
+          {
+            "from": "stage",
+            "to": "prod",
+            "label": "swap"
+          },
+          {
+            "from": "prod",
+            "to": "bk"
+          },
+          {
+            "from": "rules",
+            "to": "prod"
+          },
+          {
+            "from": "prod",
+            "to": "vnet",
+            "fresh": true
+          },
+          {
+            "from": "vnet",
+            "to": "db",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "App Service operations",
+        "body": [
+          "Slots for releases, backups for safety, two network directions."
+        ],
+        "show": [
+          "users",
+          "prod",
+          "stage",
+          "bk",
+          "rules",
+          "vnet",
+          "db"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "prod"
+          },
+          {
+            "from": "stage",
+            "to": "prod",
+            "label": "swap"
+          },
+          {
+            "from": "prod",
+            "to": "bk"
+          },
+          {
+            "from": "rules",
+            "to": "prod"
+          },
+          {
+            "from": "prod",
+            "to": "vnet"
+          },
+          {
+            "from": "vnet",
+            "to": "db"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Slots (Standard+): deploy, warm up, swap, swap back",
+          "Sticky settings stay with the slot",
+          "Automatic backups Basic+; custom backups for control",
+          "Inbound: access restrictions, private endpoint",
+          "Outbound: VNet integration"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Swap a staging slot into production (one hour on Standard)",
+    "minutes": 30,
+    "costLevel": "watch",
+    "cost": "Standard S1 costs roughly US$0.10 per hour. Do this lab in one sitting and delete the resource group straight after.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A web app (from the App Service plans lab)."
+    ],
+    "steps": [
+      {
+        "do": "Open the app's plan > Scale up > Standard S1 > Apply.",
+        "see": "The plan is now Standard."
+      },
+      {
+        "do": "Open the app > Deployment > Deployment slots > + Add slot. Name: staging, clone settings from the production app. Add.",
+        "see": "Two slots: production and staging, each with its own URL."
+      },
+      {
+        "do": "Open the staging slot > Settings > Environment variables. Add VERSION = v2 and tick 'Deployment slot setting'. Add GREETING = hello-v2 without the tick. Apply."
+      },
+      {
+        "do": "In the production slot add VERSION = v1 (sticky) only."
+      },
+      {
+        "do": "Back on Deployment slots select Swap: source staging, target production. Read the 'Config changes' preview. Swap.",
+        "see": "The preview shows GREETING moving to production while VERSION stays in each slot."
+      },
+      {
+        "do": "Open production's Environment variables.",
+        "see": "GREETING = hello-v2 moved with the swap; VERSION is still v1 (sticky)."
+      },
+      {
+        "do": "Open the app > Settings > Networking.",
+        "see": "Inbound (access restrictions, private endpoints) and outbound (VNet integration) settings."
+      },
+      {
+        "do": "Open the app > Settings > Backups.",
+        "see": "Automatic backups available at this tier, and the option to configure custom backups."
+      }
+    ],
+    "check": [
+      "You swapped slots and saw sticky settings stay behind."
+    ],
+    "cleanup": [
+      "Delete the resource group now: Standard plans are billed by the hour.",
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Set up staging environments (deployment slots)",
+        "url": "https://learn.microsoft.com/azure/app-service/deploy-staging-slots"
+      },
+      {
+        "title": "Back up and restore your app",
+        "url": "https://learn.microsoft.com/azure/app-service/manage-backup"
+      },
+      {
+        "title": "App Service networking features",
+        "url": "https://learn.microsoft.com/azure/app-service/networking-features"
+      },
+      {
+        "title": "Set up access restrictions",
+        "url": "https://learn.microsoft.com/azure/app-service/app-service-ip-restrictions"
+      }
+    ]
+  }
+}

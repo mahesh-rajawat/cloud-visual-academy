@@ -1,0 +1,994 @@
+[
+  {
+    "id": "nsg-packet-sim",
+    "title": "NSG packet evaluation",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-4.2.1",
+      "AZ104-4.2.2"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/simulations.test.ts",
+    "description": "Client \u2192 public IP \u2192 subnet NSG \u2192 NIC NSG \u2192 VM. Edit rules, inject failures, watch rule-by-rule evaluation."
+  },
+  {
+    "id": "rbac-scope-sim",
+    "title": "RBAC scope inheritance",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-1.2.1",
+      "AZ104-1.2.2",
+      "AZ104-1.2.3"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/simulations.test.ts",
+    "description": "Management group \u2192 subscription \u2192 resource group \u2192 VM. Assign roles to users and groups and evaluate operations."
+  },
+  {
+    "id": "storage-replication",
+    "title": "Storage redundancy and failures",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-2.2.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/simulations.test.ts",
+    "description": "Synchronous and asynchronous copies for LRS/ZRS/GRS/RA-GRS/GZRS/RA-GZRS with node, zone and region failure injection."
+  },
+  {
+    "id": "subnet-calculator",
+    "title": "Azure subnet planner",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-4.1.1"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/simulations.test.ts",
+    "description": "CIDR maths with Azure's 5 reserved addresses, overlap detection and peering conflicts."
+  },
+  {
+    "id": "governance-sim",
+    "title": "Azure Policy and resource locks",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-1.3.1",
+      "AZ104-1.3.2",
+      "AZ104-1.3.3"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/governance.test.ts",
+    "description": "Send ARM requests through resource locks and Policy effects (Deny, Audit, Modify, DoNotEnforce, exclusions, exemptions), then scan existing resources for compliance."
+  },
+  {
+    "id": "hierarchy-sim",
+    "title": "Management groups, subscriptions and resource moves",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-1.3.4",
+      "AZ104-1.3.5",
+      "AZ104-1.3.7"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/hierarchy-cost.test.ts",
+    "description": "Move subscriptions between management groups and watch inheritance change; validate resource moves; see what a directory change does."
+  },
+  {
+    "id": "budget-sim",
+    "title": "Budgets, alerts and Advisor",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-1.3.6"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/hierarchy-cost.test.ts",
+    "description": "Run a month of spend against a budget with actual and forecast alerts, optional automation, and Advisor right-sizing."
+  },
+  {
+    "id": "identity-sim",
+    "title": "Microsoft Entra users, groups, licences, guests and SSPR",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-1.1.1",
+      "AZ104-1.1.2",
+      "AZ104-1.1.3",
+      "AZ104-1.1.4",
+      "AZ104-1.1.5"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/identity.test.ts",
+    "description": "Dynamic membership rules, group-based licensing errors, B2B invitation restrictions and SSPR eligibility."
+  },
+  {
+    "id": "storage-access-sim",
+    "title": "Storage firewall, keys, SAS and Azure Files permissions",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-2.1.1",
+      "AZ104-2.1.2",
+      "AZ104-2.1.3",
+      "AZ104-2.1.4",
+      "AZ104-2.1.5"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/storageAccess.test.ts",
+    "description": "Send blob requests through network rules and authorization (keys, SAS, stored access policies, Entra ID), and test identity-based SMB access to Azure Files."
+  },
+  {
+    "id": "storage-account-sim",
+    "title": "Storage accounts, encryption, containers, shares and AzCopy",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-2.2.1",
+      "AZ104-2.2.4",
+      "AZ104-2.2.5",
+      "AZ104-2.3.1",
+      "AZ104-2.3.2"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/storageAccountData.test.ts",
+    "description": "Validate account settings (type, redundancy, TLS, CMK, infrastructure encryption), create containers and file shares, and build AzCopy commands."
+  },
+  {
+    "id": "storage-data-sim",
+    "title": "Tiers, lifecycle, versioning, soft delete, replication and snapshots",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-2.2.3",
+      "AZ104-2.3.3",
+      "AZ104-2.3.4",
+      "AZ104-2.3.5",
+      "AZ104-2.3.6"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/storageAccountData.test.ts",
+    "description": "Watch lifecycle rules move blobs across tiers over 400 days, test recovery with versioning and soft delete, set up object replication, and recover Azure Files data."
+  },
+  {
+    "id": "arm-sim",
+    "title": "ARM templates and Bicep deployments",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-3.1.1",
+      "AZ104-3.1.2",
+      "AZ104-3.1.3",
+      "AZ104-3.1.4",
+      "AZ104-3.1.5"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/compute.test.ts",
+    "description": "Validate parameters, resolve dependency order, compare Incremental and Complete modes, and export/decompile templates."
+  },
+  {
+    "id": "vm-sim",
+    "title": "Virtual machines: create, resize, disks, availability, move",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-3.2.1",
+      "AZ104-3.2.2",
+      "AZ104-3.2.3",
+      "AZ104-3.2.4",
+      "AZ104-3.2.5",
+      "AZ104-3.2.6"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/compute.test.ts",
+    "description": "Provisioning checks, availability sets vs zones with failure injection, resize and disk rules, disk encryption options and VM moves."
+  },
+  {
+    "id": "autoscale-sim",
+    "title": "Autoscale: scale sets and containers",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-3.2.7",
+      "AZ104-3.3.4"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/compute.test.ts",
+    "description": "Autoscale rules over a traffic peak, and Container Apps vs Container Instances sizing and scaling."
+  },
+  {
+    "id": "container-sim",
+    "title": "ACR, Container Instances and Container Apps",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-3.3.1",
+      "AZ104-3.3.2",
+      "AZ104-3.3.3"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/compute.test.ts",
+    "description": "Build, push, authenticate, run and expose containers; Container Apps revisions and traffic splitting."
+  },
+  {
+    "id": "appservice-sim",
+    "title": "App Service plans, domains, TLS, slots, backup and networking",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-3.4.1",
+      "AZ104-3.4.2",
+      "AZ104-3.4.3",
+      "AZ104-3.4.4",
+      "AZ104-3.4.5",
+      "AZ104-3.4.6",
+      "AZ104-3.4.7",
+      "AZ104-3.4.8"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/compute.test.ts",
+    "description": "Tier capabilities and scaling, custom domains and certificates, slot swaps, backups, private endpoints and VNet integration."
+  },
+  {
+    "id": "az900-governance-sim",
+    "title": "Azure Policy, resource locks and Microsoft Purview",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-3.2.1",
+      "AZ900-3.2.2",
+      "AZ900-3.2.3"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Send requests through RBAC, Azure Policy and resource locks, and pick the governance tool for each need."
+  },
+  {
+    "id": "aws-concepts-sim",
+    "title": "Cloud concepts: Well-Architected, migration, CAF and economics",
+    "exam": "aws-clf-c02",
+    "objectiveIds": [
+      "CLFC02-1.1.1",
+      "CLFC02-1.1.2",
+      "CLFC02-1.1.3",
+      "CLFC02-1.2.1",
+      "CLFC02-1.2.2",
+      "CLFC02-1.2.3",
+      "CLFC02-1.3.1",
+      "CLFC02-1.3.2",
+      "CLFC02-1.3.3",
+      "CLFC02-1.3.4",
+      "CLFC02-1.4.1",
+      "CLFC02-1.4.2",
+      "CLFC02-1.4.3",
+      "CLFC02-1.4.4",
+      "CLFC02-1.4.5",
+      "CLFC02-1.4.6",
+      "CLFC02-1.4.7",
+      "CLFC02-1.4.8"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/aws.test.ts",
+    "description": "Decision labs for Well-Architected pillars, the 7 Rs, CAF perspectives, plus a fixed-vs-variable cost model."
+  },
+  {
+    "id": "aws-security-sim",
+    "title": "Shared responsibility, IAM evaluation and security services",
+    "exam": "aws-clf-c02",
+    "objectiveIds": [
+      "CLFC02-2.1.1",
+      "CLFC02-2.1.2",
+      "CLFC02-2.1.3",
+      "CLFC02-2.1.4",
+      "CLFC02-2.1.5",
+      "CLFC02-2.1.6",
+      "CLFC02-2.2.1",
+      "CLFC02-2.2.2",
+      "CLFC02-2.2.3",
+      "CLFC02-2.2.4",
+      "CLFC02-2.2.5",
+      "CLFC02-2.2.6",
+      "CLFC02-2.2.7",
+      "CLFC02-2.2.8",
+      "CLFC02-2.2.9",
+      "CLFC02-2.3.1",
+      "CLFC02-2.3.2",
+      "CLFC02-2.3.3",
+      "CLFC02-2.3.4",
+      "CLFC02-2.3.5",
+      "CLFC02-2.3.6",
+      "CLFC02-2.3.7",
+      "CLFC02-2.3.8",
+      "CLFC02-2.3.9",
+      "CLFC02-2.3.10",
+      "CLFC02-2.4.1",
+      "CLFC02-2.4.2",
+      "CLFC02-2.4.3",
+      "CLFC02-2.4.4",
+      "CLFC02-2.4.5",
+      "CLFC02-2.4.6"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/aws.test.ts",
+    "description": "Responsibility by service, IAM policy evaluation (SCP, explicit deny, allow, implicit deny), security service selection and root-only tasks."
+  },
+  {
+    "id": "aws-tech-sim",
+    "title": "VPC reachability, global infrastructure and service selection",
+    "exam": "aws-clf-c02",
+    "objectiveIds": [
+      "CLFC02-3.1.1",
+      "CLFC02-3.1.2",
+      "CLFC02-3.1.3",
+      "CLFC02-3.1.4",
+      "CLFC02-3.1.5",
+      "CLFC02-3.1.6",
+      "CLFC02-3.2.1",
+      "CLFC02-3.2.2",
+      "CLFC02-3.2.3",
+      "CLFC02-3.2.4",
+      "CLFC02-3.2.5",
+      "CLFC02-3.2.6",
+      "CLFC02-3.2.7",
+      "CLFC02-3.2.8",
+      "CLFC02-3.3.1",
+      "CLFC02-3.3.2",
+      "CLFC02-3.3.3",
+      "CLFC02-3.3.4",
+      "CLFC02-3.3.5",
+      "CLFC02-3.3.6",
+      "CLFC02-3.4.1",
+      "CLFC02-3.4.2",
+      "CLFC02-3.4.3",
+      "CLFC02-3.4.4",
+      "CLFC02-3.4.5",
+      "CLFC02-3.4.6",
+      "CLFC02-3.4.7",
+      "CLFC02-3.5.1",
+      "CLFC02-3.5.2",
+      "CLFC02-3.5.3",
+      "CLFC02-3.5.4",
+      "CLFC02-3.5.5",
+      "CLFC02-3.6.1",
+      "CLFC02-3.6.2",
+      "CLFC02-3.6.3",
+      "CLFC02-3.6.4",
+      "CLFC02-3.6.5",
+      "CLFC02-3.6.6",
+      "CLFC02-3.6.7",
+      "CLFC02-3.6.8",
+      "CLFC02-3.7.1",
+      "CLFC02-3.7.2",
+      "CLFC02-3.7.3",
+      "CLFC02-3.7.4",
+      "CLFC02-3.8.1",
+      "CLFC02-3.8.2",
+      "CLFC02-3.8.3",
+      "CLFC02-3.8.4",
+      "CLFC02-3.8.5",
+      "CLFC02-3.8.6",
+      "CLFC02-3.8.7",
+      "CLFC02-3.8.8",
+      "CLFC02-3.8.9",
+      "CLFC02-3.8.10",
+      "CLFC02-3.8.11",
+      "CLFC02-3.8.12",
+      "CLFC02-3.8.13",
+      "CLFC02-3.8.14"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/aws.test.ts",
+    "description": "Configure a VPC until a web server is reachable, survive AZ/Region failures, and choose compute, database, network, storage, AI/analytics and other services."
+  },
+  {
+    "id": "aws-billing-sim",
+    "title": "Purchasing options, data transfer, consolidated billing and support",
+    "exam": "aws-clf-c02",
+    "objectiveIds": [
+      "CLFC02-4.1.1",
+      "CLFC02-4.1.2",
+      "CLFC02-4.1.3",
+      "CLFC02-4.1.4",
+      "CLFC02-4.1.5",
+      "CLFC02-4.1.6",
+      "CLFC02-4.1.7",
+      "CLFC02-4.2.1",
+      "CLFC02-4.2.2",
+      "CLFC02-4.2.3",
+      "CLFC02-4.2.4",
+      "CLFC02-4.2.5",
+      "CLFC02-4.2.6",
+      "CLFC02-4.2.7",
+      "CLFC02-4.2.8",
+      "CLFC02-4.3.1",
+      "CLFC02-4.3.2",
+      "CLFC02-4.3.3",
+      "CLFC02-4.3.4",
+      "CLFC02-4.3.5",
+      "CLFC02-4.3.6",
+      "CLFC02-4.3.7",
+      "CLFC02-4.3.8",
+      "CLFC02-4.3.9",
+      "CLFC02-4.3.10",
+      "CLFC02-4.3.11",
+      "CLFC02-4.3.12",
+      "CLFC02-4.3.13"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/aws.test.ts",
+    "description": "Compare purchasing options, learn which data transfer is charged, see RI sharing in Organizations, and pick billing tools and support resources."
+  },
+  {
+    "id": "network-routing-sim",
+    "title": "Peering, public IPs, user-defined routes and connectivity troubleshooting",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-4.1.2",
+      "AZ104-4.1.3",
+      "AZ104-4.1.4",
+      "AZ104-4.1.5"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/network.test.ts",
+    "description": "Hub-and-spoke peering with transitivity and gateway transit, public IP SKU rules, longest-prefix route selection through an NVA, and Network Watcher tools against hidden faults."
+  },
+  {
+    "id": "network-access-sim",
+    "title": "Azure Bastion, service endpoints and private endpoints",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-4.2.3",
+      "AZ104-4.2.4",
+      "AZ104-4.2.5"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/network.test.ts",
+    "description": "Bastion SKU/subnet validation, and storage access through service endpoints or private endpoints with DNS and firewall evaluation."
+  },
+  {
+    "id": "dns-lb-sim",
+    "title": "Azure DNS and Azure Load Balancer",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-4.3.1",
+      "AZ104-4.3.2",
+      "AZ104-4.3.3"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/network.test.ts",
+    "description": "Public zone delegation and record rules, private zones with links and autoregistration, and a Standard load balancer with probes, NSGs and failing backends."
+  },
+  {
+    "id": "monitor-sim",
+    "title": "Azure Monitor: metrics, log settings, KQL, alerts, Insights and Network Watcher",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-5.1.1",
+      "AZ104-5.1.2",
+      "AZ104-5.1.3",
+      "AZ104-5.1.4",
+      "AZ104-5.1.5",
+      "AZ104-5.1.6"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/monitor.test.ts",
+    "description": "Aggregation over a CPU spike, a working KQL evaluator over a sample Perf table, metric alerts with action groups and alert processing rules, data-source choices, Insights and Connection Monitor."
+  },
+  {
+    "id": "backup-dr-sim",
+    "title": "Azure Backup and Site Recovery: vaults, policies, restore, failover and reports",
+    "exam": "az-104",
+    "objectiveIds": [
+      "AZ104-5.2.1",
+      "AZ104-5.2.2",
+      "AZ104-5.2.3",
+      "AZ104-5.2.4",
+      "AZ104-5.2.5",
+      "AZ104-5.2.6",
+      "AZ104-5.2.7"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/monitor.test.ts",
+    "description": "Vault choice per data source, policy validation (Standard vs Enhanced), restore options including Cross Region Restore, an Azure-to-Azure DR drill and reporting prerequisites."
+  },
+  {
+    "id": "az900-cloud-basics-sim",
+    "title": "Cloud characteristics and shared responsibility",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-1.1.1",
+      "AZ900-1.1.2"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Match situations to cloud characteristics, then decide who is responsible for each layer in on-premises, IaaS, PaaS and SaaS."
+  },
+  {
+    "id": "az900-cloud-models-sim",
+    "title": "Public, private, hybrid and multicloud",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-1.1.3",
+      "AZ900-1.1.4"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Choose a cloud model for each scenario, then pick the Azure option for hybrid needs."
+  },
+  {
+    "id": "az900-pricing-sim",
+    "title": "Consumption pricing, pricing models and serverless",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-1.1.5",
+      "AZ900-1.1.6",
+      "AZ900-1.1.7"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Compare fixed capacity with consumption billing over a year of variable demand, then pick a pricing option for each workload."
+  },
+  {
+    "id": "az900-benefits-sim",
+    "title": "High availability, scalability, reliability and predictability",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-1.2.1",
+      "AZ900-1.2.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Calculate a composite SLA and see autoscaling, then match situations to cloud benefits."
+  },
+  {
+    "id": "az900-manage-sim",
+    "title": "Security, governance and manageability",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-1.2.3",
+      "AZ900-1.2.4"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Match capabilities to security, governance or manageability, and find where to get compliance assurance."
+  },
+  {
+    "id": "az900-service-types-sim",
+    "title": "IaaS, PaaS and SaaS",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-1.3.1",
+      "AZ900-1.3.2",
+      "AZ900-1.3.3",
+      "AZ900-1.3.4"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Pick a service type for each workload and classify Azure and Microsoft products."
+  },
+  {
+    "id": "az900-regions-sim",
+    "title": "Regions, region pairs, zones and datacenters",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.1.1",
+      "AZ900-2.1.2",
+      "AZ900-2.1.3"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Inject failures at rack, datacenter and region scope against different deployments, and name each part of Azure's physical infrastructure."
+  },
+  {
+    "id": "az900-hierarchy-sim",
+    "title": "Resources, resource groups, subscriptions and management groups",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.1.4",
+      "AZ900-2.1.5",
+      "AZ900-2.1.6",
+      "AZ900-2.1.7"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Assign at a scope and see what inherits it; pick the right level of the hierarchy for each need."
+  },
+  {
+    "id": "az900-compute-sim",
+    "title": "Compute types and virtual machine options",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.2.1",
+      "AZ900-2.2.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Pick VMs, containers or functions for each requirement, and choose availability sets, zones, scale sets or Azure Virtual Desktop."
+  },
+  {
+    "id": "az900-vm-hosting-sim",
+    "title": "VM resources and application hosting",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.2.3",
+      "AZ900-2.2.4"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Build a VM from its required resources (size, disk, VNet, NIC, IP, NSG), and choose where to host each application."
+  },
+  {
+    "id": "az900-vnet-sim",
+    "title": "Virtual networking",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.2.5"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Pick VNets, subnets, peering, Azure DNS, VPN Gateway or ExpressRoute for each connectivity need."
+  },
+  {
+    "id": "az900-endpoints-sim",
+    "title": "Public and private endpoints",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.2.6"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Reach a storage account from the internet, the VNet or on-premises with different public access and private endpoint settings."
+  },
+  {
+    "id": "az900-storage-sim",
+    "title": "Storage services and account types",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.3.1",
+      "AZ900-2.3.4"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Pick Blob, Files, Queue, Table or Disk storage, and the storage account type, for each requirement."
+  },
+  {
+    "id": "az900-redundancy-sim",
+    "title": "Storage redundancy and access tiers",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.3.2",
+      "AZ900-2.3.3"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Inject datacenter and region failures against LRS, ZRS, GRS and GZRS (with and without read access), and choose access tiers."
+  },
+  {
+    "id": "az900-migration-sim",
+    "title": "Moving files and migrating to Azure",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.3.5",
+      "AZ900-2.3.6"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Estimate transfer time and choose AzCopy, Storage Explorer, File Sync, Azure Migrate or Data Box."
+  },
+  {
+    "id": "az900-entra-sim",
+    "title": "Directory services, authentication and external identities",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.4.1",
+      "AZ900-2.4.2",
+      "AZ900-2.4.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Pick Entra ID, Domain Services or External ID; match SSO, MFA and passwordless; sign in as an employee or guest."
+  },
+  {
+    "id": "az900-access-sim",
+    "title": "Conditional Access and Azure RBAC",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.4.4",
+      "AZ900-2.4.5"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Sign in from different locations with different methods and roles, and pick the least-privileged built-in role."
+  },
+  {
+    "id": "az900-defense-sim",
+    "title": "Zero Trust, defense in depth and Defender for Cloud",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-2.4.6",
+      "AZ900-2.4.7",
+      "AZ900-2.4.8"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Close gaps layer by layer with Defender for Cloud guidance, and match practices to Zero Trust principles and defense layers."
+  },
+  {
+    "id": "az900-cost-sim",
+    "title": "Cost factors and estimates",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-3.1.1",
+      "AZ900-3.1.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Build an estimate from region, size, hours and egress, compare it to a budget, and match situations to cost factors."
+  },
+  {
+    "id": "az900-costmgmt-sim",
+    "title": "Cost Management and tags",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-3.1.3",
+      "AZ900-3.1.4"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "See whether costs land under the right department tag with and without tag inheritance, and pick Cost Management tools."
+  },
+  {
+    "id": "az900-tools-sim",
+    "title": "Azure portal, Cloud Shell, CLI, PowerShell and Azure Arc",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-3.3.1",
+      "AZ900-3.3.2",
+      "AZ900-3.3.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Pick the management tool for each task and identify CLI and PowerShell commands."
+  },
+  {
+    "id": "az900-iac-sim",
+    "title": "Infrastructure as code and ARM templates",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-3.3.4",
+      "AZ900-3.3.5"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Compare manual deployments with declarative templates, including idempotent re-runs and complete mode, and match ARM template benefits."
+  },
+  {
+    "id": "az900-health-sim",
+    "title": "Azure Advisor and Azure Service Health",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-3.4.1",
+      "AZ900-3.4.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Match recommendations to Advisor categories and choose between Azure status, Service Health and Resource Health."
+  },
+  {
+    "id": "az900-monitor-sim",
+    "title": "Azure Monitor, Log Analytics, alerts and Application Insights",
+    "exam": "az-900",
+    "objectiveIds": [
+      "AZ900-3.4.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/az900.test.ts",
+    "description": "Collect data, choose the alert type and notify people; pick the monitoring service for each question."
+  },
+  {
+    "id": "ai901-rai-core-sim",
+    "title": "Fairness, reliability and safety, privacy and security",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-1.1.1",
+      "AI901-1.1.2",
+      "AI901-1.1.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Match concrete practices and concerns to the fairness, reliability and safety, and privacy and security principles."
+  },
+  {
+    "id": "ai901-rai-people-sim",
+    "title": "Inclusiveness, transparency and accountability",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-1.1.4",
+      "AI901-1.1.5",
+      "AI901-1.1.6"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Match concrete practices and concerns to the inclusiveness, transparency and accountability principles."
+  },
+  {
+    "id": "ai901-genai-sim",
+    "title": "How a generative model produces text",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-1.2.1"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Step through tokenisation, the context window, next-token sampling with temperature, top_p and max_output_tokens, and content filters; then match generative AI vocabulary."
+  },
+  {
+    "id": "ai901-model-sim",
+    "title": "Choosing a model by capability",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-1.2.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Pick chat, reasoning, small, multimodal, embedding, image or speech models for each requirement, and balance capability against cost and speed."
+  },
+  {
+    "id": "ai901-deploy-sim",
+    "title": "Deployment types and configuration",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-1.2.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Pick Global, Data Zone, Standard, Provisioned or Batch deployments for each requirement, and the setting that solves each deployment problem."
+  },
+  {
+    "id": "ai901-workload-sim",
+    "title": "AI workloads",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-1.3.1"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Match scenarios to generative, agentic, text, speech, vision and extraction workloads, and decide between a model, an agent or a Foundry Tool."
+  },
+  {
+    "id": "ai901-text-sim",
+    "title": "Text analysis techniques",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-1.3.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Run key phrase extraction, entity recognition, sentiment with opinion mining, PII redaction, summarization and language detection on sample texts."
+  },
+  {
+    "id": "ai901-speech-sim",
+    "title": "Speech recognition and synthesis",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-1.3.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Pick Azure Speech features for each need and follow a voice pipeline from microphone to speaker."
+  },
+  {
+    "id": "ai901-vision-sim",
+    "title": "Computer vision, image generation and information extraction",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-1.3.4",
+      "AI901-1.3.5"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Pick captioning, detection, OCR, tagging, visual Q&A or image generation, and choose Extract, Classify or Generate for extracted fields."
+  },
+  {
+    "id": "ai901-prompt-sim",
+    "title": "System and user prompts",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-2.1.1"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Build a prompt from a system message, grounding data and user input; see Prompt Shields catch an injection; pick the technique that fixes each prompt problem."
+  },
+  {
+    "id": "ai901-portal-sim",
+    "title": "Deploy and test a model in the Foundry portal",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-2.1.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Walk through project, model catalog, deployment and playground, and choose the deployment type."
+  },
+  {
+    "id": "ai901-sdk-sim",
+    "title": "Chat client with the Foundry SDK",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-2.1.3"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Configure endpoint, credential and deployment name and call responses.create; diagnose 403, 404, 429 and endpoint errors."
+  },
+  {
+    "id": "ai901-agent-sim",
+    "title": "Single agent with tools and a client app",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-2.1.4",
+      "AI901-2.1.5"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Give an agent the tool it needs for each request, including function calling handled by the client."
+  },
+  {
+    "id": "ai901-textapp-sim",
+    "title": "Text analysis app",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-2.2.1"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Run text analysis techniques on sample texts and choose between Azure Language and a model prompt."
+  },
+  {
+    "id": "ai901-speechapp-sim",
+    "title": "Speech apps and spoken prompts",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-2.2.2",
+      "AI901-2.2.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Build a voice pipeline with Azure Speech or a multimodal audio model, and pick the approach for each requirement."
+  },
+  {
+    "id": "ai901-visionapp-sim",
+    "title": "Vision input and vision apps",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-2.3.1",
+      "AI901-2.3.3"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Send images to a multimodal model, handle errors, and choose a vision approach."
+  },
+  {
+    "id": "ai901-image-sim",
+    "title": "Image generation",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-2.3.2"
+    ],
+    "fidelity": "simplified-illustration",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Generate images, see content filters act, and fix common image-generation problems."
+  },
+  {
+    "id": "ai901-cu-sim",
+    "title": "Content Understanding: documents and images",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-2.4.1",
+      "AI901-2.4.2"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Analyze documents and images with prebuilt and custom analyzers through the REST flow."
+  },
+  {
+    "id": "ai901-cuapp-sim",
+    "title": "Content Understanding: audio, video and apps",
+    "exam": "ai-901",
+    "objectiveIds": [
+      "AI901-2.4.3",
+      "AI901-2.4.4"
+    ],
+    "fidelity": "accurate-model",
+    "testFile": "frontend/src/simulations/groups/ai.test.ts",
+    "description": "Analyze audio and video, choose Extract, Classify or Generate, and poll results in an app."
+  }
+]

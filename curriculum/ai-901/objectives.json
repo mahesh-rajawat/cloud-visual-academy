@@ -1,0 +1,270 @@
+{
+  "examCode": "AI-901",
+  "examName": "Microsoft Azure AI Fundamentals",
+  "vendor": "Microsoft",
+  "sourceUrl": "https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/ai-901",
+  "skillsMeasuredAsOf": "April 15, 2026",
+  "domains": [
+    {
+      "id": "AI901-1",
+      "name": "Identify AI concepts and capabilities",
+      "weight": "40–45%",
+      "skills": [
+        {
+          "id": "AI901-1.1",
+          "name": "Describe principles of responsible AI",
+          "objectives": [
+            {
+              "id": "AI901-1.1.1",
+              "text": "Describe considerations for fairness in an AI solution",
+              "fingerprint": "cec392fcd0b9",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AI901-1.1.2",
+              "text": "Describe considerations for reliability and safety in an AI solution",
+              "fingerprint": "41be65dc07ac",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AI901-1.1.3",
+              "text": "Describe considerations for privacy and security in an AI solution",
+              "fingerprint": "d34041f4589b",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AI901-1.1.4",
+              "text": "Describe considerations for inclusiveness in an AI solution",
+              "fingerprint": "de6cb4c94943",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AI901-1.1.5",
+              "text": "Describe considerations for transparency in an AI solution",
+              "fingerprint": "db303312e9b1",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AI901-1.1.6",
+              "text": "Describe considerations for accountability in an AI solution",
+              "fingerprint": "b8155e2e6cdb",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AI901-1.2",
+          "name": "Identify AI model components and configurations",
+          "objectives": [
+            {
+              "id": "AI901-1.2.1",
+              "text": "Describe how generative AI models work",
+              "fingerprint": "7d662684195a",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AI901-1.2.2",
+              "text": "Identify an appropriate AI model, based on capabilities",
+              "fingerprint": "813cfa4f5201",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AI901-1.2.3",
+              "text": "Identify appropriate model deployment options and configuration parameters",
+              "fingerprint": "3830e8c4cc8c",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AI901-1.3",
+          "name": "Identify AI workloads",
+          "objectives": [
+            {
+              "id": "AI901-1.3.1",
+              "text": "Identify scenarios for common AI workloads, including generative and agentic AI, text analysis, speech, computer vision, and information extraction",
+              "fingerprint": "faafa2f8fd47",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AI901-1.3.2",
+              "text": "Describe common text analysis techniques, including keyword extraction, entity detection, sentiment analysis, and summarization",
+              "fingerprint": "a84f2994640a",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AI901-1.3.3",
+              "text": "Identify features and capabilities of speech recognition and speech synthesis",
+              "fingerprint": "2a1eda7496f7",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AI901-1.3.4",
+              "text": "Identify features and capabilities of computer vision and image-generation models",
+              "fingerprint": "b72351b4f23e",
+              "handsOn": false,
+              "status": "active"
+            },
+            {
+              "id": "AI901-1.3.5",
+              "text": "Identify techniques to extract information from text, images, audio, and videos",
+              "fingerprint": "11b41be49a99",
+              "handsOn": false,
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AI901-2",
+      "name": "Implement AI solutions by using Microsoft Foundry",
+      "weight": "55–60%",
+      "skills": [
+        {
+          "id": "AI901-2.1",
+          "name": "Implement generative AI apps and agents by using Foundry",
+          "objectives": [
+            {
+              "id": "AI901-2.1.1",
+              "text": "Create effective system and user prompts for generative AI models",
+              "fingerprint": "6553f4569b29",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AI901-2.1.2",
+              "text": "Deploy a model and interact with it in the Foundry portal",
+              "fingerprint": "ae06b6fecd34",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AI901-2.1.3",
+              "text": "Create a lightweight chat client application by using the Foundry SDK",
+              "fingerprint": "175551e9b17f",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AI901-2.1.4",
+              "text": "Create and test a single-agent solution in the Foundry portal",
+              "fingerprint": "edbff155bd52",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AI901-2.1.5",
+              "text": "Create a lightweight client application for an agent",
+              "fingerprint": "4f03127067e1",
+              "handsOn": true,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AI901-2.2",
+          "name": "Implement AI solutions for text and speech by using Foundry",
+          "objectives": [
+            {
+              "id": "AI901-2.2.1",
+              "text": "Build a lightweight application that includes text analysis",
+              "fingerprint": "6e9a47969265",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AI901-2.2.2",
+              "text": "Respond to spoken prompts by using a deployed multimodal model",
+              "fingerprint": "091e1a021c84",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AI901-2.2.3",
+              "text": "Build a lightweight application by using Azure Speech in Foundry Tools",
+              "fingerprint": "75abb109923e",
+              "handsOn": true,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AI901-2.3",
+          "name": "Implement AI solutions with computer vision and image-generation capabilities by using Foundry",
+          "objectives": [
+            {
+              "id": "AI901-2.3.1",
+              "text": "Interpret visual input in prompts by using a deployed multimodal model",
+              "fingerprint": "098ed40cc2d9",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AI901-2.3.2",
+              "text": "Create new visual outputs by using generative models",
+              "fingerprint": "6abd415179ff",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AI901-2.3.3",
+              "text": "Build a lightweight application that includes vision capabilities",
+              "fingerprint": "93c2dde220d6",
+              "handsOn": true,
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "id": "AI901-2.4",
+          "name": "Implement AI solutions for information extraction by using Foundry",
+          "objectives": [
+            {
+              "id": "AI901-2.4.1",
+              "text": "Extract information from documents and forms by using Azure Content Understanding in Foundry Tools",
+              "fingerprint": "a597697813bb",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AI901-2.4.2",
+              "text": "Extract information from images by using Content Understanding",
+              "fingerprint": "1741edb8eee5",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AI901-2.4.3",
+              "text": "Extract information from audio and video by using Content Understanding",
+              "fingerprint": "2495701ea741",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AI901-2.4.4",
+              "text": "Build a lightweight application with information extraction capabilities by using Content Understanding",
+              "fingerprint": "263352981984",
+              "handsOn": true,
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "retrievedAt": "2026-11-18T20:22:07+00:00",
+  "objectiveCount": 29
+}

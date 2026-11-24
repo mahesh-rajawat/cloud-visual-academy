@@ -1,0 +1,232 @@
+{
+  "id": "ai901-deployment-options",
+  "exam": "ai-901",
+  "title": "Model deployment options and configuration parameters",
+  "objectiveIds": [
+    "AI901-1.2.3"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Identify appropriate deployment types (Global, Data Zone, Standard, Provisioned, Batch) and deployment and request parameters for a model in Microsoft Foundry.",
+  "prerequisites": [
+    {
+      "text": "Choosing a model",
+      "objectiveId": "AI901-1.2.2",
+      "lessonId": "ai901-choose-model"
+    }
+  ],
+  "foundation": [
+    "Before you can call a model in Foundry, you deploy it: you give it a deployment name, choose a deployment type, and set limits.",
+    "The deployment type decides where requests are processed and how you pay: pay per token (Standard types), reserved capacity (Provisioned), or cheap delayed processing (Batch).",
+    "Parameters come in two kinds: deployment settings (name, version, rate limit, content filter) chosen once, and request parameters (temperature, top_p, max output tokens) sent with each call."
+  ],
+  "engineer": [
+    "Global Standard: pay per token; requests may be processed in any Azure region with capacity; highest default quota; the usual starting point. Data at rest stays in your resource's geography.",
+    "Data Zone Standard: pay per token; processing stays within a data zone (EU or US). Standard (regional): processing within the resource's region/geography.",
+    "Provisioned (Global, Data Zone, Regional): reserve provisioned throughput units (PTU) for predictable latency and throughput; billed hourly for capacity (with reservations available), whether or not you use it.",
+    "Batch (Global, Data Zone): submit large files of requests asynchronously; target turnaround 24 hours; about 50% lower cost than Global Standard; separate quota. Developer deployments are for evaluating fine-tuned models.",
+    "Deployment settings: model and version, version upgrade policy (auto-update to default, or pin), deployment name (what code passes as model=), tokens-per-minute rate limit (from regional quota; also sets requests per minute), content filter configuration, and dynamic quota options.",
+    "Request parameters: temperature, top_p, max_output_tokens, stop sequences, response format (structured output), tools; reasoning models may use reasoning effort instead of temperature."
+  ],
+  "animation": {
+    "id": "ai901-deploy-sim",
+    "caption": "Pick a deployment type for each requirement and the setting that fixes each deployment problem."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "model",
+        "label": "Model + version",
+        "x": 0,
+        "y": 100,
+        "kind": "ai"
+      },
+      {
+        "id": "dep",
+        "label": "Deployment: name, type, TPM, content filter",
+        "x": 240,
+        "y": 100,
+        "kind": "service"
+      },
+      {
+        "id": "gs",
+        "label": "Global / Data Zone / Standard: pay per token",
+        "x": 520,
+        "y": 0,
+        "kind": "service"
+      },
+      {
+        "id": "ptu",
+        "label": "Provisioned: reserved PTU",
+        "x": 520,
+        "y": 100,
+        "kind": "service"
+      },
+      {
+        "id": "batch",
+        "label": "Batch: async, ~50% cheaper",
+        "x": 520,
+        "y": 200,
+        "kind": "service"
+      },
+      {
+        "id": "app",
+        "label": "App calls model='deployment name'",
+        "x": 240,
+        "y": 240,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "model",
+        "to": "dep"
+      },
+      {
+        "from": "dep",
+        "to": "gs"
+      },
+      {
+        "from": "dep",
+        "to": "ptu"
+      },
+      {
+        "from": "dep",
+        "to": "batch"
+      },
+      {
+        "from": "app",
+        "to": "dep"
+      }
+    ]
+  },
+  "example": {
+    "title": "Three deployments, one model",
+    "body": [
+      "A European bank deploys the same chat model three times: Data Zone Standard (EU) for its customer assistant, Data Zone Provisioned for its high-volume call-centre copilot that needs steady latency, and Global Batch for nightly classification of non-personal research documents.",
+      "Each has a clear deployment name, a pinned model version and the strictest content filter for the customer-facing app."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Foundry portal > Models + endpoints > Deploy model: choose deployment type, name, version upgrade policy, TPM, content filter.",
+      "Management center > Quota: see TPM quota per region and model."
+    ],
+    "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name chat-model --model-name gpt-5-mini --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50",
+    "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI",
+    "python": "response = openai.responses.create(\n    model=\"chat-model\",\n    input=\"Suggest three names for a cat cafe.\",\n    temperature=1.0,        # more creative\n    max_output_tokens=100,  # cap the answer length\n)\nprint(response.output_text, response.usage.input_tokens, response.usage.output_tokens)"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-deploy-sim",
+    "objective": "Choose deployment types and settings.",
+    "duration": 15,
+    "steps": [
+      "Deployment options and parameters tab: run the default, then each preset.",
+      "Deployment settings tab: answer every situation."
+    ],
+    "expected": [
+      "Data residency → Data Zone or Standard",
+      "Bulk async → Batch"
+    ],
+    "validation": [
+      {
+        "id": "ai-deploy-correct",
+        "text": "Chose the right deployment type"
+      },
+      {
+        "id": "ai-deploy-wrong",
+        "text": "Saw a better option"
+      },
+      {
+        "id": "deploy-setting-correct",
+        "text": "Chose the right setting"
+      },
+      {
+        "id": "deploy-setting-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Using Global Standard when processing must stay in the EU",
+      "Passing the model family name instead of the deployment name"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "429 Too Many Requests.",
+      "cause": "Rate limit (TPM) exceeded.",
+      "fix": "Retry with backoff, raise TPM within quota, or use Provisioned."
+    },
+    {
+      "symptom": "Behaviour changed overnight.",
+      "cause": "Version auto-upgraded.",
+      "fix": "Pin the model version."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Standard vs Provisioned",
+      "difference": "Standard is pay-per-token with shared capacity; Provisioned reserves throughput for predictable performance."
+    },
+    {
+      "service": "Global vs Data Zone",
+      "difference": "Global may process anywhere; Data Zone keeps processing in the EU or US."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Global deployments store your data anywhere.",
+      "reality": "Data at rest stays in your geography; only processing may be global."
+    },
+    {
+      "myth": "Batch gives instant results.",
+      "reality": "It's asynchronous with a 24-hour target."
+    },
+    {
+      "myth": "model= is the model family name.",
+      "reality": "It's your deployment name."
+    }
+  ],
+  "architectureDecisions": [
+    "Start with Global Standard unless residency rules apply.",
+    "Use Provisioned for steady, high, latency-sensitive load.",
+    "Use Batch for large offline jobs."
+  ],
+  "docs": [
+    {
+      "title": "Deployment types",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/foundry-models/concepts/deployment-types"
+    },
+    {
+      "title": "Quotas and limits",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/quotas-limits"
+    },
+    {
+      "title": "Content filter configuration",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/openai/concepts/content-filter"
+    },
+    {
+      "title": "AI-901 study guide",
+      "url": "https://learn.microsoft.com/credentials/certifications/resources/study-guides/ai-901"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

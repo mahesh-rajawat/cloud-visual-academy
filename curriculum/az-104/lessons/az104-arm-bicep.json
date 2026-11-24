@@ -1,0 +1,635 @@
+{
+  "id": "az104-arm-bicep",
+  "exam": "az-104",
+  "title": "ARM templates and Bicep: read, modify, deploy, export and convert",
+  "objectiveIds": [
+    "AZ104-3.1.1",
+    "AZ104-3.1.2",
+    "AZ104-3.1.3",
+    "AZ104-3.1.4",
+    "AZ104-3.1.5"
+  ],
+  "estimatedMinutes": 75,
+  "learningObjective": "Interpret and modify ARM JSON and Bicep files, deploy them safely with validation and what-if, choose the deployment mode, and export or decompile existing infrastructure.",
+  "prerequisites": [
+    {
+      "text": "Infrastructure as code and ARM (AZ-900)",
+      "objectiveId": "AZ900-3.3.5"
+    },
+    {
+      "text": "Resource groups and scopes",
+      "objectiveId": "AZ104-1.3.4",
+      "lessonId": "az104-resource-groups-subscriptions"
+    }
+  ],
+  "foundation": [
+    "Infrastructure as code means describing Azure resources in a file, so you can deploy the same environment again and again without clicking through the portal.",
+    "Azure Resource Manager (ARM) templates are JSON files. Bicep is a simpler language for the same thing: it is converted into ARM JSON before deployment.",
+    "A template has parameters (values you supply at deployment, such as a VM name), variables (values it calculates), resources (what to create) and outputs (values it returns).",
+    "Deployments are declarative: you say what you want, and ARM works out the order and creates or updates resources to match."
+  ],
+  "engineer": [
+    "ARM JSON sections: $schema, contentVersion, parameters (type, defaultValue, allowedValues, minValue/maxValue, metadata; secureString/secureObject for secrets), variables, functions, resources (type, apiVersion, name, location, properties, dependsOn, copy, condition), outputs. Template functions include resourceId(), reference(), concat()/format(), uniqueString(), resourceGroup().location.",
+    "Bicep: param (with decorators such as @secure(), @allowed(), @minLength()), var, resource symbolicName 'type@apiVersion' = {...}, module, output, existing, for-loops and if-conditions. Referencing another resource's symbolic name (vnet.id) creates an implicit dependency; explicit dependsOn is rarely needed. az bicep build compiles to JSON; az bicep decompile converts JSON to Bicep on a best-effort basis.",
+    "ARM deploys resources in parallel unless dependencies say otherwise. A missing dependency causes intermittent 'not found' failures; a circular dependency fails validation.",
+    "Scopes: resource group (az deployment group create), subscription (az deployment sub create, for example resource groups and policy), management group and tenant. Parameters come from the command line, a .parameters.json file or a .bicepparam file; secrets can be pulled from Key Vault references.",
+    "Modes: Incremental (default) adds and updates resources and leaves others unchanged. Complete deletes resources in the resource group that are not in the template (resource group scope only). Always run what-if (az deployment group what-if) before Complete mode or risky changes; az deployment group validate runs preflight validation.",
+    "Exporting: 'Export template' on a resource group captures current state with hard-coded values, and some resource types cannot be exported. The deployment history (Deployments blade) keeps the exact template and parameters used. Templates can be published as template specs for reuse with RBAC."
+  ],
+  "animation": {
+    "id": "arm-sim",
+    "caption": "Edit a template's dependencies and parameters, deploy in Incremental or Complete mode, and export/decompile."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "p",
+        "label": "Parameters + .bicepparam",
+        "x": 0,
+        "y": 0,
+        "kind": "service"
+      },
+      {
+        "id": "t",
+        "label": "main.bicep → ARM JSON",
+        "x": 220,
+        "y": 0,
+        "kind": "service"
+      },
+      {
+        "id": "arm",
+        "label": "Azure Resource Manager",
+        "x": 440,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "vnet",
+        "label": "vnet",
+        "x": 300,
+        "y": 140,
+        "kind": "network"
+      },
+      {
+        "id": "nic",
+        "label": "nic (depends on vnet)",
+        "x": 500,
+        "y": 140,
+        "kind": "network"
+      },
+      {
+        "id": "vm",
+        "label": "vm (depends on nic)",
+        "x": 700,
+        "y": 140,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "p",
+        "to": "t"
+      },
+      {
+        "from": "t",
+        "to": "arm",
+        "label": "validate + what-if"
+      },
+      {
+        "from": "arm",
+        "to": "vnet",
+        "label": "wave 1"
+      },
+      {
+        "from": "vnet",
+        "to": "nic",
+        "label": "wave 2"
+      },
+      {
+        "from": "nic",
+        "to": "vm",
+        "label": "wave 3"
+      }
+    ]
+  },
+  "example": {
+    "title": "Promoting a network template",
+    "body": [
+      "The platform team keeps network.bicep in Git. A pull request changes the subnet prefix; the pipeline runs az deployment group what-if, which shows a Modify on the subnet and no deletes.",
+      "Once approved, the pipeline deploys in Incremental mode with environment-specific .bicepparam files for dev and prod. An old hand-made storage account in the resource group is untouched, because Complete mode is not used."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Azure CLI with Bicep (az bicep install) or Azure PowerShell",
+      "Target resource group or subscription"
+    ],
+    "permissions": [
+      "Microsoft.Resources/deployments/* at the target scope (Contributor or Owner)",
+      "Permissions for every resource type in the template"
+    ],
+    "limits": [
+      "Template size 4 MB; 256 parameters; 800 resources per deployment",
+      "Deployment history keeps up to 800 deployments per resource group (old ones are deleted automatically)",
+      "Complete mode only at resource group scope"
+    ],
+    "portal": [
+      "Deploy a custom template > Build your own template in the editor, or load a quickstart.",
+      "Resource group > Deployments: view history, inputs, outputs and the template; redeploy.",
+      "Resource group > Automation > Export template: download or save to the template library.",
+      "Template specs: create and version reusable templates."
+    ],
+    "cli": "az deployment group validate -g rg-app --template-file main.bicep --parameters main.bicepparam\naz deployment group what-if -g rg-app --template-file main.bicep --parameters main.bicepparam\naz deployment group create -g rg-app --template-file main.bicep --parameters main.bicepparam\naz deployment group create -g rg-app --template-file main.json --parameters @main.parameters.json --mode Complete\naz group export --name rg-app > exported.json\naz bicep decompile --file exported.json\naz bicep build --file main.bicep\naz deployment group export -g rg-app --name main",
+    "powershell": "Test-AzResourceGroupDeployment -ResourceGroupName rg-app -TemplateFile main.bicep -TemplateParameterFile main.parameters.json\nNew-AzResourceGroupDeployment -ResourceGroupName rg-app -TemplateFile main.bicep -TemplateParameterFile main.parameters.json -WhatIf\nNew-AzResourceGroupDeployment -ResourceGroupName rg-app -TemplateFile main.bicep -TemplateParameterFile main.parameters.json -Mode Incremental\nExport-AzResourceGroup -ResourceGroupName rg-app -Path .\\exported.json\nSave-AzResourceGroupDeploymentTemplate -ResourceGroupName rg-app -DeploymentName main",
+    "bicep": "@description('Storage SKU')\n@allowed([ 'Standard_LRS', 'Standard_ZRS' ])\nparam storageSku string = 'Standard_LRS'\nparam location string = resourceGroup().location\n@secure()\nparam adminPassword string\n\nresource vnet 'Microsoft.Network/virtualNetworks@2023-09-01' = {\n  name: 'vnet-app'\n  location: location\n  properties: {\n    addressSpace: { addressPrefixes: [ '10.20.0.0/16' ] }\n    subnets: [ { name: 'snet-app', properties: { addressPrefix: '10.20.1.0/24' } } ]\n  }\n}\n\nresource nic 'Microsoft.Network/networkInterfaces@2023-09-01' = {\n  name: 'nic-vm1'\n  location: location\n  properties: {\n    ipConfigurations: [ { name: 'ipconfig1', properties: { subnet: { id: vnet.properties.subnets[0].id } } } ]\n  }\n}\n\noutput nicId string = nic.id"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "arm-sim",
+    "objective": "Deploy a template, fix dependency and parameter errors, and understand what Complete mode deletes.",
+    "duration": 20,
+    "steps": [
+      "Run the default Bicep deployment and read the deployment waves.",
+      "Apply 'Missing dependency', then 'Circular dependency' and 'Parameter not in allowedValues'. Read each failure.",
+      "Open Incremental vs Complete. Compare what happens to stlegacy, with and without a lock.",
+      "Open Export and convert. Export, then decompile."
+    ],
+    "expected": [
+      "Waves [vnet, storage] → [nic] → [vm]",
+      "Validation errors for cycles and allowedValues",
+      "Complete mode deletes stlegacy unless locked"
+    ],
+    "validation": [
+      {
+        "id": "arm-failed",
+        "text": "Saw a deployment fail validation"
+      },
+      {
+        "id": "arm-deployed",
+        "text": "Deployed successfully"
+      },
+      {
+        "id": "complete-mode",
+        "text": "Ran a Complete-mode deployment"
+      },
+      {
+        "id": "template-decompiled",
+        "text": "Exported and decompiled a template"
+      }
+    ],
+    "failureScenarios": [
+      "Missing dependsOn",
+      "Circular dependency",
+      "Complete mode deleting unmanaged resources"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "InvalidTemplate: circular dependency detected.",
+      "cause": "Two resources depend on each other directly or indirectly.",
+      "fix": "Remove the dependency that is not needed, or split into modules."
+    },
+    {
+      "symptom": "ResourceNotFound for a subnet during deployment, but it works on retry.",
+      "cause": "Missing dependency causes a race.",
+      "fix": "Reference the VNet's symbolic name (Bicep) or add dependsOn with resourceId() (JSON)."
+    },
+    {
+      "symptom": "Deployment deleted resources unexpectedly.",
+      "cause": "Complete mode removed resources not in the template.",
+      "fix": "Use Incremental, or run what-if first; protect key resources with locks."
+    },
+    {
+      "symptom": "Exported template fails to redeploy.",
+      "cause": "Export contains hard-coded values and read-only properties, and may miss unsupported types.",
+      "fix": "Clean it up and parameterise, or start from the deployment history or a quickstart."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Terraform",
+      "difference": "Multi-cloud IaC with a state file; ARM/Bicep has no state file, because Azure is the source of truth."
+    },
+    {
+      "service": "AWS CloudFormation",
+      "difference": "AWS's declarative templates (JSON/YAML); stacks are similar to deployments plus deployment stacks."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Bicep is deployed by a separate Bicep service.",
+      "reality": "Bicep is compiled to ARM JSON and deployed by ARM."
+    },
+    {
+      "myth": "Incremental mode deletes resources removed from the template.",
+      "reality": "Only Complete mode deletes them."
+    },
+    {
+      "myth": "dependsOn is always required in Bicep.",
+      "reality": "Symbolic references create implicit dependencies."
+    }
+  ],
+  "architectureDecisions": [
+    "Author in Bicep, store in Git, deploy through pipelines with what-if.",
+    "Use modules for reusable components and template specs to share them.",
+    "Keep secrets out of parameter files: use @secure() and Key Vault references."
+  ],
+  "docs": [
+    {
+      "title": "Template structure and syntax",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/templates/syntax"
+    },
+    {
+      "title": "What is Bicep?",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview"
+    },
+    {
+      "title": "Deployment modes",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-modes"
+    },
+    {
+      "title": "What-if operation",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/templates/deploy-what-if"
+    },
+    {
+      "title": "Export template in the portal",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/templates/export-template-portal"
+    },
+    {
+      "title": "Decompiling ARM template JSON to Bicep",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/bicep/decompile"
+    },
+    {
+      "title": "Resource dependencies in Bicep",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/bicep/resource-dependencies"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Describe your infrastructure in a file, and let Azure build it the same way every time.",
+    "learn": [
+      "Why infrastructure as code",
+      "Parts of an ARM template",
+      "The same thing in Bicep",
+      "Deploying, modes and what-if",
+      "Export and decompile"
+    ],
+    "nodes": [
+      {
+        "id": "file",
+        "label": "Template file",
+        "x": 130,
+        "y": 220,
+        "kind": "service",
+        "sub": "JSON or Bicep"
+      },
+      {
+        "id": "param",
+        "label": "Parameters",
+        "x": 130,
+        "y": 80,
+        "kind": "service",
+        "sub": "name, location"
+      },
+      {
+        "id": "arm",
+        "label": "Resource Manager",
+        "x": 400,
+        "y": 220,
+        "kind": "service",
+        "sub": "validates + deploys"
+      },
+      {
+        "id": "rg",
+        "label": "Resource group",
+        "x": 660,
+        "y": 220,
+        "kind": "identity"
+      },
+      {
+        "id": "res",
+        "label": "Storage + VNet",
+        "x": 660,
+        "y": 380,
+        "kind": "storage"
+      },
+      {
+        "id": "exp",
+        "label": "Export template",
+        "x": 400,
+        "y": 380,
+        "kind": "service",
+        "sub": "from the portal"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Click-ops",
+        "title": "Building the same environment by hand, again",
+        "body": [
+          "Dev, test and production should be identical. Clicking through the portal three times guarantees small differences."
+        ],
+        "show": [
+          "rg"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "ARM JSON",
+        "title": "An ARM template is a JSON description",
+        "body": [
+          "Sections: $schema and contentVersion; parameters (values you supply at deploy time); variables (values worked out inside); resources (what to create, with type, apiVersion, name, location and properties); outputs (values returned).",
+          "Functions like [parameters('name')] and [resourceGroup().location] fill in values."
+        ],
+        "show": [
+          "rg",
+          "file",
+          "param"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "param",
+            "to": "file",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Bicep",
+        "title": "Bicep says the same thing more simply",
+        "body": [
+          "Bicep is a cleaner language for the same templates: param, var, resource and output keywords, no brackets and quotes everywhere. It is converted to ARM JSON when you deploy.",
+          "Example: param location string = resourceGroup().location."
+        ],
+        "show": [
+          "rg",
+          "file",
+          "param"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "param",
+            "to": "file"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "On the exam, read templates calmly: find the parameter, follow where it is used, and check the resource type and SKU."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Deploy",
+        "title": "Deploy, preview and choose a mode",
+        "body": [
+          "Deploy with the portal (Deploy a custom template), az deployment group create, or New-AzResourceGroupDeployment. Use what-if to preview changes.",
+          "Incremental mode (default) adds and updates, leaving other resources alone. Complete mode deletes resources in the group that are not in the template."
+        ],
+        "show": [
+          "rg",
+          "file",
+          "param",
+          "arm",
+          "res"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "param",
+            "to": "file"
+          },
+          {
+            "from": "file",
+            "to": "arm",
+            "label": "deploy",
+            "fresh": true
+          },
+          {
+            "from": "arm",
+            "to": "rg",
+            "fresh": true
+          },
+          {
+            "from": "rg",
+            "to": "res",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Complete mode can delete resources you forgot to put in the template."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Export",
+        "title": "Start from what already exists",
+        "body": [
+          "Export template (resource group or resource > Automation > Export template) produces ARM JSON from deployed resources. az bicep decompile converts that JSON into a Bicep file. Clean it up and add parameters before reusing it."
+        ],
+        "show": [
+          "rg",
+          "file",
+          "param",
+          "arm",
+          "res",
+          "exp"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "param",
+            "to": "file"
+          },
+          {
+            "from": "file",
+            "to": "arm",
+            "label": "deploy"
+          },
+          {
+            "from": "arm",
+            "to": "rg"
+          },
+          {
+            "from": "rg",
+            "to": "res"
+          },
+          {
+            "from": "res",
+            "to": "exp",
+            "fresh": true
+          },
+          {
+            "from": "exp",
+            "to": "file",
+            "label": "decompile",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Templates",
+        "body": [
+          "Write it once, deploy it many times."
+        ],
+        "show": [
+          "rg",
+          "file",
+          "param",
+          "arm",
+          "res",
+          "exp"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "param",
+            "to": "file"
+          },
+          {
+            "from": "file",
+            "to": "arm",
+            "label": "deploy"
+          },
+          {
+            "from": "arm",
+            "to": "rg"
+          },
+          {
+            "from": "rg",
+            "to": "res"
+          },
+          {
+            "from": "res",
+            "to": "exp"
+          },
+          {
+            "from": "exp",
+            "to": "file",
+            "label": "decompile"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "ARM: parameters, variables, resources, outputs",
+          "Bicep: same thing, simpler syntax",
+          "Incremental (default) vs Complete mode",
+          "what-if previews changes",
+          "Export template, then az bicep decompile"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Deploy a storage account from a Bicep file, then export it",
+    "minutes": 25,
+    "costLevel": "free",
+    "cost": "Cents for one empty storage account.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Cloud Shell: select the >_ icon at the top of the portal, choose Bash, and 'No storage account required' if asked.",
+        "see": "A Bash prompt."
+      },
+      {
+        "do": "Paste the whole box below into Cloud Shell and press Enter. It creates the file main.bicep.",
+        "see": "No output. Check the file with: cat main.bicep",
+        "code": "cat > main.bicep <<'EOF'\nparam name string\nparam location string = resourceGroup().location\nresource sa 'Microsoft.Storage/storageAccounts@2023-05-01' = {\n  name: name\n  location: location\n  sku: { name: 'Standard_LRS' }\n  kind: 'StorageV2'\n}\noutput id string = sa.id\nEOF"
+      },
+      {
+        "do": "Preview: az deployment group what-if -g rg-az104-lab --template-file main.bicep --parameters name=st<yourinitials>bicep1",
+        "see": "A list showing one resource to Create (+)."
+      },
+      {
+        "do": "Deploy: az deployment group create -g rg-az104-lab --template-file main.bicep --parameters name=st<yourinitials>bicep1",
+        "see": "JSON output with provisioningState: Succeeded and the id output."
+      },
+      {
+        "do": "In the portal open rg-az104-lab > Settings > Deployments.",
+        "see": "The 'main' deployment with its inputs, outputs and the template used."
+      },
+      {
+        "do": "Open rg-az104-lab > Automation > Export template.",
+        "see": "An ARM JSON template describing everything in the group. Select Download."
+      },
+      {
+        "do": "Back in Cloud Shell, export the group to JSON and convert it to Bicep:",
+        "see": "A new file exported.bicep. Read it with: cat exported.bicep",
+        "code": "az group export -n rg-az104-lab > exported.json\naz bicep decompile --file exported.json"
+      }
+    ],
+    "check": [
+      "The storage account was created by your Bicep file.",
+      "You have an exported template and a decompiled Bicep file."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Quickstart: create Bicep files with Visual Studio Code",
+        "url": "https://learn.microsoft.com/azure/azure-resource-manager/bicep/quickstart-create-bicep-use-visual-studio-code"
+      },
+      {
+        "title": "Understand the structure of ARM templates",
+        "url": "https://learn.microsoft.com/azure/azure-resource-manager/templates/syntax"
+      },
+      {
+        "title": "Use the portal to export a template",
+        "url": "https://learn.microsoft.com/azure/azure-resource-manager/templates/export-template-portal"
+      },
+      {
+        "title": "Decompile ARM JSON to Bicep",
+        "url": "https://learn.microsoft.com/azure/azure-resource-manager/bicep/decompile"
+      }
+    ]
+  }
+}

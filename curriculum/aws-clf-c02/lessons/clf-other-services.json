@@ -1,0 +1,809 @@
+{
+  "id": "clf-other-services",
+  "exam": "aws-clf-c02",
+  "title": "Integration, business apps, developer tools, end-user computing, web/mobile, IoT and support",
+  "objectiveIds": [
+    "CLFC02-3.8.1",
+    "CLFC02-3.8.2",
+    "CLFC02-3.8.3",
+    "CLFC02-3.8.4",
+    "CLFC02-3.8.5",
+    "CLFC02-3.8.6",
+    "CLFC02-3.8.7",
+    "CLFC02-3.8.8",
+    "CLFC02-3.8.9",
+    "CLFC02-3.8.10",
+    "CLFC02-3.8.11",
+    "CLFC02-3.8.12",
+    "CLFC02-3.8.13",
+    "CLFC02-3.8.14"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Choose the right service for messaging and notifications, business applications, business support, developing and troubleshooting applications, delivering desktops/apps to end users, building web and mobile front ends, and managing IoT devices.",
+  "prerequisites": [
+    {
+      "text": "Compute services",
+      "objectiveId": "CLFC02-3.3.4",
+      "lessonId": "clf-compute"
+    }
+  ],
+  "foundation": [
+    "Application integration: Amazon SNS sends notifications to many subscribers, Amazon SQS queues messages between components, Amazon EventBridge routes events between services.",
+    "Business apps: Amazon Connect for contact centers, Amazon SES for email.",
+    "Developer tools: AWS CodeBuild, AWS CodePipeline, AWS X-Ray. End-user computing: Amazon WorkSpaces, Amazon AppStream 2.0, Amazon WorkSpaces Secure Browser. Front end: AWS Amplify. IoT: AWS IoT Core. Help: AWS Support plans."
+  ],
+  "engineer": [
+    "SNS (pub/sub, push to email, SMS, HTTP, Lambda, SQS; fan-out), SQS (standard and FIFO queues, decoupling, buffering), EventBridge (event bus, rules, scheduler, SaaS integrations), Step Functions (workflow orchestration).",
+    "Amazon Connect (omnichannel cloud contact center), Amazon SES (transactional and marketing email, inbound email processing).",
+    "CodeBuild (managed builds/tests), CodePipeline (release pipelines), X-Ray (distributed tracing and service maps). AWS CLI, CodeDeploy and Cloud9-style tooling also support development.",
+    "WorkSpaces (persistent virtual desktops), AppStream 2.0 (stream individual desktop applications to a browser), WorkSpaces Secure Browser (managed browser for internal websites and SaaS).",
+    "AWS Amplify (build, connect and host full-stack web and mobile apps), AWS IoT Core (connect devices securely with MQTT, rules engine).",
+    "Business support options: AWS Support plans (Basic plus paid plans), AWS re:Post, AWS Professional Services, partners; see task 4.3 for detail."
+  ],
+  "animation": {
+    "id": "aws-tech-sim",
+    "caption": "Open 'Other service categories'."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Order service",
+        "x": 0,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "sns",
+        "label": "SNS topic",
+        "x": 200,
+        "y": 0,
+        "kind": "network"
+      },
+      {
+        "id": "sqs",
+        "label": "SQS queue",
+        "x": 200,
+        "y": 130,
+        "kind": "network"
+      },
+      {
+        "id": "eb",
+        "label": "EventBridge bus",
+        "x": 400,
+        "y": 60,
+        "kind": "network"
+      },
+      {
+        "id": "email",
+        "label": "SES email",
+        "x": 600,
+        "y": 0,
+        "kind": "service"
+      },
+      {
+        "id": "worker",
+        "label": "Worker (Lambda)",
+        "x": 600,
+        "y": 130,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "app",
+        "to": "sns",
+        "label": "publish"
+      },
+      {
+        "from": "app",
+        "to": "sqs"
+      },
+      {
+        "from": "sns",
+        "to": "email"
+      },
+      {
+        "from": "sqs",
+        "to": "worker"
+      },
+      {
+        "from": "app",
+        "to": "eb"
+      }
+    ]
+  },
+  "example": {
+    "title": "An event-driven retailer",
+    "body": [
+      "Orders go into an SQS queue processed by workers; failures publish to an SNS topic that emails and texts the on-call team; EventBridge rules trigger fraud checks. Builds run in CodeBuild through CodePipeline and X-Ray traces slow calls. Store staff use WorkSpaces; the mobile app is built with Amplify; warehouse sensors connect through IoT Core."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "SNS > Topics > Create; SQS > Create queue.",
+      "EventBridge > Rules.",
+      "CodePipeline > Create pipeline.",
+      "WorkSpaces > Launch WorkSpaces."
+    ],
+    "cli": "aws sns create-topic --name order-alerts\naws sqs create-queue --queue-name orders\naws events put-rule --name nightly --schedule-expression \"cron(0 2 * * ? *)\"\naws codepipeline list-pipelines",
+    "powershell": "New-SNSTopic -Name order-alerts\nNew-SQSQueue -QueueName orders\nGet-CPPipelineList"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-tech-sim",
+    "objective": "Practise choosing the right service.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Other service categories' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-other-correct",
+        "text": "Chose a correct service"
+      },
+      {
+        "id": "aws-other-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Messages lost when a worker is down.",
+      "cause": "Direct synchronous calls.",
+      "fix": "Decouple with SQS."
+    },
+    {
+      "symptom": "Hard to find which microservice is slow.",
+      "cause": "No tracing.",
+      "fix": "Instrument with AWS X-Ray."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure",
+      "difference": "SNS ≈ Event Grid/Notification Hubs; SQS ≈ Queue Storage/Service Bus queues; EventBridge ≈ Event Grid; WorkSpaces ≈ Azure Virtual Desktop; Amplify ≈ Static Web Apps; IoT Core ≈ IoT Hub."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "SNS stores messages for later processing.",
+      "reality": "SNS pushes; SQS stores messages until consumed."
+    },
+    {
+      "myth": "AppStream 2.0 provides full persistent desktops.",
+      "reality": "It streams applications; WorkSpaces provides desktops."
+    }
+  ],
+  "architectureDecisions": [
+    "Use SQS for decoupling, SNS for fan-out notifications, EventBridge for event routing."
+  ],
+  "docs": [
+    {
+      "title": "Amazon SNS",
+      "url": "https://docs.aws.amazon.com/sns/latest/dg/welcome.html"
+    },
+    {
+      "title": "Amazon SQS",
+      "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html"
+    },
+    {
+      "title": "Amazon EventBridge",
+      "url": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html"
+    },
+    {
+      "title": "Amazon Connect",
+      "url": "https://docs.aws.amazon.com/connect/latest/adminguide/what-is-amazon-connect.html"
+    },
+    {
+      "title": "Amazon SES",
+      "url": "https://docs.aws.amazon.com/ses/latest/dg/Welcome.html"
+    },
+    {
+      "title": "AWS X-Ray",
+      "url": "https://docs.aws.amazon.com/xray/latest/devguide/aws-xray.html"
+    },
+    {
+      "title": "Amazon WorkSpaces",
+      "url": "https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces.html"
+    },
+    {
+      "title": "Amazon AppStream 2.0",
+      "url": "https://docs.aws.amazon.com/appstream2/latest/developerguide/what-is-appstream.html"
+    },
+    {
+      "title": "AWS Amplify",
+      "url": "https://docs.aws.amazon.com/amplify/latest/userguide/welcome.html"
+    },
+    {
+      "title": "AWS IoT Core",
+      "url": "https://docs.aws.amazon.com/iot/latest/developerguide/what-is-aws-iot.html"
+    },
+    {
+      "title": "AWS Support plans",
+      "url": "https://aws.amazon.com/premiumsupport/plans/"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Follow one order through queues, events and emails, then meet the tools around the app.",
+    "learn": [
+      "SQS, SNS and EventBridge: messages, alerts and events",
+      "Amazon SES and Amazon Connect",
+      "Developer tools: CodePipeline, CodeBuild, X-Ray",
+      "AWS Amplify for web and mobile",
+      "End-user computing and IoT"
+    ],
+    "nodes": [
+      {
+        "id": "web",
+        "label": "Web / mobile app",
+        "x": 90,
+        "y": 80,
+        "kind": "user",
+        "sub": "built with Amplify"
+      },
+      {
+        "id": "sqs",
+        "label": "Amazon SQS",
+        "x": 290,
+        "y": 80,
+        "kind": "service",
+        "sub": "queue: decouple"
+      },
+      {
+        "id": "svc",
+        "label": "Order service",
+        "x": 490,
+        "y": 80,
+        "kind": "compute"
+      },
+      {
+        "id": "eb",
+        "label": "EventBridge",
+        "x": 690,
+        "y": 80,
+        "kind": "service",
+        "sub": "route events, schedules"
+      },
+      {
+        "id": "sns",
+        "label": "Amazon SNS",
+        "x": 690,
+        "y": 220,
+        "kind": "service",
+        "sub": "fan-out, alerts"
+      },
+      {
+        "id": "ses",
+        "label": "Amazon SES",
+        "x": 490,
+        "y": 220,
+        "kind": "service",
+        "sub": "send email"
+      },
+      {
+        "id": "con",
+        "label": "Amazon Connect",
+        "x": 290,
+        "y": 220,
+        "kind": "user",
+        "sub": "contact center"
+      },
+      {
+        "id": "dev",
+        "label": "CodePipeline + Build",
+        "x": 140,
+        "y": 370,
+        "kind": "service",
+        "sub": "release, X-Ray traces"
+      },
+      {
+        "id": "euc",
+        "label": "WorkSpaces, AppStream",
+        "x": 400,
+        "y": 370,
+        "kind": "compute",
+        "sub": "desktops / apps"
+      },
+      {
+        "id": "iot",
+        "label": "AWS IoT Core",
+        "x": 660,
+        "y": 370,
+        "kind": "network",
+        "sub": "devices"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Busy order",
+        "title": "An order must trigger five things",
+        "body": [
+          "When a customer orders: charge the card, update stock, email a receipt, alert the warehouse, and survive a 10x spike on sale days.",
+          "If one part is slow, the others shouldn't fail."
+        ],
+        "show": [
+          "web",
+          "svc"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "web",
+            "to": "svc",
+            "label": "order",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "SQS",
+        "title": "SQS: a queue between parts",
+        "body": [
+          "Amazon SQS is a message queue. The web app drops the order in the queue and returns at once, and the order service takes messages at its own pace.",
+          "If the order service is down for a minute, nothing is lost. This is called decoupling."
+        ],
+        "show": [
+          "web",
+          "svc",
+          "sqs"
+        ],
+        "focus": [
+          "sqs"
+        ],
+        "edges": [
+          {
+            "from": "web",
+            "to": "svc",
+            "label": "order"
+          },
+          {
+            "from": "web",
+            "to": "sqs",
+            "label": "send",
+            "fresh": true
+          },
+          {
+            "from": "sqs",
+            "to": "svc",
+            "label": "poll",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "SNS + EventBridge",
+        "title": "SNS fans out; EventBridge routes events",
+        "body": [
+          "Amazon SNS is publish/subscribe: one message goes to many subscribers at once (queues, Lambda, email, SMS). It's great for alerts and notifications.",
+          "Amazon EventBridge is an event bus. Rules match events from your apps, AWS services or SaaS and send them to targets. It also runs schedules."
+        ],
+        "show": [
+          "web",
+          "svc",
+          "sqs",
+          "eb",
+          "sns"
+        ],
+        "focus": [
+          "sns",
+          "eb"
+        ],
+        "edges": [
+          {
+            "from": "web",
+            "to": "svc",
+            "label": "order"
+          },
+          {
+            "from": "web",
+            "to": "sqs",
+            "label": "send"
+          },
+          {
+            "from": "sqs",
+            "to": "svc",
+            "label": "poll"
+          },
+          {
+            "from": "svc",
+            "to": "eb",
+            "label": "OrderPlaced",
+            "fresh": true
+          },
+          {
+            "from": "eb",
+            "to": "sns",
+            "label": "rule",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Queue for one consumer at its own pace = SQS. Push to many subscribers = SNS. Route events by rules = EventBridge."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Business apps",
+        "title": "Email customers, answer calls",
+        "body": [
+          "Amazon SES sends transactional and marketing email, such as order receipts.",
+          "Amazon Connect is a cloud contact center for customer calls and chats, with no phone hardware to buy."
+        ],
+        "show": [
+          "web",
+          "svc",
+          "sqs",
+          "eb",
+          "sns",
+          "ses",
+          "con"
+        ],
+        "focus": [
+          "ses",
+          "con"
+        ],
+        "edges": [
+          {
+            "from": "web",
+            "to": "svc",
+            "label": "order"
+          },
+          {
+            "from": "web",
+            "to": "sqs",
+            "label": "send"
+          },
+          {
+            "from": "sqs",
+            "to": "svc",
+            "label": "poll"
+          },
+          {
+            "from": "svc",
+            "to": "eb",
+            "label": "OrderPlaced"
+          },
+          {
+            "from": "eb",
+            "to": "sns",
+            "label": "rule"
+          },
+          {
+            "from": "svc",
+            "to": "ses",
+            "label": "receipt",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Dev tools",
+        "title": "Ship and debug the code",
+        "body": [
+          "AWS CodePipeline automates the release steps from commit to production. AWS CodeBuild compiles and tests the code.",
+          "AWS X-Ray traces each request through your services so you can see which part is slow or failing."
+        ],
+        "show": [
+          "web",
+          "svc",
+          "sqs",
+          "eb",
+          "sns",
+          "ses",
+          "con",
+          "dev"
+        ],
+        "focus": [
+          "dev"
+        ],
+        "edges": [
+          {
+            "from": "web",
+            "to": "svc",
+            "label": "order"
+          },
+          {
+            "from": "web",
+            "to": "sqs",
+            "label": "send"
+          },
+          {
+            "from": "sqs",
+            "to": "svc",
+            "label": "poll"
+          },
+          {
+            "from": "svc",
+            "to": "eb",
+            "label": "OrderPlaced"
+          },
+          {
+            "from": "eb",
+            "to": "sns",
+            "label": "rule"
+          },
+          {
+            "from": "svc",
+            "to": "ses",
+            "label": "receipt"
+          },
+          {
+            "from": "dev",
+            "to": "svc",
+            "label": "deploy",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Amplify",
+        "title": "Build the frontend with Amplify",
+        "body": [
+          "AWS Amplify helps build and host web and mobile frontends and connect them to backends for sign-in, APIs and storage, with CI/CD from your Git repository."
+        ],
+        "show": [
+          "web",
+          "svc",
+          "sqs",
+          "eb",
+          "sns",
+          "ses",
+          "con",
+          "dev"
+        ],
+        "focus": [
+          "web"
+        ],
+        "edges": [
+          {
+            "from": "web",
+            "to": "svc",
+            "label": "order"
+          },
+          {
+            "from": "web",
+            "to": "sqs",
+            "label": "send"
+          },
+          {
+            "from": "sqs",
+            "to": "svc",
+            "label": "poll"
+          },
+          {
+            "from": "svc",
+            "to": "eb",
+            "label": "OrderPlaced"
+          },
+          {
+            "from": "eb",
+            "to": "sns",
+            "label": "rule"
+          },
+          {
+            "from": "svc",
+            "to": "ses",
+            "label": "receipt"
+          },
+          {
+            "from": "dev",
+            "to": "svc",
+            "label": "deploy"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Desktops + IoT",
+        "title": "Desktops for staff, sensors in the warehouse",
+        "body": [
+          "Amazon WorkSpaces gives staff virtual desktops. Amazon AppStream 2.0 streams single apps to a browser. WorkSpaces Secure Browser gives a managed browser for internal web apps.",
+          "AWS IoT Core connects and manages the warehouse's sensors and scanners."
+        ],
+        "show": [
+          "web",
+          "svc",
+          "sqs",
+          "eb",
+          "sns",
+          "ses",
+          "con",
+          "dev",
+          "euc",
+          "iot"
+        ],
+        "focus": [
+          "euc",
+          "iot"
+        ],
+        "edges": [
+          {
+            "from": "web",
+            "to": "svc",
+            "label": "order"
+          },
+          {
+            "from": "web",
+            "to": "sqs",
+            "label": "send"
+          },
+          {
+            "from": "sqs",
+            "to": "svc",
+            "label": "poll"
+          },
+          {
+            "from": "svc",
+            "to": "eb",
+            "label": "OrderPlaced"
+          },
+          {
+            "from": "eb",
+            "to": "sns",
+            "label": "rule"
+          },
+          {
+            "from": "svc",
+            "to": "ses",
+            "label": "receipt"
+          },
+          {
+            "from": "dev",
+            "to": "svc",
+            "label": "deploy"
+          },
+          {
+            "from": "iot",
+            "to": "eb",
+            "label": "device events",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Stuck? AWS Support plans, from Basic to Enterprise, are how you get business and technical help."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "The glue around your app",
+        "body": [
+          "Small services, each with one job."
+        ],
+        "show": [
+          "web",
+          "svc",
+          "sqs",
+          "eb",
+          "sns",
+          "ses",
+          "con",
+          "dev",
+          "euc",
+          "iot"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "web",
+            "to": "svc",
+            "label": "order"
+          },
+          {
+            "from": "web",
+            "to": "sqs",
+            "label": "send"
+          },
+          {
+            "from": "sqs",
+            "to": "svc",
+            "label": "poll"
+          },
+          {
+            "from": "svc",
+            "to": "eb",
+            "label": "OrderPlaced"
+          },
+          {
+            "from": "eb",
+            "to": "sns",
+            "label": "rule"
+          },
+          {
+            "from": "svc",
+            "to": "ses",
+            "label": "receipt"
+          },
+          {
+            "from": "dev",
+            "to": "svc",
+            "label": "deploy"
+          },
+          {
+            "from": "iot",
+            "to": "eb",
+            "label": "device events"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "SQS queues, SNS fan-out and alerts, EventBridge rules and schedules",
+          "SES email; Connect contact center",
+          "CodePipeline + CodeBuild release; X-Ray traces",
+          "Amplify for web and mobile frontends",
+          "WorkSpaces, AppStream 2.0, Secure Browser; IoT Core for devices"
+        ]
+      }
+    ]
+  }
+}

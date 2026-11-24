@@ -1,0 +1,563 @@
+{
+  "id": "az104-storage-network",
+  "exam": "az-104",
+  "title": "Storage firewalls, virtual network rules and private endpoints",
+  "objectiveIds": [
+    "AZ104-2.1.1"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Restrict a storage account to specific public IPs, subnets and private endpoints, and predict which clients can connect.",
+  "prerequisites": [
+    {
+      "text": "VNets and subnets",
+      "lessonId": "az104-vnet-subnets",
+      "objectiveId": "AZ104-4.1.1"
+    },
+    {
+      "text": "Public and private endpoints (AZ-900)",
+      "objectiveId": "AZ900-2.2.6"
+    }
+  ],
+  "foundation": [
+    "By default a storage account accepts connections from any network, as long as the request is authorised. The storage firewall lets you narrow that down.",
+    "You can allow specific public IP addresses (your office), specific subnets of your virtual networks, or turn public access off completely and use private endpoints.",
+    "The network check happens first. Even with a valid key or SAS token, a request from a blocked network gets 403."
+  ],
+  "engineer": [
+    "Public network access: Enabled from all networks; Enabled from selected virtual networks and IP addresses (default action Deny plus allow rules); or Disabled (only private endpoints work).",
+    "IP network rules accept public IPv4 addresses and ranges only (no RFC 1918 ranges). /31 and /32 prefixes are not supported (enter single addresses without a prefix), and there are up to 400 IP rules. IP rules have no effect on requests from Azure services in the same region, which use private Azure addresses; use VNet rules, private endpoints, resource instance rules or the trusted services exception instead.",
+    "Virtual network rules allow a subnet. The subnet must have the Microsoft.Storage (or Microsoft.Storage.Global) service endpoint, which routes traffic over the Azure backbone with the subnet's identity while still using the storage account's public endpoint.",
+    "Private endpoints give the account a private IP from your VNet (one endpoint per sub-resource: blob, file, dfs, queue, table, web). Traffic through a private endpoint is not evaluated by the firewall. DNS must resolve <account>.blob.core.windows.net to the private IP, normally through the privatelink.blob.core.windows.net private DNS zone.",
+    "Exceptions: allow Azure services on the trusted services list (for example Azure Backup, Event Grid, Azure Monitor diagnostic logs), allow read access to logging/metrics, and resource instance rules for specific resources by resource ID.",
+    "Firewall rules apply to every protocol, including SMB to Azure Files and REST. They also apply to the portal: browsing data from a blocked client IP fails even for Owners."
+  ],
+  "animation": {
+    "id": "storage-access-sim",
+    "caption": "Send requests from the internet, subnets, private endpoints and Azure services through the storage firewall."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "office",
+        "label": "Office 203.0.113.0/24 (IP rule)",
+        "x": 0,
+        "y": 0,
+        "kind": "user"
+      },
+      {
+        "id": "snet",
+        "label": "snet-app + service endpoint (VNet rule)",
+        "x": 0,
+        "y": 110,
+        "kind": "network"
+      },
+      {
+        "id": "pe",
+        "label": "Private endpoint 10.0.5.4",
+        "x": 0,
+        "y": 220,
+        "kind": "network"
+      },
+      {
+        "id": "fw",
+        "label": "Storage firewall (default Deny)",
+        "x": 330,
+        "y": 55,
+        "kind": "security"
+      },
+      {
+        "id": "st",
+        "label": "stcontoso (blob, file)",
+        "x": 620,
+        "y": 110,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "office",
+        "to": "fw"
+      },
+      {
+        "from": "snet",
+        "to": "fw"
+      },
+      {
+        "from": "fw",
+        "to": "st",
+        "label": "public endpoint"
+      },
+      {
+        "from": "pe",
+        "to": "st",
+        "label": "private IP, firewall not applied"
+      }
+    ]
+  },
+  "example": {
+    "title": "Locking down a data account",
+    "body": [
+      "A finance storage account is reachable only from the app subnet (service endpoint plus VNet rule) and the head-office public IP range. Azure Backup still works because 'Allow trusted Azure services' is on.",
+      "Later the security team disables public network access entirely and adds private endpoints for blob and file, with private DNS zones linked to the hub VNet. On-premises clients reach it over ExpressRoute using the private IPs."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Subnet service endpoint Microsoft.Storage for VNet rules",
+      "Private DNS zone for private endpoints"
+    ],
+    "permissions": [
+      "Storage Account Contributor (or Microsoft.Storage/storageAccounts/write) to change network rules",
+      "Microsoft.Network/virtualNetworks/subnets/joinViaServiceEndpoint/action to add a VNet rule"
+    ],
+    "limits": [
+      "Up to 400 IP network rules",
+      "IP rules accept public addresses only",
+      "IP rules do not apply to same-region Azure traffic"
+    ],
+    "portal": [
+      "Storage account > Security + networking > Networking > Firewalls and virtual networks: Public network access = Enabled from selected virtual networks and IP addresses.",
+      "Add existing virtual network: pick the VNet and subnet (the portal can enable the service endpoint).",
+      "Firewall: add IP addresses or CIDR ranges; optionally 'Add your client IP address'.",
+      "Exceptions: Allow Azure services on the trusted services list.",
+      "Private endpoint connections > + Private endpoint: choose the target sub-resource (blob, file…) and integrate with a private DNS zone."
+    ],
+    "cli": "az network vnet subnet update -g rg-net --vnet-name vnet-prod -n snet-app --service-endpoints Microsoft.Storage\naz storage account update -g rg-data -n stcontoso --default-action Deny --bypass AzureServices\naz storage account network-rule add -g rg-data --account-name stcontoso --ip-address 203.0.113.0/24\naz storage account network-rule add -g rg-data --account-name stcontoso --vnet-name vnet-prod --subnet snet-app\naz network private-endpoint create -g rg-net -n pe-stcontoso-blob --vnet-name vnet-prod --subnet snet-pe \\\n  --private-connection-resource-id $(az storage account show -g rg-data -n stcontoso --query id -o tsv) \\\n  --group-id blob --connection-name pe-stcontoso-blob\naz storage account update -g rg-data -n stcontoso --public-network-access Disabled",
+    "powershell": "Update-AzStorageAccountNetworkRuleSet -ResourceGroupName rg-data -Name stcontoso -DefaultAction Deny -Bypass AzureServices\nAdd-AzStorageAccountNetworkRule -ResourceGroupName rg-data -Name stcontoso -IPAddressOrRange '203.0.113.0/24'\n$subnet = Get-AzVirtualNetwork -ResourceGroupName rg-net -Name vnet-prod | Get-AzVirtualNetworkSubnetConfig -Name snet-app\nAdd-AzStorageAccountNetworkRule -ResourceGroupName rg-data -Name stcontoso -VirtualNetworkResourceId $subnet.Id",
+    "bicep": "resource st 'Microsoft.Storage/storageAccounts@2023-05-01' = {\n  name: 'stcontoso'\n  location: location\n  kind: 'StorageV2'\n  sku: { name: 'Standard_ZRS' }\n  properties: {\n    publicNetworkAccess: 'Enabled'\n    networkAcls: {\n      defaultAction: 'Deny'\n      bypass: 'AzureServices'\n      ipRules: [ { value: '203.0.113.0/24', action: 'Allow' } ]\n      virtualNetworkRules: [ { id: subnetId, action: 'Allow' } ]\n    }\n  }\n}\n\nparam location string = resourceGroup().location\nparam subnetId string"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "storage-access-sim",
+    "objective": "Allow exactly the intended networks and explain each 403.",
+    "duration": 15,
+    "steps": [
+      "Send a read from the internet client 198.51.100.20 with a valid SAS. It is blocked by the firewall.",
+      "Send from the VM in snet-app. It is blocked until you tick the VNet rule.",
+      "Try adding 10.0.0.0/16 as an IP rule and read the validation error.",
+      "Set public network access to Disabled and send through the private endpoint."
+    ],
+    "expected": [
+      "403 at the network layer before authorization",
+      "VNet rule plus service endpoint allows the subnet",
+      "The private endpoint works with public access disabled"
+    ],
+    "validation": [
+      {
+        "id": "net-blocked",
+        "text": "Saw a request blocked by network rules"
+      },
+      {
+        "id": "net-vnet-allowed",
+        "text": "Allowed a subnet with a VNet rule"
+      },
+      {
+        "id": "private-endpoint",
+        "text": "Reached the account through a private endpoint with public access disabled"
+      }
+    ],
+    "failureScenarios": [
+      "Private IP range in IP rules",
+      "VNet rule without a service endpoint",
+      "Private endpoint without private DNS"
+    ],
+    "cleanup": [
+      "Simulation only."
+    ],
+    "cost": "None in the simulation. Private endpoints are billed per hour and per GB processed."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Portal shows 'This request is not authorized to perform this operation' for an Owner.",
+      "cause": "The client IP is blocked by the storage firewall.",
+      "fix": "Add your client IP, or use a VM or private endpoint inside an allowed network."
+    },
+    {
+      "symptom": "An App Service in the same region cannot reach storage despite an IP rule for its outbound IP.",
+      "cause": "IP rules do not apply to same-region Azure traffic.",
+      "fix": "Use VNet integration plus a service endpoint or private endpoint."
+    },
+    {
+      "symptom": "A VM resolves the public IP even though a private endpoint exists.",
+      "cause": "Private DNS zone not linked to the VNet, or custom DNS not forwarding.",
+      "fix": "Link privatelink.blob.core.windows.net to the VNet or configure conditional forwarding."
+    },
+    {
+      "symptom": "Azure Backup of a file share fails after enabling the firewall.",
+      "cause": "Trusted services exception disabled.",
+      "fix": "Enable 'Allow Azure services on the trusted services list'."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Service endpoints vs private endpoints",
+      "difference": "Service endpoints keep the public endpoint but identify the subnet; private endpoints give a private IP, and can be reached from peered VNets and on-premises."
+    },
+    {
+      "service": "Amazon S3 bucket policies with aws:SourceVpce",
+      "difference": "AWS restricts by VPC endpoint in a resource policy; Azure uses account-level network rules."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "A valid account key bypasses the firewall.",
+      "reality": "Network rules are evaluated first, for every authorization method."
+    },
+    {
+      "myth": "Service endpoints give the storage account a private IP.",
+      "reality": "Only private endpoints do; service endpoints still use the public endpoint."
+    },
+    {
+      "myth": "You can allow 10.0.0.0/8 in the IP firewall.",
+      "reality": "IP rules accept public addresses only."
+    }
+  ],
+  "architectureDecisions": [
+    "Prefer private endpoints plus public access Disabled for sensitive data.",
+    "Use service endpoints for simple VNet-only access within a region when private IPs and DNS are not needed.",
+    "Keep the trusted services exception on when you rely on Azure Backup, Monitor or Event Grid."
+  ],
+  "docs": [
+    {
+      "title": "Configure Azure Storage firewalls and virtual networks",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-network-security"
+    },
+    {
+      "title": "Use private endpoints for Azure Storage",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-private-endpoints"
+    },
+    {
+      "title": "Virtual network service endpoints",
+      "url": "https://learn.microsoft.com/azure/virtual-network/virtual-network-service-endpoints-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "By default anyone on the internet can reach your storage account's front door. Close it, and open it only for who needs it.",
+    "learn": [
+      "Public network access: all, selected, disabled",
+      "Virtual network rules and IP rules",
+      "Trusted Microsoft services exception",
+      "Private endpoints"
+    ],
+    "nodes": [
+      {
+        "id": "net",
+        "label": "Internet",
+        "x": 110,
+        "y": 90,
+        "kind": "globe"
+      },
+      {
+        "id": "you",
+        "label": "Your office IP",
+        "x": 110,
+        "y": 220,
+        "kind": "user"
+      },
+      {
+        "id": "vm",
+        "label": "VM in VNet",
+        "x": 110,
+        "y": 360,
+        "kind": "compute"
+      },
+      {
+        "id": "fw",
+        "label": "Storage firewall",
+        "x": 400,
+        "y": 220,
+        "kind": "security",
+        "sub": "selected networks"
+      },
+      {
+        "id": "sa",
+        "label": "Storage account",
+        "x": 660,
+        "y": 220,
+        "kind": "storage"
+      },
+      {
+        "id": "pe",
+        "label": "Private endpoint",
+        "x": 400,
+        "y": 380,
+        "kind": "network",
+        "sub": "private IP"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Open door",
+        "title": "Your storage account answers the whole internet",
+        "body": [
+          "A new storage account accepts connections from every network. Keys and permissions still protect the data, but one leaked key exposes everything."
+        ],
+        "show": [
+          "net",
+          "sa"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "sa",
+            "label": "allowed",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Firewall",
+        "title": "Turn on the storage firewall",
+        "body": [
+          "Networking > Public network access: Enabled from all networks, Enabled from selected virtual networks and IP addresses, or Disabled.",
+          "With 'selected', only the networks and IP ranges you list can connect."
+        ],
+        "show": [
+          "net",
+          "sa",
+          "fw"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "sa",
+            "label": "allowed"
+          },
+          {
+            "from": "fw",
+            "to": "sa",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Rules",
+        "title": "Add who is allowed",
+        "body": [
+          "IP rules allow public IP addresses or ranges, such as your office. Virtual network rules allow subnets in Azure; they rely on a service endpoint for Microsoft.Storage on that subnet.",
+          "The exception 'Allow Azure services on the trusted services list' lets services such as Azure Backup in."
+        ],
+        "show": [
+          "net",
+          "sa",
+          "fw",
+          "you",
+          "vm"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "sa",
+            "label": "allowed"
+          },
+          {
+            "from": "fw",
+            "to": "sa"
+          },
+          {
+            "from": "you",
+            "to": "fw",
+            "label": "IP rule",
+            "fresh": true
+          },
+          {
+            "from": "vm",
+            "to": "fw",
+            "label": "VNet rule",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "The portal's file and blob browser also connects from your IP. Lock the account down without adding your IP, and you cannot browse your own data in the portal."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Private",
+        "title": "Go fully private with a private endpoint",
+        "body": [
+          "A private endpoint gives the storage account a private IP inside your VNet. Combine it with Public network access: Disabled and nothing on the internet can reach it at all."
+        ],
+        "show": [
+          "net",
+          "sa",
+          "fw",
+          "you",
+          "vm",
+          "pe"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "sa",
+            "label": "allowed"
+          },
+          {
+            "from": "fw",
+            "to": "sa"
+          },
+          {
+            "from": "you",
+            "to": "fw",
+            "label": "IP rule"
+          },
+          {
+            "from": "vm",
+            "to": "fw",
+            "label": "VNet rule"
+          },
+          {
+            "from": "vm",
+            "to": "pe",
+            "fresh": true
+          },
+          {
+            "from": "pe",
+            "to": "sa",
+            "label": "private link",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Storage network access",
+        "body": [
+          "Close the door, then open it for named networks."
+        ],
+        "show": [
+          "net",
+          "sa",
+          "fw",
+          "you",
+          "vm",
+          "pe"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "net",
+            "to": "sa",
+            "label": "allowed"
+          },
+          {
+            "from": "fw",
+            "to": "sa"
+          },
+          {
+            "from": "you",
+            "to": "fw",
+            "label": "IP rule"
+          },
+          {
+            "from": "vm",
+            "to": "fw",
+            "label": "VNet rule"
+          },
+          {
+            "from": "vm",
+            "to": "pe"
+          },
+          {
+            "from": "pe",
+            "to": "sa",
+            "label": "private link"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "All networks / selected networks / disabled",
+          "IP rules for public addresses; VNet rules via service endpoints",
+          "Trusted services exception for Azure services",
+          "Private endpoint = private IP in your VNet",
+          "Add your own IP to browse data in the portal"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Lock a storage account to your IP address",
+    "minutes": 15,
+    "costLevel": "free",
+    "cost": "Cents. A few small files in a Standard LRS account cost almost nothing; delete the account at the end.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A storage account in rg-az104-lab: Standard performance, LRS redundancy, default settings. Name it st<yourinitials><number> (lowercase letters and numbers only, globally unique)."
+    ],
+    "steps": [
+      {
+        "do": "Open the storage account > Data storage > Containers > + Container, name: docs. Upload any small text file.",
+        "see": "The file listed in the docs container."
+      },
+      {
+        "do": "Open Security + networking > Networking. Under Public network access choose 'Enabled from selected virtual networks and IP addresses'. Do not add anything yet. Save."
+      },
+      {
+        "do": "Wait a minute, then open Containers > docs again.",
+        "see": "An error such as 'This request is not authorized to perform this operation'. The firewall now blocks your browser too."
+      },
+      {
+        "do": "Back in Networking, under Firewall tick 'Add your client IP address'. Save, wait a minute, and open docs again.",
+        "see": "The file is visible again: your IP is allowed."
+      },
+      {
+        "do": "Under Exceptions, read 'Allow Azure services on the trusted services list to access this storage account'.",
+        "see": "The box is ticked by default."
+      },
+      {
+        "do": "Set Public network access back to 'Enabled from all networks'. Save."
+      }
+    ],
+    "check": [
+      "You saw your own access blocked and restored by an IP rule."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Configure Azure Storage firewalls and virtual networks",
+        "url": "https://learn.microsoft.com/azure/storage/common/storage-network-security"
+      },
+      {
+        "title": "Use private endpoints for Azure Storage",
+        "url": "https://learn.microsoft.com/azure/storage/common/storage-private-endpoints"
+      }
+    ]
+  }
+}

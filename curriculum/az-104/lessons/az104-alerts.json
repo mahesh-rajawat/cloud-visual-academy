@@ -1,0 +1,567 @@
+{
+  "id": "az104-alerts",
+  "exam": "az-104",
+  "title": "Alert rules, action groups and alert processing rules",
+  "objectiveIds": [
+    "AZ104-5.1.4"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Create metric, log search and activity log alert rules, configure action groups, and use alert processing rules to route or suppress notifications.",
+  "prerequisites": [
+    {
+      "text": "Querying logs with KQL",
+      "objectiveId": "AZ104-5.1.3",
+      "lessonId": "az104-kql"
+    }
+  ],
+  "foundation": [
+    "An alert rule watches a signal (a metric, a log query or an activity log event) and fires when its condition is met.",
+    "An action group says who to notify and what to run. An alert processing rule changes what happens to fired alerts, for example silencing them during maintenance."
+  ],
+  "engineer": [
+    "Alert rule = scope + condition (signal, aggregation, operator, threshold or dynamic threshold, lookback window and evaluation frequency) + actions + details (severity 0–4, name, auto-resolve).",
+    "Types: metric alerts (near real time, stateful: they resolve automatically), log search alerts (KQL on a schedule), activity log alerts (for example a VM deleted, or Service Health and Resource Health events), smart detection, Prometheus alerts.",
+    "Action groups: notifications (email, SMS, Azure app push, voice, email Azure Resource Manager role) and actions (Automation runbook, Azure Functions, Event Hubs, ITSM, Logic Apps, webhook/secure webhook). Reusable across many rules. Rate limits apply to SMS/voice/email.",
+    "Alert processing rules: scope (subscription, resource group, resource) with filters (severity, alert rule, resource type…), action = add action groups or suppress notifications, optional schedule (once or recurring). Suppressed alerts still fire and appear in the alerts list.",
+    "Alert state: monitor condition Fired/Resolved, and user response New/Acknowledged/Closed."
+  ],
+  "animation": {
+    "id": "monitor-sim",
+    "caption": "Alert rules, action groups and processing rules tab."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "sig",
+        "label": "Signal: CPU metric / KQL / activity log",
+        "x": 20,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "rule",
+        "label": "Alert rule (threshold, window)",
+        "x": 240,
+        "y": 120,
+        "kind": "security"
+      },
+      {
+        "id": "apr",
+        "label": "Alert processing rule",
+        "x": 450,
+        "y": 40,
+        "kind": "service"
+      },
+      {
+        "id": "ag",
+        "label": "Action group: email, SMS, Logic App",
+        "x": 450,
+        "y": 200,
+        "kind": "user"
+      },
+      {
+        "id": "ops",
+        "label": "On-call",
+        "x": 680,
+        "y": 120,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "sig",
+        "to": "rule"
+      },
+      {
+        "from": "rule",
+        "to": "apr",
+        "label": "fired"
+      },
+      {
+        "from": "apr",
+        "to": "ag"
+      },
+      {
+        "from": "ag",
+        "to": "ops"
+      }
+    ]
+  },
+  "example": {
+    "title": "Paging the right team",
+    "body": [
+      "A metric alert fires when average CPU > 80% over 5 minutes on any production VM. One action group emails and texts the ops team and calls a Logic App to open a ticket.",
+      "An alert processing rule suppresses notifications every Sunday 01:00–03:00 when patching runs."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with VMs to monitor or protect"
+    ],
+    "permissions": [
+      "Monitoring Contributor (alerts, diagnostic settings) or Backup Contributor (vaults, policies)"
+    ],
+    "limits": [
+      "See Azure Monitor / Azure Backup service limits"
+    ],
+    "portal": [
+      "Monitor > Alerts > Create > Alert rule: scope, condition, actions, details.",
+      "Monitor > Alerts > Action groups > Create: notifications and actions.",
+      "Monitor > Alerts > Alert processing rules > Create: scope, filters, suppress or apply action group, schedule."
+    ],
+    "cli": "az monitor action-group create -g rg-mon -n ag-ops --short-name ops --action email oncall oncall@contoso.com --action sms oncall 1 5555550100\naz monitor metrics alert create -g rg-mon -n cpu-high --scopes $VM_ID --condition \"avg Percentage CPU > 80\" --window-size 5m --evaluation-frequency 1m --severity 2 --action ag-ops\naz monitor alert-processing-rule create -g rg-mon -n suppress-patching --scopes /subscriptions/<id>/resourceGroups/rg-prod --rule-type RemoveAllActionGroups --schedule-recurrence-type Weekly --schedule-recurrence Sunday --schedule-recurrence-start-time 01:00:00 --schedule-recurrence-end-time 03:00:00",
+    "powershell": "$email = New-AzActionGroupEmailReceiverObject -Name oncall -EmailAddress oncall@contoso.com\nNew-AzActionGroup -ResourceGroupName rg-mon -Name ag-ops -ShortName ops -Location global -EmailReceiver $email\n$c = New-AzMetricAlertRuleV2Criteria -MetricName 'Percentage CPU' -TimeAggregation Average -Operator GreaterThan -Threshold 80\nAdd-AzMetricAlertRuleV2 -Name cpu-high -ResourceGroupName rg-mon -TargetResourceId $vmId -Condition $c -WindowSize 00:05:00 -Frequency 00:01:00 -Severity 2 -ActionGroupId (Get-AzActionGroup -ResourceGroupName rg-mon -Name ag-ops).Id"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "monitor-sim",
+    "objective": "Tune an alert so it fires on the spike, notifies the team and stays quiet during maintenance.",
+    "duration": 15,
+    "steps": [
+      "Run the default (Average over 1 hour) and see the alert missed.",
+      "Apply 'Average over 5 minutes'.",
+      "Apply 'Maintenance window suppression'.",
+      "Apply 'No action group'."
+    ],
+    "expected": [
+      "Window and aggregation decide firing",
+      "Processing rules suppress notifications only"
+    ],
+    "validation": [
+      {
+        "id": "alert-notified",
+        "text": "Alert fired and notified the team"
+      },
+      {
+        "id": "alert-suppressed",
+        "text": "Suppressed notifications during maintenance"
+      },
+      {
+        "id": "alert-missed",
+        "text": "Saw an alert miss the spike"
+      },
+      {
+        "id": "alert-no-action",
+        "text": "Saw an alert with no action group"
+      }
+    ],
+    "failureScenarios": [
+      "Lookback window too long",
+      "No action group",
+      "Expecting suppression to stop the alert itself"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Alert never fires.",
+      "cause": "Window/aggregation smooths the signal, or wrong scope.",
+      "fix": "Shorter window, Maximum aggregation, check the scope."
+    },
+    {
+      "symptom": "Alert fires but nobody is notified.",
+      "cause": "No action group, or an alert processing rule suppresses it.",
+      "fix": "Attach an action group; review processing rules."
+    },
+    {
+      "symptom": "Too many SMS alerts.",
+      "cause": "Rate limiting or noisy thresholds.",
+      "fix": "Use dynamic thresholds and severity-based routing."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon CloudWatch alarms + SNS",
+      "difference": "Alarm ≈ alert rule; SNS topic ≈ action group."
+    },
+    {
+      "service": "Service Health alerts",
+      "difference": "Activity log alerts for Azure platform incidents affecting your subscriptions."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Alert processing rules delete alerts.",
+      "reality": "They add action groups or suppress notifications; alerts still fire."
+    },
+    {
+      "myth": "Each alert rule needs its own action group.",
+      "reality": "Action groups are reusable."
+    }
+  ],
+  "architectureDecisions": [
+    "Use severity levels consistently and route by severity with processing rules.",
+    "Prefer dynamic thresholds for noisy metrics.",
+    "Manage alert rules as code (Bicep/ARM) per environment."
+  ],
+  "docs": [
+    {
+      "title": "Azure Monitor alerts overview",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-overview"
+    },
+    {
+      "title": "Action groups",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/alerts/action-groups"
+    },
+    {
+      "title": "Alert processing rules",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-processing-rules"
+    },
+    {
+      "title": "Create a metric alert",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-create-metric-alert-rule"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Be told about problems before users notice, and silence alerts during planned work.",
+    "learn": [
+      "Alert rule: scope, condition, actions",
+      "Signal types",
+      "Action groups",
+      "Alert processing rules",
+      "Severity and state"
+    ],
+    "nodes": [
+      {
+        "id": "res",
+        "label": "Resource",
+        "x": 110,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "rule",
+        "label": "Alert rule",
+        "x": 330,
+        "y": 220,
+        "kind": "service",
+        "sub": "CPU > 80% for 5 min"
+      },
+      {
+        "id": "alert",
+        "label": "Alert fired",
+        "x": 540,
+        "y": 220,
+        "kind": "security",
+        "sub": "Sev 2"
+      },
+      {
+        "id": "ag",
+        "label": "Action group",
+        "x": 720,
+        "y": 120,
+        "kind": "service",
+        "sub": "email, SMS, webhook"
+      },
+      {
+        "id": "apr",
+        "label": "Processing rule",
+        "x": 720,
+        "y": 340,
+        "kind": "service",
+        "sub": "suppress Sat 2-4am"
+      },
+      {
+        "id": "oncall",
+        "label": "On-call engineer",
+        "x": 540,
+        "y": 380,
+        "kind": "user"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Silence",
+        "title": "The site was down for two hours and nobody knew",
+        "body": [
+          "Charts are only useful if someone is looking. Alerts look for you."
+        ],
+        "show": [
+          "res"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Rule",
+        "title": "An alert rule has three parts",
+        "body": [
+          "Scope (which resources), condition (signal + logic, such as Percentage CPU > 80 averaged over 5 minutes), and actions (an action group). Plus details: name and severity 0 (critical) to 4 (verbose)."
+        ],
+        "show": [
+          "res",
+          "rule",
+          "alert"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "res",
+            "to": "rule",
+            "fresh": true
+          },
+          {
+            "from": "rule",
+            "to": "alert",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          4
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Signals",
+        "title": "What can trigger an alert",
+        "body": [
+          "Metrics, log search queries (KQL), activity log events (for example someone deleted a resource), resource health and service health.",
+          "Metric alerts are stateful by default: they fire once and resolve when the condition clears."
+        ],
+        "show": [
+          "res",
+          "rule",
+          "alert"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "res",
+            "to": "rule"
+          },
+          {
+            "from": "rule",
+            "to": "alert"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          4
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Action group",
+        "title": "Action groups say who and how",
+        "body": [
+          "An action group is reusable: notifications (email, SMS, push, voice) and actions (webhook, Logic App, Azure Function, Automation runbook, ITSM, Event Hub). Many rules can share one group."
+        ],
+        "show": [
+          "res",
+          "rule",
+          "alert",
+          "ag",
+          "oncall"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "res",
+            "to": "rule"
+          },
+          {
+            "from": "rule",
+            "to": "alert"
+          },
+          {
+            "from": "alert",
+            "to": "ag",
+            "fresh": true
+          },
+          {
+            "from": "ag",
+            "to": "oncall",
+            "label": "email + SMS",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          4
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Processing",
+        "title": "Alert processing rules change alerts at scale",
+        "body": [
+          "Alert processing rules apply to fired alerts across a scope: suppress notifications during maintenance windows, or add an action group to all alerts in a subscription. The alerts still fire and are recorded."
+        ],
+        "show": [
+          "res",
+          "rule",
+          "alert",
+          "ag",
+          "oncall",
+          "apr"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "res",
+            "to": "rule"
+          },
+          {
+            "from": "rule",
+            "to": "alert"
+          },
+          {
+            "from": "alert",
+            "to": "ag"
+          },
+          {
+            "from": "ag",
+            "to": "oncall",
+            "label": "email + SMS"
+          },
+          {
+            "from": "apr",
+            "to": "ag",
+            "label": "suppress",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Suppressed alerts still appear in the portal; only their actions are paused."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Alerts",
+        "body": [
+          "Rule → alert → action group, adjusted by processing rules."
+        ],
+        "show": [
+          "res",
+          "rule",
+          "alert",
+          "ag",
+          "oncall",
+          "apr"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "res",
+            "to": "rule"
+          },
+          {
+            "from": "rule",
+            "to": "alert"
+          },
+          {
+            "from": "alert",
+            "to": "ag"
+          },
+          {
+            "from": "ag",
+            "to": "oncall",
+            "label": "email + SMS"
+          },
+          {
+            "from": "apr",
+            "to": "ag",
+            "label": "suppress"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Scope + condition + action group",
+          "Signals: metric, log, activity log, health",
+          "Action groups are reusable",
+          "Processing rules suppress or add actions at scale",
+          "Severity 0 (critical) to 4"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Get an email when someone deletes a storage account",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Free. Activity log alerts and email notifications cost nothing.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A storage account in rg-az104-lab that you are happy to delete."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Monitor' > Alerts > Action groups > + Create. Group rg-az104-lab, name ag-lab, display name aglab. Notifications: Email, your address. Review + create > Create.",
+        "see": "A confirmation email saying you were added to ag-lab."
+      },
+      {
+        "do": "Monitor > Alerts > + Create > Alert rule. Scope: rg-az104-lab."
+      },
+      {
+        "do": "Condition: signal 'Delete Storage Account (storageAccounts)' (activity log). Actions: select ag-lab. Details: name alert-delete-storage, severity 2. Create.",
+        "see": "The rule listed under Alert rules."
+      },
+      {
+        "do": "Delete the storage account."
+      },
+      {
+        "do": "Wait 2–5 minutes, then check your email and Monitor > Alerts.",
+        "see": "An email and a fired alert with the operation and who did it."
+      },
+      {
+        "do": "Monitor > Alerts > Alert processing rules > + Create. Scope rg-az104-lab, rule type: Suppress notifications, schedule: always. Name apr-lab. Create."
+      },
+      {
+        "do": "Create another storage account and delete it.",
+        "see": "The alert fires again in the portal, but no email arrives: the processing rule suppressed it."
+      }
+    ],
+    "check": [
+      "You received one alert email, and saw a later one suppressed."
+    ],
+    "cleanup": [
+      "Delete apr-lab, alert-delete-storage and ag-lab.",
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Create an action group",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/alerts/action-groups"
+      },
+      {
+        "title": "Create an activity log alert rule",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-create-activity-log-alert-rule"
+      },
+      {
+        "title": "Alert processing rules",
+        "url": "https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-processing-rules"
+      }
+    ]
+  }
+}

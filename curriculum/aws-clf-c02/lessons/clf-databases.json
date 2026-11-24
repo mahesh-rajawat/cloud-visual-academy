@@ -1,0 +1,566 @@
+{
+  "id": "clf-databases",
+  "exam": "aws-clf-c02",
+  "title": "AWS database services and database migration",
+  "objectiveIds": [
+    "CLFC02-3.4.1",
+    "CLFC02-3.4.2",
+    "CLFC02-3.4.3",
+    "CLFC02-3.4.4",
+    "CLFC02-3.4.5",
+    "CLFC02-3.4.6",
+    "CLFC02-3.4.7"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Choose between EC2-hosted and managed databases, identify relational (RDS, Aurora), NoSQL (DynamoDB) and in-memory (ElastiCache) databases, and identify migration tools (DMS, SCT).",
+  "prerequisites": [
+    {
+      "text": "Compute services",
+      "objectiveId": "CLFC02-3.3.1",
+      "lessonId": "clf-compute"
+    }
+  ],
+  "foundation": [
+    "You can run a database yourself on EC2 (full control, full work) or use a managed database where AWS handles setup, patching, backups and failover.",
+    "Relational databases (tables with SQL): Amazon RDS and Amazon Aurora. NoSQL: Amazon DynamoDB. In-memory cache: Amazon ElastiCache.",
+    "AWS DMS moves databases to AWS with minimal downtime; AWS SCT converts schemas between different database engines."
+  ],
+  "engineer": [
+    "EC2-hosted vs managed: choose EC2 for OS access, unsupported engines or specific configurations; choose managed (RDS/Aurora/DynamoDB) to offload patching, backups, Multi-AZ and scaling.",
+    "Amazon RDS: MySQL, PostgreSQL, MariaDB, Oracle, SQL Server, Db2; automated backups, Multi-AZ, read replicas. Amazon Aurora: MySQL/PostgreSQL-compatible, storage replicated six ways across three AZs, Aurora Serverless.",
+    "Amazon DynamoDB: serverless key-value/document NoSQL with single-digit millisecond performance, global tables, on-demand or provisioned capacity. Other purpose-built: DocumentDB (MongoDB-compatible), Neptune (graph), Redshift (data warehouse), Keyspaces, Timestream.",
+    "Amazon ElastiCache (Valkey, Redis OSS, Memcached) and MemoryDB: in-memory caching and data stores to reduce latency and database load.",
+    "Migration: AWS DMS (homogeneous and heterogeneous migrations, continuous replication with change data capture); AWS SCT (schema and code conversion for heterogeneous migrations; DMS Schema Conversion offers similar capability in the console)."
+  ],
+  "animation": {
+    "id": "aws-tech-sim",
+    "caption": "Open 'Database choice'."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "app",
+        "label": "App",
+        "x": 0,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "cache",
+        "label": "ElastiCache",
+        "x": 200,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "rds",
+        "label": "RDS / Aurora (relational)",
+        "x": 200,
+        "y": 130,
+        "kind": "storage"
+      },
+      {
+        "id": "ddb",
+        "label": "DynamoDB (NoSQL)",
+        "x": 420,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "dms",
+        "label": "DMS + SCT from on-prem Oracle",
+        "x": 420,
+        "y": 130,
+        "kind": "service"
+      }
+    ],
+    "edges": [
+      {
+        "from": "app",
+        "to": "cache"
+      },
+      {
+        "from": "app",
+        "to": "rds"
+      },
+      {
+        "from": "app",
+        "to": "ddb"
+      },
+      {
+        "from": "dms",
+        "to": "rds",
+        "label": "migrate"
+      }
+    ]
+  },
+  "example": {
+    "title": "Modernising data",
+    "body": [
+      "An Oracle database moves to Aurora PostgreSQL: SCT converts the schema and stored procedures, DMS replicates data with ongoing change capture until cutover. Session data moves to ElastiCache and the product catalog to DynamoDB."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "RDS > Create database (engine, Multi-AZ).",
+      "DynamoDB > Create table.",
+      "DMS > Database migration tasks."
+    ],
+    "cli": "aws rds describe-db-instances\naws dynamodb list-tables\naws dms describe-replication-tasks",
+    "powershell": "Get-RDSDBInstance\nGet-DDBTableList"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-tech-sim",
+    "objective": "Practise choosing the right database service.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Database choice' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-db-correct",
+        "text": "Chose a correct database service"
+      },
+      {
+        "id": "aws-db-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Database CPU high from repeated reads.",
+      "cause": "No caching.",
+      "fix": "Add ElastiCache or read replicas."
+    },
+    {
+      "symptom": "Need OS access on RDS.",
+      "cause": "RDS is managed.",
+      "fix": "Use EC2-hosted database (or RDS Custom where supported)."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure",
+      "difference": "RDS ≈ Azure SQL Database/Azure Database for PostgreSQL/MySQL; DynamoDB ≈ Cosmos DB; ElastiCache ≈ Azure Cache for Redis; DMS ≈ Azure Database Migration Service."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "DynamoDB is relational.",
+      "reality": "It is NoSQL."
+    },
+    {
+      "myth": "DMS converts schemas between engines by itself.",
+      "reality": "SCT (or DMS Schema Conversion) converts schemas; DMS moves data."
+    }
+  ],
+  "architectureDecisions": [
+    "Use purpose-built managed databases; reserve EC2-hosted databases for special requirements."
+  ],
+  "docs": [
+    {
+      "title": "Amazon RDS",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html"
+    },
+    {
+      "title": "Amazon Aurora",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_AuroraOverview.html"
+    },
+    {
+      "title": "Amazon DynamoDB",
+      "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html"
+    },
+    {
+      "title": "Amazon ElastiCache",
+      "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/WhatIs.html"
+    },
+    {
+      "title": "AWS DMS",
+      "url": "https://docs.aws.amazon.com/dms/latest/userguide/Welcome.html"
+    },
+    {
+      "title": "AWS SCT",
+      "url": "https://docs.aws.amazon.com/SchemaConversionTool/latest/userguide/CHAP_Welcome.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Store orders, shopping carts and sessions, each in the right database, then migrate the old one.",
+    "learn": [
+      "Managed databases vs a database on EC2",
+      "Relational: Amazon RDS and Aurora",
+      "NoSQL: Amazon DynamoDB",
+      "In-memory: Amazon ElastiCache",
+      "Migration: AWS DMS and SCT"
+    ],
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Shop app",
+        "x": 400,
+        "y": 40,
+        "kind": "service"
+      },
+      {
+        "id": "ec2db",
+        "label": "DB on EC2",
+        "x": 120,
+        "y": 160,
+        "kind": "compute",
+        "sub": "you manage it all"
+      },
+      {
+        "id": "rds",
+        "label": "RDS / Aurora",
+        "x": 330,
+        "y": 180,
+        "kind": "database",
+        "sub": "orders: SQL"
+      },
+      {
+        "id": "ddb",
+        "label": "DynamoDB",
+        "x": 530,
+        "y": 180,
+        "kind": "database",
+        "sub": "carts: key-value"
+      },
+      {
+        "id": "cache",
+        "label": "ElastiCache",
+        "x": 700,
+        "y": 110,
+        "kind": "database",
+        "sub": "sessions: in memory"
+      },
+      {
+        "id": "old",
+        "label": "Old Oracle DB",
+        "x": 120,
+        "y": 370,
+        "kind": "database",
+        "sub": "on-premises"
+      },
+      {
+        "id": "dms",
+        "label": "AWS DMS + SCT",
+        "x": 400,
+        "y": 370,
+        "kind": "service",
+        "sub": "migrate + convert"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Which DB?",
+        "title": "One app, three kinds of data",
+        "body": [
+          "Orders need transactions and joins. Shopping carts need fast reads and writes at any scale. Login sessions need answers in microseconds.",
+          "One database type won't do all of these well."
+        ],
+        "show": [
+          "app"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Managed vs EC2",
+        "title": "Run it yourself, or let AWS manage it?",
+        "body": [
+          "You can install a database on an EC2 instance. Then you get full control of the OS and engine, but you handle patching, backups, scaling and failover.",
+          "Managed databases hand that work to AWS. Pick EC2 only when you need something a managed service doesn't allow."
+        ],
+        "show": [
+          "app",
+          "ec2db"
+        ],
+        "focus": [
+          "ec2db"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "ec2db",
+            "label": "self-managed",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Relational",
+        "title": "Orders: relational with RDS or Aurora",
+        "body": [
+          "Amazon RDS runs MySQL, PostgreSQL, MariaDB, Oracle, SQL Server and Db2 for you, with automated backups, patching and Multi-AZ failover.",
+          "Amazon Aurora is AWS's MySQL- and PostgreSQL-compatible engine, built for higher performance and availability."
+        ],
+        "show": [
+          "app",
+          "ec2db",
+          "rds"
+        ],
+        "focus": [
+          "rds"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "ec2db",
+            "label": "self-managed"
+          },
+          {
+            "from": "app",
+            "to": "rds",
+            "label": "SQL",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "NoSQL",
+        "title": "Carts: NoSQL with DynamoDB",
+        "body": [
+          "Amazon DynamoDB is a serverless key-value and document database. It returns results in single-digit milliseconds at any scale, with no servers to manage.",
+          "It suits simple, very high-volume access patterns, not complex joins."
+        ],
+        "show": [
+          "app",
+          "ec2db",
+          "rds",
+          "ddb"
+        ],
+        "focus": [
+          "ddb"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "ec2db",
+            "label": "self-managed"
+          },
+          {
+            "from": "app",
+            "to": "rds",
+            "label": "SQL"
+          },
+          {
+            "from": "app",
+            "to": "ddb",
+            "label": "get / put by key",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "In-memory",
+        "title": "Sessions: in memory with ElastiCache",
+        "body": [
+          "Amazon ElastiCache keeps data in memory (Valkey, Memcached or Redis OSS) and answers in microseconds. Use it as a cache in front of a database, or for sessions and leaderboards.",
+          "Amazon MemoryDB is the durable in-memory option."
+        ],
+        "show": [
+          "app",
+          "ec2db",
+          "rds",
+          "ddb",
+          "cache"
+        ],
+        "focus": [
+          "cache"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "ec2db",
+            "label": "self-managed"
+          },
+          {
+            "from": "app",
+            "to": "rds",
+            "label": "SQL"
+          },
+          {
+            "from": "app",
+            "to": "ddb",
+            "label": "get / put by key"
+          },
+          {
+            "from": "app",
+            "to": "cache",
+            "label": "microseconds",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Relational = RDS / Aurora. NoSQL key-value = DynamoDB. In-memory cache = ElastiCache."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Migrate",
+        "title": "Move the old database with DMS",
+        "body": [
+          "AWS Database Migration Service copies data into AWS while the source database keeps running, then keeps it in sync with continuous replication until you switch over.",
+          "When the engine changes, for example Oracle to Aurora PostgreSQL, the AWS Schema Conversion Tool (or DMS Schema Conversion) converts the schema and code."
+        ],
+        "show": [
+          "app",
+          "rds",
+          "ddb",
+          "cache",
+          "old",
+          "dms"
+        ],
+        "focus": [
+          "dms"
+        ],
+        "edges": [
+          {
+            "from": "app",
+            "to": "rds",
+            "label": "SQL"
+          },
+          {
+            "from": "app",
+            "to": "ddb",
+            "label": "get / put by key"
+          },
+          {
+            "from": "app",
+            "to": "cache",
+            "label": "microseconds"
+          },
+          {
+            "from": "old",
+            "to": "dms",
+            "label": "replicate",
+            "fresh": true
+          },
+          {
+            "from": "dms",
+            "to": "rds",
+            "label": "into Aurora",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "A database for each kind of data",
+        "body": [
+          "Choose by the shape of the data and how it's accessed."
+        ],
+        "show": [
+          "app",
+          "rds",
+          "ddb",
+          "cache",
+          "old",
+          "dms"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "app",
+            "to": "rds",
+            "label": "SQL"
+          },
+          {
+            "from": "app",
+            "to": "ddb",
+            "label": "get / put by key"
+          },
+          {
+            "from": "app",
+            "to": "cache",
+            "label": "microseconds"
+          },
+          {
+            "from": "old",
+            "to": "dms",
+            "label": "replicate"
+          },
+          {
+            "from": "dms",
+            "to": "rds",
+            "label": "into Aurora"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Managed services take patching, backups and failover off you",
+          "RDS (six engines) and Aurora for relational",
+          "DynamoDB: serverless NoSQL",
+          "ElastiCache: in-memory, microseconds",
+          "DMS migrates with ongoing replication; SCT converts schemas"
+        ]
+      }
+    ]
+  }
+}

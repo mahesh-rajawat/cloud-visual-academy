@@ -1,0 +1,720 @@
+{
+  "id": "clf-security-resources",
+  "exam": "aws-clf-c02",
+  "title": "Security services, documentation and Marketplace security products",
+  "objectiveIds": [
+    "CLFC02-2.4.1",
+    "CLFC02-2.4.2",
+    "CLFC02-2.4.3",
+    "CLFC02-2.4.4",
+    "CLFC02-2.4.5",
+    "CLFC02-2.4.6"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Describe AWS security features and services (WAF, Firewall Manager, Shield, GuardDuty), where to find AWS security information, third-party security in AWS Marketplace, and Trusted Advisor for identifying issues.",
+  "prerequisites": [
+    {
+      "text": "Security and compliance concepts",
+      "objectiveId": "CLFC02-2.2.6",
+      "lessonId": "clf-security-compliance"
+    }
+  ],
+  "foundation": [
+    "AWS offers many built-in security services: firewalls for web apps (AWS WAF), DDoS protection (AWS Shield), threat detection (Amazon GuardDuty) and central firewall management (AWS Firewall Manager).",
+    "AWS publishes security guidance on the AWS Security Center, the AWS Security Blog and the AWS Knowledge Center.",
+    "You can also buy third-party security tools in AWS Marketplace, and AWS Trusted Advisor flags security risks such as open ports or missing MFA."
+  ],
+  "engineer": [
+    "AWS WAF: rules (managed rule groups, rate-based rules, IP sets) for CloudFront, ALB, API Gateway and AppSync. AWS Shield Standard: automatic DDoS protection at no extra cost; Shield Advanced: enhanced protection, cost protection and access to the Shield Response Team. AWS Firewall Manager: central policies for WAF, Shield Advanced, security groups, Network Firewall and DNS Firewall across an organisation.",
+    "Detect and respond: GuardDuty (threat detection), Inspector, Macie, Security Hub, Detective; network security: security groups, NACLs, AWS Network Firewall.",
+    "Security information: AWS Security Center (aws.amazon.com/security), AWS Security Blog, AWS Knowledge Center (on re:Post), security bulletins, whitepapers (for example AWS Security Best Practices), Well-Architected security pillar.",
+    "AWS Marketplace: third-party firewalls, antivirus, SIEM and identity products, billed through your AWS account.",
+    "Trusted Advisor security checks include S3 bucket permissions, security groups with unrestricted access, IAM use, MFA on root and exposed access keys; the full set of checks depends on the support plan."
+  ],
+  "animation": {
+    "id": "aws-security-sim",
+    "caption": "Open 'Security services' to match protection needs to services."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "users",
+        "label": "Users / attackers",
+        "x": 0,
+        "y": 60,
+        "kind": "user"
+      },
+      {
+        "id": "shield",
+        "label": "AWS Shield (DDoS)",
+        "x": 200,
+        "y": 60,
+        "kind": "security"
+      },
+      {
+        "id": "waf",
+        "label": "AWS WAF (L7 rules)",
+        "x": 400,
+        "y": 60,
+        "kind": "security"
+      },
+      {
+        "id": "alb",
+        "label": "CloudFront / ALB",
+        "x": 600,
+        "y": 60,
+        "kind": "network"
+      },
+      {
+        "id": "fm",
+        "label": "Firewall Manager (central policies)",
+        "x": 400,
+        "y": 180,
+        "kind": "security"
+      }
+    ],
+    "edges": [
+      {
+        "from": "users",
+        "to": "shield"
+      },
+      {
+        "from": "shield",
+        "to": "waf"
+      },
+      {
+        "from": "waf",
+        "to": "alb"
+      },
+      {
+        "from": "fm",
+        "to": "waf"
+      }
+    ]
+  },
+  "example": {
+    "title": "Protecting a public web app",
+    "body": [
+      "A media company fronts its site with CloudFront and AWS WAF managed rules, subscribes to Shield Advanced for DDoS response support, uses Firewall Manager to apply the same WAF rules to every account, and reviews Trusted Advisor security checks weekly."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "WAF & Shield > Web ACLs > Create.",
+      "Firewall Manager > Security policies.",
+      "Trusted Advisor > Security.",
+      "AWS Marketplace > Security category."
+    ],
+    "cli": "aws wafv2 list-web-acls --scope CLOUDFRONT --region us-east-1\naws shield describe-subscription\naws support describe-trusted-advisor-checks --language en",
+    "powershell": "Get-WAF2WebACLList -Scope REGIONAL\nGet-ASATrustedAdvisorCheck -Language en"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-security-sim",
+    "objective": "Practise choosing the right security service.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Security services' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-sec-service-correct",
+        "text": "Chose a correct security service"
+      },
+      {
+        "id": "aws-sec-service-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Site overwhelmed by a layer 7 flood.",
+      "cause": "No WAF rate-based rules.",
+      "fix": "Add AWS WAF rate-based rules; consider Shield Advanced."
+    },
+    {
+      "symptom": "Different accounts have inconsistent firewall rules.",
+      "cause": "No central management.",
+      "fix": "Use AWS Firewall Manager."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure WAF / DDoS Protection / Firewall Manager",
+      "difference": "Equivalent Azure services."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Shield Standard costs extra.",
+      "reality": "Shield Standard is included at no additional cost."
+    },
+    {
+      "myth": "WAF protects against network-layer DDoS.",
+      "reality": "WAF is layer 7; Shield covers DDoS."
+    }
+  ],
+  "architectureDecisions": [
+    "Combine CloudFront, WAF and Shield for internet-facing apps; manage centrally with Firewall Manager."
+  ],
+  "docs": [
+    {
+      "title": "AWS WAF",
+      "url": "https://docs.aws.amazon.com/waf/latest/developerguide/what-is-aws-waf.html"
+    },
+    {
+      "title": "AWS Shield",
+      "url": "https://docs.aws.amazon.com/waf/latest/developerguide/shield-chapter.html"
+    },
+    {
+      "title": "AWS Firewall Manager",
+      "url": "https://docs.aws.amazon.com/waf/latest/developerguide/fms-chapter.html"
+    },
+    {
+      "title": "AWS Security Blog",
+      "url": "https://aws.amazon.com/blogs/security/"
+    },
+    {
+      "title": "AWS Knowledge Center",
+      "url": "https://repost.aws/knowledge-center"
+    },
+    {
+      "title": "AWS Trusted Advisor",
+      "url": "https://docs.aws.amazon.com/awssupport/latest/user/trusted-advisor.html"
+    },
+    {
+      "title": "AWS Marketplace security",
+      "url": "https://aws.amazon.com/marketplace/solutions/security"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Protect a public website layer by layer, then find out where to learn more and buy extra tools.",
+    "learn": [
+      "AWS Shield and AWS WAF at the edge",
+      "AWS Firewall Manager across accounts",
+      "Amazon GuardDuty and Trusted Advisor checks",
+      "Third-party security in AWS Marketplace",
+      "Where to find AWS security information"
+    ],
+    "nodes": [
+      {
+        "id": "bad",
+        "label": "Attackers",
+        "x": 90,
+        "y": 80,
+        "kind": "user",
+        "sub": "floods, injections"
+      },
+      {
+        "id": "shield",
+        "label": "AWS Shield",
+        "x": 300,
+        "y": 80,
+        "kind": "security",
+        "sub": "DDoS protection"
+      },
+      {
+        "id": "waf",
+        "label": "AWS WAF",
+        "x": 510,
+        "y": 80,
+        "kind": "security",
+        "sub": "web request rules"
+      },
+      {
+        "id": "site",
+        "label": "Your website",
+        "x": 710,
+        "y": 200,
+        "kind": "service",
+        "sub": "CloudFront + ALB"
+      },
+      {
+        "id": "fm",
+        "label": "Firewall Manager",
+        "x": 510,
+        "y": 220,
+        "kind": "security",
+        "sub": "all accounts"
+      },
+      {
+        "id": "gd",
+        "label": "Amazon GuardDuty",
+        "x": 300,
+        "y": 300,
+        "kind": "security",
+        "sub": "threat detection"
+      },
+      {
+        "id": "ta",
+        "label": "Trusted Advisor",
+        "x": 540,
+        "y": 360,
+        "kind": "service",
+        "sub": "security checks"
+      },
+      {
+        "id": "mp",
+        "label": "AWS Marketplace",
+        "x": 110,
+        "y": 380,
+        "kind": "cost",
+        "sub": "third-party tools"
+      },
+      {
+        "id": "info",
+        "label": "Security info",
+        "x": 110,
+        "y": 230,
+        "kind": "user",
+        "sub": "Security Center, blog"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Attack",
+        "title": "Your shop is attacked on Black Friday",
+        "body": [
+          "One attacker floods the site with traffic. Another sends SQL injection attempts through the login form.",
+          "You need protection at the edge, rules for bad requests, and a way to spot trouble inside your account."
+        ],
+        "show": [
+          "bad",
+          "site"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "bad",
+            "to": "site",
+            "label": "attack traffic",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Shield",
+        "title": "AWS Shield absorbs DDoS floods",
+        "body": [
+          "AWS Shield Standard is on automatically, free for every customer, and protects against common network-layer DDoS attacks.",
+          "Shield Advanced is a paid upgrade. It adds protection against larger attacks, 24/7 access to the AWS DDoS response team, and cost protection for scaling during an attack."
+        ],
+        "show": [
+          "bad",
+          "site",
+          "shield"
+        ],
+        "focus": [
+          "shield"
+        ],
+        "edges": [
+          {
+            "from": "bad",
+            "to": "site",
+            "label": "attack traffic"
+          },
+          {
+            "from": "bad",
+            "to": "shield",
+            "label": "flood stopped",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "WAF",
+        "title": "AWS WAF filters bad web requests",
+        "body": [
+          "AWS WAF is a web application firewall. Rules block requests that look like SQL injection or cross-site scripting, come from bad IP addresses, or exceed a rate limit.",
+          "It protects CloudFront, Application Load Balancers and API Gateway."
+        ],
+        "show": [
+          "bad",
+          "site",
+          "shield",
+          "waf"
+        ],
+        "focus": [
+          "waf"
+        ],
+        "edges": [
+          {
+            "from": "bad",
+            "to": "site",
+            "label": "attack traffic"
+          },
+          {
+            "from": "bad",
+            "to": "shield",
+            "label": "flood stopped"
+          },
+          {
+            "from": "shield",
+            "to": "waf",
+            "fresh": true
+          },
+          {
+            "from": "waf",
+            "to": "site",
+            "label": "clean traffic",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Shield = DDoS (floods). WAF = malicious web requests (layer 7 rules)."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Firewall Manager",
+        "title": "Apply the same rules everywhere",
+        "body": [
+          "You have 30 accounts in AWS Organizations. AWS Firewall Manager sets WAF rules, Shield Advanced protections and security group policies centrally, and applies them to new accounts and resources automatically."
+        ],
+        "show": [
+          "bad",
+          "site",
+          "shield",
+          "waf",
+          "fm"
+        ],
+        "focus": [
+          "fm"
+        ],
+        "edges": [
+          {
+            "from": "bad",
+            "to": "site",
+            "label": "attack traffic"
+          },
+          {
+            "from": "bad",
+            "to": "shield",
+            "label": "flood stopped"
+          },
+          {
+            "from": "shield",
+            "to": "waf"
+          },
+          {
+            "from": "waf",
+            "to": "site",
+            "label": "clean traffic"
+          },
+          {
+            "from": "fm",
+            "to": "waf",
+            "label": "central policy",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Detect",
+        "title": "Spot threats and risky settings",
+        "body": [
+          "Amazon GuardDuty watches CloudTrail events, VPC flow logs and DNS logs for threats, such as a server talking to a known crypto-mining host.",
+          "AWS Trusted Advisor runs best-practice checks, including security ones: open ports, root without MFA, public S3 buckets."
+        ],
+        "show": [
+          "bad",
+          "site",
+          "shield",
+          "waf",
+          "fm",
+          "gd",
+          "ta"
+        ],
+        "focus": [
+          "gd",
+          "ta"
+        ],
+        "edges": [
+          {
+            "from": "bad",
+            "to": "site",
+            "label": "attack traffic"
+          },
+          {
+            "from": "bad",
+            "to": "shield",
+            "label": "flood stopped"
+          },
+          {
+            "from": "shield",
+            "to": "waf"
+          },
+          {
+            "from": "waf",
+            "to": "site",
+            "label": "clean traffic"
+          },
+          {
+            "from": "fm",
+            "to": "waf",
+            "label": "central policy"
+          },
+          {
+            "from": "site",
+            "to": "gd",
+            "label": "logs analysed",
+            "fresh": true
+          },
+          {
+            "from": "ta",
+            "to": "site",
+            "label": "checks",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Marketplace",
+        "title": "Need more? Buy it in AWS Marketplace",
+        "body": [
+          "AWS Marketplace sells third-party security products, such as firewalls, endpoint protection and SIEM tools, already packaged to run on AWS, with billing through your AWS bill."
+        ],
+        "show": [
+          "bad",
+          "site",
+          "shield",
+          "waf",
+          "fm",
+          "gd",
+          "ta",
+          "mp"
+        ],
+        "focus": [
+          "mp"
+        ],
+        "edges": [
+          {
+            "from": "bad",
+            "to": "site",
+            "label": "attack traffic"
+          },
+          {
+            "from": "bad",
+            "to": "shield",
+            "label": "flood stopped"
+          },
+          {
+            "from": "shield",
+            "to": "waf"
+          },
+          {
+            "from": "waf",
+            "to": "site",
+            "label": "clean traffic"
+          },
+          {
+            "from": "fm",
+            "to": "waf",
+            "label": "central policy"
+          },
+          {
+            "from": "site",
+            "to": "gd",
+            "label": "logs analysed"
+          },
+          {
+            "from": "ta",
+            "to": "site",
+            "label": "checks"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Learn more",
+        "title": "Where to read up on security",
+        "body": [
+          "The AWS Security Center and AWS Security Blog cover best practices and news. The AWS Knowledge Center answers common how-to questions. Security documentation and whitepapers cover each service in depth."
+        ],
+        "show": [
+          "bad",
+          "site",
+          "shield",
+          "waf",
+          "fm",
+          "gd",
+          "ta",
+          "mp",
+          "info"
+        ],
+        "focus": [
+          "info"
+        ],
+        "edges": [
+          {
+            "from": "bad",
+            "to": "site",
+            "label": "attack traffic"
+          },
+          {
+            "from": "bad",
+            "to": "shield",
+            "label": "flood stopped"
+          },
+          {
+            "from": "shield",
+            "to": "waf"
+          },
+          {
+            "from": "waf",
+            "to": "site",
+            "label": "clean traffic"
+          },
+          {
+            "from": "fm",
+            "to": "waf",
+            "label": "central policy"
+          },
+          {
+            "from": "site",
+            "to": "gd",
+            "label": "logs analysed"
+          },
+          {
+            "from": "ta",
+            "to": "site",
+            "label": "checks"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Layers of protection",
+        "body": [
+          "Edge, rules, central policy, detection, and somewhere to learn more."
+        ],
+        "show": [
+          "bad",
+          "site",
+          "shield",
+          "waf",
+          "fm",
+          "gd",
+          "ta",
+          "mp",
+          "info"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "bad",
+            "to": "site",
+            "label": "attack traffic"
+          },
+          {
+            "from": "bad",
+            "to": "shield",
+            "label": "flood stopped"
+          },
+          {
+            "from": "shield",
+            "to": "waf"
+          },
+          {
+            "from": "waf",
+            "to": "site",
+            "label": "clean traffic"
+          },
+          {
+            "from": "fm",
+            "to": "waf",
+            "label": "central policy"
+          },
+          {
+            "from": "site",
+            "to": "gd",
+            "label": "logs analysed"
+          },
+          {
+            "from": "ta",
+            "to": "site",
+            "label": "checks"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Shield: DDoS (Standard free, Advanced paid)",
+          "WAF: block malicious web requests",
+          "Firewall Manager: rules across all accounts",
+          "GuardDuty: threat detection; Trusted Advisor: best-practice checks",
+          "Marketplace: third-party security tools",
+          "Security Center, Security Blog, Knowledge Center, docs"
+        ]
+      }
+    ]
+  }
+}

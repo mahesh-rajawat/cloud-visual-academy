@@ -1,0 +1,540 @@
+{
+  "id": "az104-vm-availability",
+  "exam": "az-104",
+  "title": "Availability sets and availability zones for VMs",
+  "objectiveIds": [
+    "AZ104-3.2.6"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Deploy VMs into availability sets or zones, explain fault and update domains, and match each option to the failures it survives and its SLA.",
+  "prerequisites": [
+    {
+      "text": "Availability zones (AZ-900)",
+      "objectiveId": "AZ900-2.1.2"
+    },
+    {
+      "text": "Creating VMs",
+      "objectiveId": "AZ104-3.2.1",
+      "lessonId": "az104-vm-create"
+    }
+  ],
+  "foundation": [
+    "One VM can fail when its server or rack fails, or reboot during maintenance. Running two or more VMs spread out keeps your app up.",
+    "An availability set spreads VMs across different racks (fault domains) and maintenance groups (update domains) inside one datacenter.",
+    "Availability zones are separate datacenters in a region. Spreading VMs across zones also survives the loss of a whole datacenter.",
+    "You choose the set or zone when you create the VM."
+  ],
+  "engineer": [
+    "Availability set: up to 3 fault domains (shared power and network; 2 or 3 depending on region) and up to 20 update domains (default 5) that are rebooted one at a time during planned maintenance. Use the Aligned SKU for managed disks so disks follow fault domains. Compute SLA: 99.95% for two or more VMs in a set.",
+    "Availability zones: physically separate locations with independent power, cooling and networking. Place VMs in different zones (zones: ['1'], ['2'], ['3']) and use zone-redundant services (Standard Load Balancer, Standard public IP, ZRS disks where supported). SLA: 99.99% for two or more VMs across two or more zones.",
+    "Single VM SLA: 99.9% when all disks are Premium SSD, Premium SSD v2 or Ultra (lower for other disk types).",
+    "Constraints: a VM's availability set is set at creation (you cannot add an existing VM to a set; recreate it from its disks). A VM cannot be in both an availability set and a zone. Virtual Machine Scale Sets in Flexible mode can spread across zones and fault domains automatically.",
+    "Neither option protects against a region-wide outage; use Azure Site Recovery to a second region for that. Proximity placement groups reduce latency, at the cost of spreading."
+  ],
+  "animation": {
+    "id": "vm-sim",
+    "caption": "Open 'Availability sets vs zones': place VMs and inject rack, maintenance, zone and region failures."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "lb",
+        "label": "Standard Load Balancer",
+        "x": 260,
+        "y": 0,
+        "kind": "network"
+      },
+      {
+        "id": "z1",
+        "label": "Zone 1: vm-web-1",
+        "x": 0,
+        "y": 140,
+        "kind": "compute"
+      },
+      {
+        "id": "z2",
+        "label": "Zone 2: vm-web-2",
+        "x": 260,
+        "y": 140,
+        "kind": "compute"
+      },
+      {
+        "id": "z3",
+        "label": "Zone 3: vm-web-3",
+        "x": 520,
+        "y": 140,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "lb",
+        "to": "z1"
+      },
+      {
+        "from": "lb",
+        "to": "z2"
+      },
+      {
+        "from": "lb",
+        "to": "z3"
+      }
+    ]
+  },
+  "example": {
+    "title": "Choosing for an intranet app",
+    "body": [
+      "An intranet app with modest uptime needs runs on two VMs in an availability set (99.95%). A customer-facing checkout service runs three VMs across zones behind a zone-redundant Standard Load Balancer (99.99%).",
+      "Both teams also replicate to a paired region with Site Recovery, because neither option protects against regional disasters."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Region with availability zones (for zones)",
+      "Load balancer to distribute traffic"
+    ],
+    "permissions": [
+      "Virtual Machine Contributor"
+    ],
+    "limits": [
+      "Fault domains up to 3; update domains up to 20",
+      "Set or zone chosen at VM creation",
+      "Not both set and zone"
+    ],
+    "portal": [
+      "Create VM > Availability options: Availability zone (pick zones) or Availability set (create/select).",
+      "Availability sets > Create: fault and update domain counts."
+    ],
+    "cli": "az vm availability-set create -g rg-app -n avset-web --platform-fault-domain-count 2 --platform-update-domain-count 5\naz vm create -g rg-app -n vm-web-1 --image Ubuntu2204 --availability-set avset-web --admin-username azureuser --generate-ssh-keys\naz vm create -g rg-app -n vm-web-z1 --image Ubuntu2204 --zone 1 --admin-username azureuser --generate-ssh-keys\naz vm create -g rg-app -n vm-web-z2 --image Ubuntu2204 --zone 2 --admin-username azureuser --generate-ssh-keys",
+    "powershell": "New-AzAvailabilitySet -ResourceGroupName rg-app -Name avset-web -Location westeurope -PlatformFaultDomainCount 2 -PlatformUpdateDomainCount 5 -Sku Aligned\nNew-AzVM -ResourceGroupName rg-app -Name vm-web-z1 -Location westeurope -Image Ubuntu2204 -Zone 1 -Credential (Get-Credential)",
+    "bicep": "resource avset 'Microsoft.Compute/availabilitySets@2024-03-01' = {\n  name: 'avset-web'\n  location: resourceGroup().location\n  sku: { name: 'Aligned' }\n  properties: { platformFaultDomainCount: 2, platformUpdateDomainCount: 5 }\n}"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "vm-sim",
+    "objective": "Show which placement survives which failure.",
+    "duration": 10,
+    "steps": [
+      "Availability set with 4 VMs: inject host failure and maintenance.",
+      "Inject a zone failure with the availability set.",
+      "Switch to zones with 3 VMs and inject a zone failure, then a region outage."
+    ],
+    "expected": [
+      "Sets survive rack/maintenance events",
+      "Only zones survive a datacenter loss",
+      "Nothing in one region survives a region outage"
+    ],
+    "validation": [
+      {
+        "id": "placement-set",
+        "text": "Tested an availability set"
+      },
+      {
+        "id": "zone-survived",
+        "text": "Survived a zone failure with zones"
+      }
+    ],
+    "failureScenarios": [
+      "Single VM",
+      "Region outage"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Cannot add an existing VM to an availability set.",
+      "cause": "Set membership is defined at creation.",
+      "fix": "Recreate the VM from its disks in the set."
+    },
+    {
+      "symptom": "Allocation failure when adding VMs to a set.",
+      "cause": "Cluster capacity for that size.",
+      "fix": "Deallocate all VMs and start them together, or choose another size."
+    },
+    {
+      "symptom": "Zone option missing.",
+      "cause": "Region or size has no zone support.",
+      "fix": "Choose a zone-enabled region/size."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS placement groups / multi-AZ",
+      "difference": "EC2 spread placement groups resemble availability sets; deploying across AZs resembles Azure zones."
+    },
+    {
+      "service": "VM Scale Sets (Flexible)",
+      "difference": "Automate spreading across zones and fault domains with autoscale."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "An availability set protects against datacenter failure.",
+      "reality": "It spreads across racks in one datacenter."
+    },
+    {
+      "myth": "A single VM in a zone gets 99.99%.",
+      "reality": "99.99% needs two or more VMs across zones."
+    }
+  ],
+  "architectureDecisions": [
+    "Use zones for business-critical tiers when the region supports them.",
+    "Pair VM redundancy with zone-redundant load balancing and storage.",
+    "Add a second region for disaster recovery."
+  ],
+  "docs": [
+    {
+      "title": "Availability options for Azure VMs",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/availability"
+    },
+    {
+      "title": "Availability sets overview",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/availability-set-overview"
+    },
+    {
+      "title": "Availability zones overview",
+      "url": "https://learn.microsoft.com/azure/reliability/availability-zones-overview"
+    },
+    {
+      "title": "SLA for online services",
+      "url": "https://www.microsoft.com/licensing/docs/view/Service-Level-Agreements-SLA-for-Online-Services"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Keep an app running when hardware fails or Azure updates its servers.",
+    "learn": [
+      "Fault domains and update domains",
+      "Availability sets",
+      "Availability zones",
+      "SLAs and choosing"
+    ],
+    "nodes": [
+      {
+        "id": "rack1",
+        "label": "Fault domain 0",
+        "x": 150,
+        "y": 110,
+        "kind": "compute",
+        "sub": "rack, power"
+      },
+      {
+        "id": "rack2",
+        "label": "Fault domain 1",
+        "x": 150,
+        "y": 250,
+        "kind": "compute"
+      },
+      {
+        "id": "set",
+        "label": "Availability set",
+        "x": 400,
+        "y": 180,
+        "kind": "service",
+        "sub": "one datacenter"
+      },
+      {
+        "id": "z1",
+        "label": "Zone 1",
+        "x": 650,
+        "y": 90,
+        "kind": "globe"
+      },
+      {
+        "id": "z2",
+        "label": "Zone 2",
+        "x": 650,
+        "y": 220,
+        "kind": "globe"
+      },
+      {
+        "id": "z3",
+        "label": "Zone 3",
+        "x": 650,
+        "y": 350,
+        "kind": "globe"
+      },
+      {
+        "id": "lb",
+        "label": "Load balancer",
+        "x": 400,
+        "y": 380,
+        "kind": "network"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Single VM",
+        "title": "One VM is one point of failure",
+        "body": [
+          "A failed host, a power problem in a rack, or a planned update can take the only VM down."
+        ],
+        "show": [
+          "rack1"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Domains",
+        "title": "Two kinds of failure",
+        "body": [
+          "Fault domains are groups of hardware that share power and network (racks). Update domains are groups that Azure restarts together during planned maintenance."
+        ],
+        "show": [
+          "rack1",
+          "rack2"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Sets",
+        "title": "Availability sets spread VMs in one datacenter",
+        "body": [
+          "VMs in an availability set are spread over up to 3 fault domains and up to 20 update domains. Two or more VMs in a set get a 99.95% SLA.",
+          "You choose the set when you create the VM; you cannot add an existing VM later."
+        ],
+        "show": [
+          "rack1",
+          "rack2",
+          "set"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "set",
+            "to": "rack1",
+            "fresh": true
+          },
+          {
+            "from": "set",
+            "to": "rack2",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "An availability set does not protect against a whole datacenter failing."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Zones",
+        "title": "Availability zones spread VMs across buildings",
+        "body": [
+          "Zones are separate datacenters in a region with their own power, cooling and network. VMs in two or more zones get a 99.99% SLA. Put a load balancer in front to spread traffic."
+        ],
+        "show": [
+          "rack1",
+          "rack2",
+          "set",
+          "z1",
+          "z2",
+          "z3",
+          "lb"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "set",
+            "to": "rack1"
+          },
+          {
+            "from": "set",
+            "to": "rack2"
+          },
+          {
+            "from": "lb",
+            "to": "z1",
+            "fresh": true
+          },
+          {
+            "from": "lb",
+            "to": "z2",
+            "fresh": true
+          },
+          {
+            "from": "lb",
+            "to": "z3",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "case",
+        "label": "Choose",
+        "title": "Choosing",
+        "body": [
+          "Need the highest protection in one region: zones. Region without zones, or apps needing very low latency between VMs: availability set. A single VM with Premium SSD disks gets 99.9%."
+        ],
+        "show": [
+          "rack1",
+          "rack2",
+          "set",
+          "z1",
+          "z2",
+          "z3",
+          "lb"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "set",
+            "to": "rack1"
+          },
+          {
+            "from": "set",
+            "to": "rack2"
+          },
+          {
+            "from": "lb",
+            "to": "z1"
+          },
+          {
+            "from": "lb",
+            "to": "z2"
+          },
+          {
+            "from": "lb",
+            "to": "z3"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Availability",
+        "body": [
+          "Spread copies so one failure cannot stop you."
+        ],
+        "show": [
+          "rack1",
+          "rack2",
+          "set",
+          "z1",
+          "z2",
+          "z3",
+          "lb"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "set",
+            "to": "rack1"
+          },
+          {
+            "from": "set",
+            "to": "rack2"
+          },
+          {
+            "from": "lb",
+            "to": "z1"
+          },
+          {
+            "from": "lb",
+            "to": "z2"
+          },
+          {
+            "from": "lb",
+            "to": "z3"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "Fault domain = shared hardware; update domain = maintenance group",
+          "Availability set: 99.95%, chosen at creation",
+          "Zones: 99.99%, separate buildings",
+          "Add a load balancer in front",
+          "Single VM with Premium SSD: 99.9%"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Explore availability options without paying for VMs",
+    "minutes": 15,
+    "costLevel": "free",
+    "cost": "Free. You create an empty availability set and only look at the VM form.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Availability sets' > + Create. Group: rg-az104-lab, name: avset-lab, fault domains: 2, update domains: 5. Create.",
+        "see": "avset-lab created. It contains no VMs and costs nothing."
+      },
+      {
+        "do": "Open Virtual machines > + Create > Azure virtual machine. Open the 'Availability options' list.",
+        "see": "No infrastructure redundancy required, Availability zone, Virtual machine scale set, Availability set."
+      },
+      {
+        "do": "Choose Availability zone and tick zones 1, 2 and 3.",
+        "see": "A message that one VM will be created in each selected zone."
+      },
+      {
+        "do": "Choose Availability set and pick avset-lab.",
+        "see": "The VM would be placed in your set. Do not create it."
+      },
+      {
+        "do": "Cancel the form. Open avset-lab > Overview.",
+        "see": "Fault and update domain counts. There is no button to add an existing VM."
+      }
+    ],
+    "check": [
+      "You found where zones and sets are chosen, and saw that sets are chosen at VM creation."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Availability options for Azure virtual machines",
+        "url": "https://learn.microsoft.com/azure/virtual-machines/availability"
+      },
+      {
+        "title": "Create VMs in an availability set using the portal",
+        "url": "https://learn.microsoft.com/azure/virtual-machines/windows/tutorial-availability-sets"
+      },
+      {
+        "title": "Create VMs in availability zones",
+        "url": "https://learn.microsoft.com/azure/virtual-machines/create-portal-availability-zone"
+      }
+    ]
+  }
+}

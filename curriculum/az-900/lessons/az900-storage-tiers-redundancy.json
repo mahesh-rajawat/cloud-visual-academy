@@ -1,0 +1,225 @@
+{
+  "id": "az900-storage-tiers-redundancy",
+  "exam": "az-900",
+  "title": "Storage access tiers and redundancy options",
+  "objectiveIds": [
+    "AZ900-2.3.2",
+    "AZ900-2.3.3"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Describe the Hot, Cool, Cold and Archive tiers, and choose between LRS, ZRS, GRS, GZRS and their read-access variants.",
+  "prerequisites": [
+    {
+      "text": "Storage services",
+      "objectiveId": "AZ900-2.3.1",
+      "lessonId": "az900-storage-services"
+    },
+    {
+      "text": "Regions and zones",
+      "objectiveId": "AZ900-2.1.2",
+      "lessonId": "az900-regions-zones"
+    }
+  ],
+  "foundation": [
+    "Access tiers set the price of blob data by how often you read it. Hot: read often, highest storage price, cheapest to read. Cool and Cold: read rarely, cheaper to store, more to read. Archive: offline and cheapest, but it takes hours to get data back.",
+    "Redundancy decides how many copies Azure keeps and where. Every option keeps at least three copies.",
+    "LRS: three copies in one datacenter. ZRS: three copies in three zones. GRS: LRS plus three more copies in another region. GZRS: ZRS plus three copies in another region. 'RA-' versions let you read from the second region at any time."
+  ],
+  "engineer": [
+    "Tiers: Hot (frequently accessed), Cool (infrequently accessed, stored at least 30 days), Cold (rarely accessed, stored at least 90 days), Archive (stored at least 180 days, offline). Deleting or moving data early incurs an early-deletion charge.",
+    "Hot, Cool and Cold can be set as the account default and per blob; Archive is set only per blob. Archived blobs must be rehydrated (copied or re-tiered to an online tier), which can take up to 15 hours (high priority can be faster). Lifecycle management policies move blobs between tiers automatically.",
+    "Durability: LRS at least 11 nines per year; ZRS at least 12 nines; GRS/GZRS at least 16 nines. LRS protects against drive and rack failure but not a datacenter disaster. ZRS survives a zone outage with continued reads and writes.",
+    "Geo-redundancy copies asynchronously to the paired (secondary) region, where data is stored with LRS. Without RA-, the secondary isn't readable until failover. Customer-managed failover makes the secondary the new primary; some recent writes may be lost (RPO typically under 15 minutes, not guaranteed by SLA).",
+    "Pick by requirement: lowest cost/non-critical → LRS; survive datacenter loss, data residency within region → ZRS; survive region loss → GRS/GZRS; read during a regional outage → RA-GRS/RA-GZRS."
+  ],
+  "animation": {
+    "id": "az900-redundancy-sim",
+    "caption": "Inject datacenter and region failures against each redundancy option, then choose access tiers."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "p",
+        "label": "Primary region",
+        "x": 0,
+        "y": 60,
+        "kind": "scope"
+      },
+      {
+        "id": "lrs",
+        "label": "LRS: 3 copies, 1 datacenter",
+        "x": 0,
+        "y": 180,
+        "kind": "storage"
+      },
+      {
+        "id": "zrs",
+        "label": "ZRS: 3 copies, 3 zones",
+        "x": 230,
+        "y": 180,
+        "kind": "storage"
+      },
+      {
+        "id": "s",
+        "label": "Secondary (paired) region: LRS",
+        "x": 460,
+        "y": 60,
+        "kind": "scope"
+      },
+      {
+        "id": "geo",
+        "label": "GRS / GZRS: async copy",
+        "x": 460,
+        "y": 180,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "p",
+        "to": "lrs"
+      },
+      {
+        "from": "p",
+        "to": "zrs"
+      },
+      {
+        "from": "p",
+        "to": "s",
+        "label": "async replication"
+      },
+      {
+        "from": "s",
+        "to": "geo"
+      }
+    ]
+  },
+  "example": {
+    "title": "A legal firm's documents",
+    "body": [
+      "Active case files are in the Hot tier on RA-GZRS: they survive a zone outage, are copied to the paired region, and lawyers can still read them if the primary region is down.",
+      "Closed cases move to Cool after 30 days and Archive after a year by a lifecycle policy, cutting storage cost by most of the bill."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Storage account > Data management > Redundancy: change replication; Prepare for failover.",
+      "Blob > Change tier; Storage account > Lifecycle management > Add rule."
+    ],
+    "cli": "az storage account update -g <rg> -n <account> --sku Standard_RAGZRS\naz storage blob set-tier --account-name <account> -c docs -n case.pdf --tier Archive --auth-mode login",
+    "powershell": "Set-AzStorageAccount -ResourceGroupName <rg> -Name <account> -SkuName Standard_RAGZRS"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-redundancy-sim",
+    "objective": "See what each redundancy option survives, and choose access tiers.",
+    "duration": 15,
+    "steps": [
+      "Storage redundancy tab: try each option against each failure; try failover.",
+      "Access tiers tab: answer every data type."
+    ],
+    "expected": [
+      "LRS doesn't survive a datacenter loss",
+      "Geo-redundancy needs RA- or failover to read during a regional outage"
+    ],
+    "validation": [
+      {
+        "id": "redundancy-survived",
+        "text": "Data stayed available"
+      },
+      {
+        "id": "redundancy-lost",
+        "text": "Found a redundancy gap"
+      },
+      {
+        "id": "tier-correct",
+        "text": "Chose the right access tier"
+      },
+      {
+        "id": "tier-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Expecting Archive data to be readable immediately",
+      "Expecting GRS to be readable without failover"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Reading an archived blob fails.",
+      "cause": "Archive is offline.",
+      "fix": "Rehydrate to Hot or Cool first (can take hours)."
+    },
+    {
+      "symptom": "Unexpected charges after moving blobs out of Cool.",
+      "cause": "Early-deletion charge for less than 30 days.",
+      "fix": "Plan tier moves around minimum retention."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "GRS vs GZRS",
+      "difference": "Both copy to a secondary region; GZRS also spreads the primary copies across zones."
+    },
+    {
+      "service": "Cold vs Archive",
+      "difference": "Cold is online and immediately readable; Archive is offline and needs rehydration."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Archive can be the account default tier.",
+      "reality": "Archive is set per blob."
+    },
+    {
+      "myth": "GRS lets you read from the secondary by default.",
+      "reality": "Only RA-GRS/RA-GZRS."
+    },
+    {
+      "myth": "ZRS copies data to another region.",
+      "reality": "Within one region across zones."
+    }
+  ],
+  "architectureDecisions": [
+    "Use ZRS or GZRS for production data in zone-enabled regions.",
+    "Use lifecycle rules to move ageing data to cooler tiers.",
+    "Use RA- variants when reads must continue during a regional outage."
+  ],
+  "docs": [
+    {
+      "title": "Describe Azure storage services (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-azure-storage-services/"
+    },
+    {
+      "title": "Azure Storage redundancy",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-redundancy"
+    },
+    {
+      "title": "Access tiers for blob data",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/access-tiers-overview"
+    },
+    {
+      "title": "Blob rehydration from Archive",
+      "url": "https://learn.microsoft.com/azure/storage/blobs/archive-rehydrate-overview"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

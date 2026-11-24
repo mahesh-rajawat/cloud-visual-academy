@@ -1,0 +1,515 @@
+{
+  "id": "az104-azcopy-explorer",
+  "exam": "az-104",
+  "title": "Managing data with AzCopy and Azure Storage Explorer",
+  "objectiveIds": [
+    "AZ104-2.2.5"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Move data with AzCopy (copy, sync, server-side copies) and Storage Explorer using the right authorization, and troubleshoot failed transfers.",
+  "prerequisites": [
+    {
+      "text": "Moving files: AzCopy, Storage Explorer, File Sync (AZ-900)",
+      "objectiveId": "AZ900-2.3.5"
+    },
+    {
+      "text": "SAS and Entra ID authorization",
+      "lessonId": "az104-storage-keys-sas",
+      "objectiveId": "AZ104-2.1.2"
+    }
+  ],
+  "foundation": [
+    "AzCopy is a free command-line tool for copying data to, from and between storage accounts quickly.",
+    "Azure Storage Explorer is a free desktop app with a graphical view of your storage accounts, where you can upload, download and manage data. It uses AzCopy behind the scenes.",
+    "Both need permission to the data: either sign in with Microsoft Entra ID (and have a data role), or use a SAS token or account key."
+  ],
+  "engineer": [
+    "Authorization: azcopy login (interactive, device code, managed identity or service principal) needs an Entra data role such as Storage Blob Data Contributor; Owner or Contributor alone is not enough. Alternatively, append a SAS to each URL.",
+    "Commands: azcopy copy (one-time copy; --recursive for folders), azcopy sync (copies only changed or new files based on last-modified time; --delete-destination=true mirrors deletions), azcopy make (create a container or share), azcopy remove, azcopy list, and azcopy jobs list/resume/show to resume failed transfers using the job's plan files.",
+    "Copies between storage accounts are server-side (Put Block From URL / Copy Blob from URL), so data does not flow through the client. Useful flags: --include-pattern, --exclude-pattern, --overwrite, --put-md5, --cap-mbps, --block-blob-tier.",
+    "Storage Explorer connects with Entra ID (subscription or resource), account name and key, SAS URL, or connection string, and also to Azurite (local emulator). It can manage access policies, generate SAS, change tiers, undelete soft-deleted blobs and work with Data Lake ACLs.",
+    "Firewall rules apply to both tools: the client IP or network must be allowed by the storage account."
+  ],
+  "animation": {
+    "id": "storage-account-sim",
+    "caption": "Open the AzCopy tab: build copy and sync commands and see the authorization requirements."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "pc",
+        "label": "Admin PC: AzCopy / Storage Explorer",
+        "x": 0,
+        "y": 60,
+        "kind": "user"
+      },
+      {
+        "id": "entra",
+        "label": "azcopy login → Entra token (data role)",
+        "x": 260,
+        "y": 0,
+        "kind": "identity"
+      },
+      {
+        "id": "src",
+        "label": "stsource / reports",
+        "x": 260,
+        "y": 140,
+        "kind": "storage"
+      },
+      {
+        "id": "dst",
+        "label": "stcontoso / reports",
+        "x": 540,
+        "y": 140,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "pc",
+        "to": "entra"
+      },
+      {
+        "from": "pc",
+        "to": "src",
+        "label": "upload / sync"
+      },
+      {
+        "from": "src",
+        "to": "dst",
+        "label": "server-side copy"
+      }
+    ]
+  },
+  "example": {
+    "title": "Nightly mirror of a reports folder",
+    "body": [
+      "A Windows server runs a scheduled task: azcopy login --identity (using the VM's managed identity, which holds Storage Blob Data Contributor), then azcopy sync C:\\reports https://stcontoso.blob.core.windows.net/reports --recursive --delete-destination=true.",
+      "After a network outage, azcopy jobs resume finishes the interrupted job without re-uploading completed files."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "AzCopy v10 or Storage Explorer installed",
+      "Network access to the storage endpoints"
+    ],
+    "permissions": [
+      "Storage Blob Data Contributor (or Reader for downloads) with azcopy login",
+      "Or a SAS with the required permissions"
+    ],
+    "limits": [
+      "sync compares last-modified times (optionally hashes)",
+      "Firewall rules apply to the client"
+    ],
+    "portal": [
+      "Storage account > Storage browser (in the portal) for quick uploads and downloads.",
+      "Download Storage Explorer from the portal's Open in Explorer link; sign in or attach with a SAS or connection string.",
+      "Container > Shared access tokens to create a SAS for AzCopy."
+    ],
+    "cli": "azcopy login\nazcopy make \"https://stcontoso.blob.core.windows.net/reports\"\nazcopy copy \"C:\\reports\" \"https://stcontoso.blob.core.windows.net/reports\" --recursive\nazcopy sync \"C:\\reports\" \"https://stcontoso.blob.core.windows.net/reports\" --recursive --delete-destination=true\nazcopy copy \"https://stsource.blob.core.windows.net/reports?<SAS>\" \"https://stcontoso.blob.core.windows.net/reports?<SAS>\" --recursive\nazcopy jobs list\naz storage blob upload-batch --account-name stcontoso --destination reports --source ./reports --auth-mode login",
+    "powershell": "# AzCopy is a standalone tool; Az.Storage cmdlets cover single-object operations\n$ctx = New-AzStorageContext -StorageAccountName stcontoso -UseConnectedAccount\nSet-AzStorageBlobContent -File .\\report.csv -Container reports -Blob 2026/report.csv -Context $ctx\nStart-AzStorageBlobCopy -SrcContainer reports -SrcBlob 2026/report.csv -DestContainer archive -DestBlob 2026/report.csv -Context $ctx"
+  },
+  "lab": {
+    "type": "B",
+    "simulationId": "storage-account-sim",
+    "objective": "Build correct AzCopy commands and identify the authorization each needs.",
+    "duration": 10,
+    "steps": [
+      "Open the AzCopy tab with azcopy login and no data role: read the predicted 403.",
+      "Tick the data role. Switch to sync and add --delete-destination.",
+      "Build an account-to-account copy using SAS and note that it is server-side."
+    ],
+    "expected": [
+      "Login without a data role fails at transfer time",
+      "sync flags explained",
+      "Server-side copy between accounts"
+    ],
+    "validation": [
+      {
+        "id": "azcopy-role",
+        "text": "Granted the identity a data role for azcopy login"
+      },
+      {
+        "id": "azcopy-built",
+        "text": "Reviewed a built AzCopy command"
+      }
+    ],
+    "failureScenarios": [
+      "Owner role only",
+      "SAS missing list permission for sync",
+      "Client IP blocked by the firewall"
+    ],
+    "cleanup": [
+      "Nothing to clean up."
+    ],
+    "cost": "AzCopy and Storage Explorer are free; transactions and egress are billed by Azure Storage."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "AzCopy 403 AuthorizationPermissionMismatch after azcopy login.",
+      "cause": "Identity lacks a Storage Blob Data role.",
+      "fix": "Assign Storage Blob Data Contributor and wait for propagation."
+    },
+    {
+      "symptom": "403 AuthorizationFailure from a home network.",
+      "cause": "Storage firewall blocks the client IP.",
+      "fix": "Add the IP or use an allowed network."
+    },
+    {
+      "symptom": "Transfer stopped halfway.",
+      "cause": "Network interruption.",
+      "fix": "azcopy jobs resume <job-id> (with the same SAS if used)."
+    },
+    {
+      "symptom": "sync re-uploads everything.",
+      "cause": "Last-modified times differ (for example after a restore).",
+      "fix": "Use --compare-hash where supported, or accept a one-time full sync."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Data Box",
+      "difference": "Offline transfer appliance for very large datasets or limited bandwidth; AzCopy is online."
+    },
+    {
+      "service": "Azure File Sync",
+      "difference": "Continuous sync and cloud tiering between Windows Servers and Azure Files; AzCopy runs one-off or scheduled transfers."
+    },
+    {
+      "service": "AWS CLI s3 cp / s3 sync",
+      "difference": "Functionally similar commands for Amazon S3."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Owner can upload with azcopy login.",
+      "reality": "A data-plane role is required."
+    },
+    {
+      "myth": "Copying between two accounts downloads data to your PC.",
+      "reality": "AzCopy uses server-side copy between accounts."
+    }
+  ],
+  "architectureDecisions": [
+    "Use managed identities with azcopy login for scheduled jobs instead of embedding SAS tokens.",
+    "Use Data Box for multi-terabyte migrations over slow links."
+  ],
+  "docs": [
+    {
+      "title": "Get started with AzCopy",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-use-azcopy-v10"
+    },
+    {
+      "title": "Authorize access to blobs with AzCopy and Microsoft Entra ID",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-use-azcopy-authorize-azure-active-directory"
+    },
+    {
+      "title": "Synchronize with Azure Blob storage by using AzCopy",
+      "url": "https://learn.microsoft.com/azure/storage/common/storage-use-azcopy-blobs-synchronize"
+    },
+    {
+      "title": "Get started with Storage Explorer",
+      "url": "https://learn.microsoft.com/azure/storage/storage-explorer/vs-azure-tools-storage-manage-with-storage-explorer"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked Microsoft Learn pages. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Move lots of files in and out of Azure Storage, with a command line or a desktop app.",
+    "learn": [
+      "AzCopy: copy and sync from the command line",
+      "How AzCopy signs in: Entra ID or SAS",
+      "Storage Explorer and the portal's Storage browser",
+      "Choosing the right tool"
+    ],
+    "nodes": [
+      {
+        "id": "pc",
+        "label": "Your PC / server",
+        "x": 120,
+        "y": 220,
+        "kind": "compute"
+      },
+      {
+        "id": "az",
+        "label": "AzCopy",
+        "x": 380,
+        "y": 120,
+        "kind": "service",
+        "sub": "command line"
+      },
+      {
+        "id": "se",
+        "label": "Storage Explorer",
+        "x": 380,
+        "y": 330,
+        "kind": "service",
+        "sub": "desktop app"
+      },
+      {
+        "id": "sa",
+        "label": "Storage account",
+        "x": 660,
+        "y": 220,
+        "kind": "storage"
+      },
+      {
+        "id": "auth",
+        "label": "Entra ID or SAS",
+        "x": 660,
+        "y": 390,
+        "kind": "security"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Many files",
+        "title": "Upload 50,000 files tonight",
+        "body": [
+          "Clicking upload in the portal does not scale. You need a tool that copies in parallel and can resume."
+        ],
+        "show": [
+          "pc",
+          "sa"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "AzCopy",
+        "title": "AzCopy for scripts and big jobs",
+        "body": [
+          "AzCopy is a free command-line tool. azcopy copy uploads, downloads or copies between accounts (server to server). azcopy sync makes a destination match a source. It runs on Windows, Linux and macOS, and is built into Azure Cloud Shell."
+        ],
+        "show": [
+          "pc",
+          "sa",
+          "az"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "pc",
+            "to": "az",
+            "fresh": true
+          },
+          {
+            "from": "az",
+            "to": "sa",
+            "label": "copy / sync",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Auth",
+        "title": "How AzCopy proves who you are",
+        "body": [
+          "Sign in with azcopy login (Microsoft Entra ID; you need a data role such as Storage Blob Data Contributor), or append a SAS token to the URL. Azure Files supports SAS and, in newer versions, Entra ID."
+        ],
+        "show": [
+          "pc",
+          "sa",
+          "az",
+          "auth"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "pc",
+            "to": "az"
+          },
+          {
+            "from": "az",
+            "to": "sa",
+            "label": "copy / sync"
+          },
+          {
+            "from": "auth",
+            "to": "sa",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Owner or Contributor on the account is not enough for azcopy login uploads. You need a data role like Storage Blob Data Contributor."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Explorer",
+        "title": "Storage Explorer for point and click",
+        "body": [
+          "Azure Storage Explorer is a free desktop app to browse, upload, download and manage blobs, files, queues and tables. It uses AzCopy under the hood for transfers. In the portal, Storage browser does lighter jobs."
+        ],
+        "show": [
+          "pc",
+          "sa",
+          "az",
+          "auth",
+          "se"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "pc",
+            "to": "az"
+          },
+          {
+            "from": "az",
+            "to": "sa",
+            "label": "copy / sync"
+          },
+          {
+            "from": "auth",
+            "to": "sa"
+          },
+          {
+            "from": "pc",
+            "to": "se",
+            "fresh": true
+          },
+          {
+            "from": "se",
+            "to": "sa",
+            "label": "browse",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Moving data",
+        "body": [
+          "Scripts: AzCopy. Clicking: Storage Explorer."
+        ],
+        "show": [
+          "pc",
+          "sa",
+          "az",
+          "auth",
+          "se"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "pc",
+            "to": "az"
+          },
+          {
+            "from": "az",
+            "to": "sa",
+            "label": "copy / sync"
+          },
+          {
+            "from": "auth",
+            "to": "sa"
+          },
+          {
+            "from": "pc",
+            "to": "se"
+          },
+          {
+            "from": "se",
+            "to": "sa",
+            "label": "browse"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "azcopy copy and azcopy sync",
+          "Sign in with Entra ID (data role) or a SAS",
+          "Storage Explorer is a desktop app using AzCopy",
+          "Storage browser in the portal for small jobs"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Upload files with AzCopy in Cloud Shell",
+    "minutes": 20,
+    "costLevel": "free",
+    "cost": "Cents. A few small files in a Standard LRS account cost almost nothing; delete the account at the end.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A storage account in rg-az104-lab: Standard performance, LRS redundancy, default settings. Name it st<yourinitials><number> (lowercase letters and numbers only, globally unique)."
+    ],
+    "steps": [
+      {
+        "do": "Create a container named upload in the storage account."
+      },
+      {
+        "do": "Open the container > Settings > Shared access tokens. Permissions: Read, Add, Create, Write, List. Expiry: 2 hours. Generate and copy the Blob SAS URL."
+      },
+      {
+        "do": "Open Cloud Shell (the >_ icon at the top of the portal). Choose Bash. If asked about storage, choose 'No storage account required'.",
+        "see": "A Bash prompt in the browser."
+      },
+      {
+        "do": "Type: mkdir files && for i in 1 2 3; do echo hello $i > files/f$i.txt; done",
+        "see": "Three small files created in the files folder."
+      },
+      {
+        "do": "Type: azcopy copy 'files/*' '<paste the SAS URL here>'  (keep the single quotes).",
+        "see": "A job summary with 3 transfers completed.",
+        "tip": "Wrap the SAS URL in single quotes, because it contains & characters."
+      },
+      {
+        "do": "Type: azcopy list '<the SAS URL>'",
+        "see": "The three files listed. You can also see them in the portal's container view."
+      },
+      {
+        "do": "Optional: install Azure Storage Explorer on your PC, sign in, and browse the same container.",
+        "see": "The container and files in the desktop app."
+      }
+    ],
+    "check": [
+      "Three files uploaded by AzCopy are visible in the container."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Get started with AzCopy",
+        "url": "https://learn.microsoft.com/azure/storage/common/storage-use-azcopy-v10"
+      },
+      {
+        "title": "Upload files with AzCopy",
+        "url": "https://learn.microsoft.com/azure/storage/common/storage-use-azcopy-blobs-upload"
+      },
+      {
+        "title": "Get started with Storage Explorer",
+        "url": "https://learn.microsoft.com/azure/storage/storage-explorer/vs-azure-tools-storage-manage-with-storage-explorer"
+      }
+    ]
+  }
+}

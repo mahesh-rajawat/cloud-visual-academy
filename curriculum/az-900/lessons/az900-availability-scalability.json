@@ -1,0 +1,227 @@
+{
+  "id": "az900-availability-scalability",
+  "exam": "az-900",
+  "title": "High availability, scalability, reliability and predictability",
+  "objectiveIds": [
+    "AZ900-1.2.1",
+    "AZ900-1.2.2"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Describe high availability, scalability (vertical and horizontal) and elasticity, and explain how the cloud improves reliability and predictability.",
+  "prerequisites": [
+    {
+      "text": "Cloud computing basics",
+      "objectiveId": "AZ900-1.1.1",
+      "lessonId": "az900-cloud-basics"
+    }
+  ],
+  "foundation": [
+    "High availability: your service keeps running even when something fails. Azure backs services with SLAs (service level agreements) such as 99.9% or 99.99% uptime.",
+    "Scalability: adding resources to handle more load. Scale up (vertical) = a bigger machine. Scale out (horizontal) = more machines. Elasticity is scaling automatically as demand changes, and scaling back down.",
+    "Reliability: the ability to recover from failures and keep working. Azure's global regions let you run in more than one place, so one disaster doesn't stop you.",
+    "Predictability: you can predict both performance (autoscaling and load balancing keep it steady) and cost (tools forecast and track spending)."
+  ],
+  "engineer": [
+    "SLA maths: 99.9% allows about 43.8 minutes of downtime a month; 99.99% about 4.4 minutes. When an app depends on several services, the composite SLA is the product: 99.95% × 99.99% ≈ 99.94%, lower than either.",
+    "High availability techniques: redundancy (several instances), availability zones (separate datacenters in a region), load balancing, health probes, and automatic failover.",
+    "Scale up/down: change VM size or service tier (often a brief restart). Scale out/in: add or remove instances (Virtual Machine Scale Sets, App Service instances); usually no downtime.",
+    "Elasticity is driven by autoscale rules (for example 'add an instance when average CPU > 70% for 10 minutes', 'remove when < 30%') or schedules.",
+    "Reliability: decentralised design across zones and regions, backups, geo-replication, and disaster recovery (Azure Site Recovery). The Well-Architected Framework reliability pillar gives design guidance.",
+    "Performance predictability: autoscale, load balancing and high availability. Cost predictability: pricing calculator, Cost Management forecasts, budgets and analytics."
+  ],
+  "animation": {
+    "id": "az900-benefits-sim",
+    "caption": "Calculate a composite SLA and autoscale, then match situations to cloud benefits."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "lb",
+        "label": "Load balancer",
+        "x": 0,
+        "y": 60,
+        "kind": "network"
+      },
+      {
+        "id": "z1",
+        "label": "Zone 1: VM",
+        "x": 230,
+        "y": 0,
+        "kind": "compute"
+      },
+      {
+        "id": "z2",
+        "label": "Zone 2: VM",
+        "x": 230,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "as",
+        "label": "Autoscale: add/remove VMs",
+        "x": 460,
+        "y": 60,
+        "kind": "scope"
+      },
+      {
+        "id": "dr",
+        "label": "Paired region: DR copy",
+        "x": 460,
+        "y": 180,
+        "kind": "storage"
+      }
+    ],
+    "edges": [
+      {
+        "from": "lb",
+        "to": "z1"
+      },
+      {
+        "from": "lb",
+        "to": "z2"
+      },
+      {
+        "from": "as",
+        "to": "z1"
+      },
+      {
+        "from": "as",
+        "to": "z2"
+      },
+      {
+        "from": "z2",
+        "to": "dr",
+        "label": "replicate"
+      }
+    ]
+  },
+  "example": {
+    "title": "A news site on election night",
+    "body": [
+      "Traffic jumps 20× for one night. Autoscale adds web instances as CPU rises (elasticity) and removes them after midnight. Instances span three availability zones behind a load balancer (high availability).",
+      "The database is geo-replicated to another region (reliability), and finance set a budget alert with a forecast (predictability)."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "VM scale set or App Service plan > Scaling: add autoscale rules and instance limits.",
+      "VM > Size: scale up or down.",
+      "Service level agreements are published per service on the Microsoft licensing site."
+    ],
+    "cli": "az monitor autoscale create -g <rg> --resource <vmss-id> --min-count 2 --max-count 10 --count 2\naz monitor autoscale rule create -g <rg> --autoscale-name <name> --condition \"Percentage CPU > 70 avg 10m\" --scale out 1",
+    "powershell": "Get-AzAutoscaleSetting -ResourceGroupName <rg>"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-benefits-sim",
+    "objective": "Calculate composite SLAs and match cloud benefits.",
+    "duration": 15,
+    "steps": [
+      "Availability, scalability, elasticity tab: run the default and each preset.",
+      "Which benefit? tab: answer every situation."
+    ],
+    "expected": [
+      "Composite SLA is lower than each part",
+      "Elasticity scales automatically both ways"
+    ],
+    "validation": [
+      {
+        "id": "sla-met",
+        "text": "Met an availability requirement"
+      },
+      {
+        "id": "sla-missed",
+        "text": "Saw a design miss its SLA"
+      },
+      {
+        "id": "benefit-correct",
+        "text": "Chose the right cloud benefit"
+      },
+      {
+        "id": "benefit-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Assuming two 99.9% services give 99.9% together",
+      "Scaling up when you need more instances"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "App is slow at peak even with autoscale.",
+      "cause": "Maximum instance count reached, or scale rule threshold too high.",
+      "fix": "Raise the maximum and lower the threshold; check for a bottleneck in the database."
+    },
+    {
+      "symptom": "Brief outage when scaling.",
+      "cause": "Scaling up (resizing) restarts the VM.",
+      "fix": "Scale out with multiple instances instead."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Scalability vs elasticity",
+      "difference": "Scalability is the ability to grow; elasticity is growing and shrinking automatically."
+    },
+    {
+      "service": "High availability vs disaster recovery",
+      "difference": "HA keeps a service up through component failures; DR restores service after a major event such as a region outage."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "An SLA guarantees no downtime.",
+      "reality": "It defines an uptime commitment and service credits if it's missed."
+    },
+    {
+      "myth": "Scaling up and scaling out are the same.",
+      "reality": "Up = bigger; out = more."
+    },
+    {
+      "myth": "The cloud is automatically highly available.",
+      "reality": "You must design for it, for example with zones and multiple instances."
+    }
+  ],
+  "architectureDecisions": [
+    "Prefer scale-out with autoscale for web tiers.",
+    "Deploy across availability zones for higher SLAs.",
+    "Calculate the composite SLA of all dependencies."
+  ],
+  "docs": [
+    {
+      "title": "Describe the benefits of using cloud services (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-benefits-use-cloud-services/"
+    },
+    {
+      "title": "Service Level Agreements",
+      "url": "https://www.microsoft.com/licensing/docs/view/Service-Level-Agreements-SLA-for-Online-Services"
+    },
+    {
+      "title": "Autoscale overview",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/autoscale/autoscale-overview"
+    },
+    {
+      "title": "Well-Architected reliability pillar",
+      "url": "https://learn.microsoft.com/azure/well-architected/reliability/"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

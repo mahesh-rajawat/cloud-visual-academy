@@ -1,0 +1,221 @@
+{
+  "id": "ai901-portal-deploy",
+  "exam": "ai-901",
+  "title": "Deploy a model and use it in the Foundry portal",
+  "objectiveIds": [
+    "AI901-2.1.2"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Deploy a model in Microsoft Foundry and interact with it in the portal playground.",
+  "prerequisites": [
+    {
+      "text": "Deployment options",
+      "objectiveId": "AI901-1.2.3",
+      "lessonId": "ai901-deployment-options"
+    },
+    {
+      "text": "Writing prompts",
+      "objectiveId": "AI901-2.1.1",
+      "lessonId": "ai901-prompts"
+    }
+  ],
+  "foundation": [
+    "Microsoft Foundry (ai.azure.com) is the portal where you build AI apps. Work happens in a project, which belongs to a Foundry resource in your Azure subscription.",
+    "To use a model: find it in the model catalog, deploy it (name, type, limits), then try it in the playground by chatting with it.",
+    "The playground lets you set the system message and parameters, and 'View code' gives you ready-to-run code for your app."
+  ],
+  "engineer": [
+    "Resources: a Foundry resource (Azure resource kind AIServices) hosts projects, model deployments and Foundry Tools; a project groups agents, files, evaluations and connections, and has its own endpoint (https://<resource>.services.ai.azure.com/api/projects/<project>).",
+    "Deploy flow: Model catalog → select model → Use this model / Deploy → choose deployment type (for example Global Standard), deployment name, model version and upgrade policy, tokens-per-minute rate limit, content filter → Deploy.",
+    "Playground: chat with the deployment; set Instructions (system message), temperature, top_p, max response tokens, stop sequences; add your data for grounding; compare outputs; check token usage; View code for Python, C#, JavaScript or REST.",
+    "Access: you need roles such as Azure AI User to use deployments and Azure AI Project Manager or Owner to create projects and deployments. Quota limits how much TPM you can assign per model per region.",
+    "Clean up by deleting deployments or the resource group when you finish; Standard deployments cost only for tokens used, but Provisioned deployments bill for reserved capacity."
+  ],
+  "animation": {
+    "id": "ai901-portal-sim",
+    "caption": "Walk through project, catalog, deployment and playground; choose the deployment type."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "res",
+        "label": "Foundry resource (AIServices)",
+        "x": 0,
+        "y": 100,
+        "kind": "service"
+      },
+      {
+        "id": "proj",
+        "label": "Project (endpoint)",
+        "x": 240,
+        "y": 100,
+        "kind": "service"
+      },
+      {
+        "id": "cat",
+        "label": "Model catalog",
+        "x": 480,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "dep",
+        "label": "Deployment: name, type, TPM, filter",
+        "x": 480,
+        "y": 110,
+        "kind": "ai"
+      },
+      {
+        "id": "play",
+        "label": "Playground → View code",
+        "x": 720,
+        "y": 110,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "res",
+        "to": "proj"
+      },
+      {
+        "from": "proj",
+        "to": "cat"
+      },
+      {
+        "from": "cat",
+        "to": "dep",
+        "label": "deploy"
+      },
+      {
+        "from": "dep",
+        "to": "play"
+      }
+    ]
+  },
+  "example": {
+    "title": "First deployment in an afternoon",
+    "body": [
+      "A developer creates a project 'support', deploys a chat model as 'chat-model' with Global Standard and 50K TPM, and tests the returns prompt in the playground at temperature 0.3.",
+      "Satisfied, they click View code and paste the Python sample into their app, replacing the key with DefaultAzureCredential."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with access to Microsoft Foundry (ai.azure.com)"
+    ],
+    "permissions": [
+      "Azure AI User on the Foundry project to use models and agents; Azure AI Project Manager or Owner to create projects and deployments"
+    ],
+    "limits": [
+      "Model availability differs by region and deployment type",
+      "Deployments have tokens-per-minute (TPM) rate limits and quota per subscription and region"
+    ],
+    "portal": [
+      "Sign in at ai.azure.com and create a project (this creates or uses a Foundry resource).",
+      "Model catalog > pick a chat model > Use this model / Deploy > choose Global Standard, set the deployment name and TPM.",
+      "Open the Chat playground, write the system message (Instructions), adjust temperature and max tokens, chat.",
+      "Select View code to copy the Python sample for the deployment."
+    ],
+    "cli": "# Create a Foundry resource and project (billable only when used)\naz group create --name rg-ai901 --location eastus2\naz cognitiveservices account create --name contoso-ai --resource-group rg-ai901 \\\n  --kind AIServices --sku S0 --location eastus2 --custom-domain contoso-ai --allow-project-management\naz cognitiveservices account project create --name support --resource-group rg-ai901 --account-name contoso-ai\n# Deploy a model (Global Standard, 50K TPM)\naz cognitiveservices account deployment create --name contoso-ai --resource-group rg-ai901 \\\n  --deployment-name chat-model --model-name gpt-5-mini --model-version <version> --model-format OpenAI \\\n  --sku-name GlobalStandard --sku-capacity 50",
+    "powershell": "New-AzResourceGroup -Name rg-ai901 -Location eastus2\nNew-AzCognitiveServicesAccount -ResourceGroupName rg-ai901 -Name contoso-ai -Type AIServices -SkuName S0 -Location eastus2 -CustomSubdomainName contoso-ai\n# Projects and deployments: use the Foundry portal or Azure CLI",
+    "python": "response = openai.responses.create(\n    model=\"chat-model\",\n    instructions=(\n        \"You are Contoso's returns assistant. Answer only from the policy between ### markers. \"\n        \"If the answer is not there, say you don't know. Use at most three bullet points.\"\n    ),\n    input=\"###\\nReturns are accepted within 30 days with a receipt.\\n###\\nCan I return shoes after 40 days?\",\n)\nprint(response.output_text)"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "ai901-portal-sim",
+    "objective": "Deploy a model and test it.",
+    "duration": 15,
+    "steps": [
+      "Deploy and test in the Foundry portal tab: run the default, then each preset until the model is ready.",
+      "Deployment options and parameters tab: choose the right deployment type."
+    ],
+    "expected": [
+      "A deployment is needed before the playground works",
+      "The deployment name is used in code"
+    ],
+    "validation": [
+      {
+        "id": "ai-portal-ready",
+        "text": "Deployed and tested a model"
+      },
+      {
+        "id": "ai-portal-blocked",
+        "text": "Found a missing step"
+      },
+      {
+        "id": "ai-deploy-correct",
+        "text": "Chose the right deployment type"
+      }
+    ],
+    "failureScenarios": [
+      "Trying to chat before deploying",
+      "No quota left in the region"
+    ],
+    "cleanup": [
+      "Simulation: use Reset.",
+      "If you ran it in Azure: az group delete --name rg-ai901 --yes (deletes the Foundry resource, projects and deployments)."
+    ],
+    "cost": "Simulation: free. Optional real run: model tokens and Foundry Tools transactions are billed per use; delete the resource group afterwards."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Deploy button is disabled or quota error.",
+      "cause": "No TPM quota left for the model in that region.",
+      "fix": "Lower TPM, free quota from another deployment, or use another region."
+    },
+    {
+      "symptom": "Can't see the project.",
+      "cause": "Missing role on the Foundry resource or project.",
+      "fix": "Ask for Azure AI User (or higher)."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Playground vs SDK",
+      "difference": "Playground for testing interactively; SDK for apps."
+    },
+    {
+      "service": "Foundry resource vs project",
+      "difference": "The resource is the Azure resource with deployments and billing; projects organise work inside it."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Deploying a model trains it.",
+      "reality": "Deployment makes a pre-trained model available."
+    },
+    {
+      "myth": "The playground uses a different model than your app.",
+      "reality": "Both call the same deployment."
+    }
+  ],
+  "architectureDecisions": [
+    "One project per app or team.",
+    "Name deployments by purpose.",
+    "Delete experiments you no longer need."
+  ],
+  "docs": [
+    {
+      "title": "What is Microsoft Foundry?",
+      "url": "https://learn.microsoft.com/azure/foundry/what-is-foundry"
+    },
+    {
+      "title": "Deploy models in Foundry",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/foundry-models/how-to/create-model-deployments"
+    },
+    {
+      "title": "Deployment types",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/foundry-models/concepts/deployment-types"
+    },
+    {
+      "title": "Quickstart: get started with Foundry",
+      "url": "https://learn.microsoft.com/azure/ai-foundry/quickstarts/get-started-code"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

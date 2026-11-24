@@ -1,0 +1,217 @@
+{
+  "id": "az900-security-manageability",
+  "exam": "az-900",
+  "title": "Security, governance and manageability benefits",
+  "objectiveIds": [
+    "AZ900-1.2.3",
+    "AZ900-1.2.4"
+  ],
+  "estimatedMinutes": 30,
+  "learningObjective": "Describe how the cloud helps with security and governance, and the two sides of manageability: management of the cloud and management in the cloud.",
+  "prerequisites": [
+    {
+      "text": "Shared responsibility",
+      "objectiveId": "AZ900-1.1.2",
+      "lessonId": "az900-cloud-basics"
+    }
+  ],
+  "foundation": [
+    "Security benefit: you get protection you'd struggle to build alone, such as physical datacenter security, DDoS protection built into the network, and, with PaaS and SaaS, automatic OS patching.",
+    "Governance benefit: templates and policies keep deployments compliant with company standards and regulations, and auditing shows what doesn't comply.",
+    "Management of the cloud: managing your resources: deploy from templates, autoscale, monitor health, replace failing resources automatically, get alerts.",
+    "Management in the cloud: how you manage: through the web portal, a command-line interface, APIs or PowerShell."
+  ],
+  "engineer": [
+    "Choose the model for the security control you want: IaaS gives maximum control (you patch and secure the OS); PaaS and SaaS shift patching and maintenance to Microsoft.",
+    "Built-in protections: physical security of datacenters, DDoS infrastructure protection, encryption at rest by default for Azure Storage, Microsoft Defender for Cloud recommendations.",
+    "Governance tools: Azure Policy (enforce and audit rules), resource locks, tags, management groups, blueprints-style templates via ARM/Bicep, and Microsoft Purview for data governance and compliance.",
+    "Compliance assurance: Microsoft publishes audit reports (ISO 27001, SOC, PCI DSS and others) in the Service Trust Portal; the Microsoft Purview compliance portal tracks your own compliance.",
+    "Management of the cloud examples: autoscale based on need, deploy from preconfigured templates, monitor health and replace failing resources automatically, receive real-time alerts.",
+    "Management in the cloud examples: Azure portal, Azure CLI, Azure PowerShell, REST APIs, Cloud Shell, SDKs."
+  ],
+  "animation": {
+    "id": "az900-manage-sim",
+    "caption": "Match capabilities to security, governance or manageability, and find where to get assurance."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "sec",
+        "label": "Security: platform protections",
+        "x": 0,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "gov",
+        "label": "Governance: Policy, templates, audit",
+        "x": 240,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "mof",
+        "label": "Management of the cloud: autoscale, alerts",
+        "x": 0,
+        "y": 140,
+        "kind": "compute"
+      },
+      {
+        "id": "min",
+        "label": "Management in the cloud: portal, CLI, API",
+        "x": 240,
+        "y": 140,
+        "kind": "user"
+      },
+      {
+        "id": "res",
+        "label": "Your Azure resources",
+        "x": 480,
+        "y": 70,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "sec",
+        "to": "res"
+      },
+      {
+        "from": "gov",
+        "to": "res"
+      },
+      {
+        "from": "mof",
+        "to": "res"
+      },
+      {
+        "from": "min",
+        "to": "res"
+      }
+    ]
+  },
+  "example": {
+    "title": "A school district",
+    "body": [
+      "A district has no security team big enough to patch dozens of servers. Moving the learning app to PaaS shifts OS patching to Microsoft (security).",
+      "IT assigns Azure Policy to allow only approved regions and require tags (governance), sets autoscale for exam weeks (management of the cloud), and manages it all from the portal and scripts (management in the cloud)."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Microsoft Defender for Cloud > Overview: secure score.",
+      "Policy > Compliance: compliance state of assignments.",
+      "servicetrust.microsoft.com: Microsoft audit reports."
+    ],
+    "cli": "az policy state summarize -o table\naz security secure-scores list -o table",
+    "powershell": "Get-AzPolicyStateSummary"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-manage-sim",
+    "objective": "Match capabilities to cloud benefits.",
+    "duration": 15,
+    "steps": [
+      "Security, governance, manageability tab: answer every capability.",
+      "Where to get assurance tab: answer every question."
+    ],
+    "expected": [
+      "Management of vs in the cloud are different",
+      "Policy enforces governance"
+    ],
+    "validation": [
+      {
+        "id": "manageability-correct",
+        "text": "Chose the right benefit"
+      },
+      {
+        "id": "manageability-wrong",
+        "text": "Learned from a wrong choice"
+      },
+      {
+        "id": "compliance-correct",
+        "text": "Chose the right assurance resource"
+      },
+      {
+        "id": "compliance-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Mixing up 'management of' and 'management in' the cloud"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Auditors ask for Microsoft's SOC report.",
+      "cause": "It isn't in the Azure portal.",
+      "fix": "Download it from the Service Trust Portal."
+    },
+    {
+      "symptom": "Non-compliant resources keep appearing.",
+      "cause": "Policies only audit, or aren't assigned at the right scope.",
+      "fix": "Use a Deny effect and assign at the management group or subscription."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Governance vs security",
+      "difference": "Governance keeps resources aligned with rules; security protects them from threats. Policy can enforce security settings, so they overlap."
+    },
+    {
+      "service": "Portal vs CLI",
+      "difference": "Both are 'management in the cloud'; the CLI is scriptable."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Moving to the cloud makes you compliant automatically.",
+      "reality": "Microsoft's certifications cover its platform; you must configure your workloads compliantly."
+    },
+    {
+      "myth": "Manageability only means the portal.",
+      "reality": "It includes automation, templates, alerts and APIs."
+    }
+  ],
+  "architectureDecisions": [
+    "Use PaaS where possible to reduce patching burden.",
+    "Assign governance policies early, at high scopes.",
+    "Automate management with templates and alerts."
+  ],
+  "docs": [
+    {
+      "title": "Describe the benefits of using cloud services (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-benefits-use-cloud-services/"
+    },
+    {
+      "title": "Get started with the Service Trust Portal",
+      "url": "https://learn.microsoft.com/purview/get-started-with-service-trust-portal"
+    },
+    {
+      "title": "Azure Policy overview",
+      "url": "https://learn.microsoft.com/azure/governance/policy/overview"
+    },
+    {
+      "title": "Azure compliance documentation",
+      "url": "https://learn.microsoft.com/azure/compliance/"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

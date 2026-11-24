@@ -1,0 +1,610 @@
+{
+  "id": "az104-backup-vaults",
+  "exam": "az-104",
+  "title": "Recovery Services vaults and Backup vaults",
+  "objectiveIds": [
+    "AZ104-5.2.1",
+    "AZ104-5.2.2"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Create and configure Recovery Services vaults and Backup vaults, and choose the right vault for each data source.",
+  "prerequisites": [
+    {
+      "text": "Azure VMs, storage accounts and disks basics"
+    }
+  ],
+  "foundation": [
+    "Azure Backup stores recovery points in a vault, a management container with its own storage.",
+    "There are two vault types: Recovery Services vaults (VMs, SQL in VMs, Azure Files, on-premises, and Site Recovery) and Backup vaults (newer workloads such as blobs, disks, PostgreSQL and AKS)."
+  ],
+  "engineer": [
+    "Create the vault in the same region as the resources it protects (for Site Recovery, in the target region).",
+    "Storage redundancy: GRS (default), LRS or ZRS. It can only be changed before the first item is protected. Cross Region Restore (CRR) requires GRS and must be enabled to restore in the paired region.",
+    "Security: soft delete (14 days by default, can be extended or made always-on), immutable vaults (prevent shortening retention or deleting recovery points), multi-user authorization with Resource Guard for critical operations, encryption with platform- or customer-managed keys, private endpoints.",
+    "Backup vault datasources: Azure Blobs (operational and vaulted), Azure Disks (snapshot-based), Azure Database for PostgreSQL flexible server, AKS and others listed in the support matrix. Business continuity center gives one view across both vault types.",
+    "Permissions: Backup Contributor to manage, Backup Operator to back up and restore without deleting, Backup Reader to view. Backup vaults use managed identities that need roles on the data sources (for example Disk Backup Reader)."
+  ],
+  "animation": {
+    "id": "backup-dr-sim",
+    "caption": "Recovery Services vault or Backup vault tab."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "rsv",
+        "label": "Recovery Services vault",
+        "x": 200,
+        "y": 40,
+        "kind": "storage"
+      },
+      {
+        "id": "bv",
+        "label": "Backup vault",
+        "x": 200,
+        "y": 200,
+        "kind": "storage"
+      },
+      {
+        "id": "vm",
+        "label": "Azure VMs, SQL/HANA in VMs",
+        "x": 480,
+        "y": 0,
+        "kind": "compute"
+      },
+      {
+        "id": "af",
+        "label": "Azure Files, MARS on-premises",
+        "x": 480,
+        "y": 80,
+        "kind": "storage"
+      },
+      {
+        "id": "bl",
+        "label": "Blobs, Disks",
+        "x": 480,
+        "y": 170,
+        "kind": "storage"
+      },
+      {
+        "id": "pg",
+        "label": "PostgreSQL flexible, AKS",
+        "x": 480,
+        "y": 250,
+        "kind": "service"
+      }
+    ],
+    "edges": [
+      {
+        "from": "vm",
+        "to": "rsv"
+      },
+      {
+        "from": "af",
+        "to": "rsv"
+      },
+      {
+        "from": "bl",
+        "to": "bv"
+      },
+      {
+        "from": "pg",
+        "to": "bv"
+      }
+    ]
+  },
+  "example": {
+    "title": "One region, two vaults",
+    "body": [
+      "Contoso protects its VMs and file shares with rsv-prod-eus (GRS with CRR) and its managed disks and blob containers with bv-prod-eus. Both use soft delete and immutability; deleting backup data requires approval via Resource Guard."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription with VMs to monitor or protect"
+    ],
+    "permissions": [
+      "Monitoring Contributor (alerts, diagnostic settings) or Backup Contributor (vaults, policies)"
+    ],
+    "limits": [
+      "Vault redundancy can't change after items are protected",
+      "Vault must be in the same region as protected resources (Azure Backup)"
+    ],
+    "portal": [
+      "Create a resource > Recovery Services vault (or Backup vault): subscription, resource group, name, region.",
+      "Vault > Properties > Backup configuration: storage redundancy and Cross Region Restore (before protecting items).",
+      "Vault > Properties > Security settings: soft delete, immutability, multi-user authorization."
+    ],
+    "cli": "az backup vault create -g rg-bkp -n rsv-prod-eus -l eastus\naz backup vault backup-properties set -g rg-bkp -n rsv-prod-eus --backup-storage-redundancy GeoRedundant --cross-region-restore-flag true\naz dataprotection backup-vault create -g rg-bkp --vault-name bv-prod-eus -l eastus --type SystemAssigned --storage-settings datastore-type=VaultStore type=GeoRedundant",
+    "powershell": "New-AzRecoveryServicesVault -ResourceGroupName rg-bkp -Name rsv-prod-eus -Location eastus\n$v = Get-AzRecoveryServicesVault -ResourceGroupName rg-bkp -Name rsv-prod-eus\nSet-AzRecoveryServicesBackupProperty -Vault $v -BackupStorageRedundancy GeoRedundant\n$s = New-AzDataProtectionBackupVaultStorageSettingObject -DataStoreType VaultStore -Type GeoRedundant\nNew-AzDataProtectionBackupVault -ResourceGroupName rg-bkp -VaultName bv-prod-eus -Location eastus -StorageSetting $s"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "backup-dr-sim",
+    "objective": "Choose the right vault for every data source.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Recovery Services vault or Backup vault' tab.",
+      "Answer every data source and read the explanation."
+    ],
+    "expected": [
+      "VMs, SQL in VMs, Files, MARS → RSV",
+      "Blobs, Disks, PostgreSQL, AKS → Backup vault"
+    ],
+    "validation": [
+      {
+        "id": "vault-correct",
+        "text": "Chose the right vault type"
+      },
+      {
+        "id": "vault-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Using a Backup vault for VMs",
+      "Changing redundancy after protecting items"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Can't change storage redundancy.",
+      "cause": "Items are already protected.",
+      "fix": "Stop protection and delete data, or create a new vault."
+    },
+    {
+      "symptom": "VM doesn't appear when configuring backup.",
+      "cause": "Vault is in a different region.",
+      "fix": "Create a vault in the VM's region."
+    },
+    {
+      "symptom": "Disk backup fails with permissions error.",
+      "cause": "Backup vault identity lacks roles.",
+      "fix": "Grant Disk Backup Reader and Disk Snapshot Contributor."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS Backup vaults",
+      "difference": "Single vault concept across services; Azure splits into two vault types by workload."
+    },
+    {
+      "service": "Azure Site Recovery",
+      "difference": "Also uses Recovery Services vaults, but for replication/failover rather than backup."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "One vault can protect resources in any region.",
+      "reality": "Vaults protect resources in their own region."
+    },
+    {
+      "myth": "Soft delete can't be disabled.",
+      "reality": "It can be disabled unless set to always-on."
+    }
+  ],
+  "architectureDecisions": [
+    "Use GRS + CRR for production that must survive a regional outage.",
+    "Enable immutability and multi-user authorization against ransomware.",
+    "Separate vaults per environment and region."
+  ],
+  "docs": [
+    {
+      "title": "Recovery Services vaults overview",
+      "url": "https://learn.microsoft.com/azure/backup/backup-azure-recovery-services-vault-overview"
+    },
+    {
+      "title": "Backup vaults overview",
+      "url": "https://learn.microsoft.com/azure/backup/backup-vault-overview"
+    },
+    {
+      "title": "Create a Recovery Services vault",
+      "url": "https://learn.microsoft.com/azure/backup/backup-create-recovery-services-vault"
+    },
+    {
+      "title": "Azure Backup support matrix",
+      "url": "https://learn.microsoft.com/azure/backup/backup-support-matrix"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Choose the right vault for what you back up, and set it up safely before the first backup.",
+    "learn": [
+      "Recovery Services vault: what it protects",
+      "Backup vault: what it protects",
+      "Region and storage redundancy settings",
+      "Soft delete and other security features"
+    ],
+    "nodes": [
+      {
+        "id": "rsv",
+        "label": "Recovery Services vault",
+        "x": 220,
+        "y": 120,
+        "kind": "security"
+      },
+      {
+        "id": "bv",
+        "label": "Backup vault",
+        "x": 580,
+        "y": 120,
+        "kind": "security"
+      },
+      {
+        "id": "vm",
+        "label": "Azure VMs",
+        "x": 100,
+        "y": 290,
+        "kind": "compute"
+      },
+      {
+        "id": "files",
+        "label": "Azure Files",
+        "x": 260,
+        "y": 290,
+        "kind": "storage"
+      },
+      {
+        "id": "sql",
+        "label": "SQL in VM",
+        "x": 100,
+        "y": 400,
+        "kind": "database"
+      },
+      {
+        "id": "disk",
+        "label": "Managed disks",
+        "x": 480,
+        "y": 290,
+        "kind": "storage"
+      },
+      {
+        "id": "blob",
+        "label": "Blobs",
+        "x": 640,
+        "y": 290,
+        "kind": "storage"
+      },
+      {
+        "id": "pg",
+        "label": "PostgreSQL",
+        "x": 560,
+        "y": 400,
+        "kind": "database"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Where do backups go?",
+        "title": "You need backups, but which vault?",
+        "body": [
+          "Azure Backup stores recovery points in a vault. There are two vault types, and each protects different things."
+        ],
+        "show": [
+          "rsv",
+          "bv"
+        ],
+        "focus": [],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "RSV",
+        "title": "Recovery Services vault",
+        "body": [
+          "Protects Azure VMs, SQL Server and SAP HANA in VMs, Azure Files, on-premises machines (MARS agent, MABS) and is also used by Azure Site Recovery."
+        ],
+        "show": [
+          "rsv",
+          "bv",
+          "vm",
+          "files",
+          "sql"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "rsv",
+            "to": "vm",
+            "fresh": true
+          },
+          {
+            "from": "rsv",
+            "to": "files",
+            "fresh": true
+          },
+          {
+            "from": "rsv",
+            "to": "sql",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "Backup vault",
+        "title": "Backup vault",
+        "body": [
+          "The newer vault type for Azure Disks, Azure Blobs, Azure Database for PostgreSQL, AKS and similar workloads."
+        ],
+        "show": [
+          "rsv",
+          "bv",
+          "vm",
+          "files",
+          "sql",
+          "disk",
+          "blob",
+          "pg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "rsv",
+            "to": "vm"
+          },
+          {
+            "from": "rsv",
+            "to": "files"
+          },
+          {
+            "from": "rsv",
+            "to": "sql"
+          },
+          {
+            "from": "bv",
+            "to": "disk",
+            "fresh": true
+          },
+          {
+            "from": "bv",
+            "to": "blob",
+            "fresh": true
+          },
+          {
+            "from": "bv",
+            "to": "pg",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Backing up managed disks directly (not the whole VM) uses a Backup vault."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Settings",
+        "title": "Decide before the first backup",
+        "body": [
+          "Create the vault in the same region as the resources it protects. Backup storage redundancy (GRS by default, or LRS / ZRS) can only be changed before you protect the first item. Enable cross-region restore if you need to restore in the paired region."
+        ],
+        "show": [
+          "rsv",
+          "bv",
+          "vm",
+          "files",
+          "sql",
+          "disk",
+          "blob",
+          "pg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "rsv",
+            "to": "vm"
+          },
+          {
+            "from": "rsv",
+            "to": "files"
+          },
+          {
+            "from": "rsv",
+            "to": "sql"
+          },
+          {
+            "from": "bv",
+            "to": "disk"
+          },
+          {
+            "from": "bv",
+            "to": "blob"
+          },
+          {
+            "from": "bv",
+            "to": "pg"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Security",
+        "title": "Protect the backups themselves",
+        "body": [
+          "Soft delete keeps deleted backup data for 14 days (or longer). Immutability prevents early deletion of recovery points. Multi-user authorization needs a second person's approval for critical operations."
+        ],
+        "show": [
+          "rsv",
+          "bv",
+          "vm",
+          "files",
+          "sql",
+          "disk",
+          "blob",
+          "pg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "rsv",
+            "to": "vm"
+          },
+          {
+            "from": "rsv",
+            "to": "files"
+          },
+          {
+            "from": "rsv",
+            "to": "sql"
+          },
+          {
+            "from": "bv",
+            "to": "disk"
+          },
+          {
+            "from": "bv",
+            "to": "blob"
+          },
+          {
+            "from": "bv",
+            "to": "pg"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Vaults",
+        "body": [
+          "Right vault, right region, settings first."
+        ],
+        "show": [
+          "rsv",
+          "bv",
+          "vm",
+          "files",
+          "sql",
+          "disk",
+          "blob",
+          "pg"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "rsv",
+            "to": "vm"
+          },
+          {
+            "from": "rsv",
+            "to": "files"
+          },
+          {
+            "from": "rsv",
+            "to": "sql"
+          },
+          {
+            "from": "bv",
+            "to": "disk"
+          },
+          {
+            "from": "bv",
+            "to": "blob"
+          },
+          {
+            "from": "bv",
+            "to": "pg"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "RSV: VMs, SQL/SAP HANA in VMs, Azure Files, on-premises, Site Recovery",
+          "Backup vault: disks, blobs, PostgreSQL, AKS",
+          "Same region as the protected resources",
+          "Set storage redundancy before the first backup",
+          "Soft delete, immutability, multi-user authorization"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Create both vault types and review their settings",
+    "minutes": 15,
+    "costLevel": "free",
+    "cost": "Free. Empty vaults cost nothing.",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create."
+    ],
+    "steps": [
+      {
+        "do": "Search 'Recovery Services vaults' > + Create. Group rg-az104-lab, name rsv-lab, region UAE North (or any region near you). Create."
+      },
+      {
+        "do": "Open rsv-lab > Settings > Properties > Backup configuration > Update.",
+        "see": "Storage replication type: Geo-redundant by default, with Locally and Zone-redundant options. Change it to Locally-redundant and Save (allowed because nothing is protected yet)."
+      },
+      {
+        "do": "Still in Properties, open Security settings.",
+        "see": "Soft delete (on, 14 days) and immutability options."
+      },
+      {
+        "do": "Open rsv-lab > Getting started > Backup.",
+        "see": "Workloads you can protect: Azure (VMs, Azure Files, SQL Server in Azure VM, SAP HANA) and on-premises."
+      },
+      {
+        "do": "Search 'Backup vaults' > + Create. Group rg-az104-lab, name bv-lab, region UAE North (or any region near you), redundancy Locally-redundant. Create."
+      },
+      {
+        "do": "Open bv-lab > + Backup.",
+        "see": "Datasource types such as Azure Disks, Azure Blobs and Azure Database for PostgreSQL."
+      },
+      {
+        "do": "Search 'Business Continuity Center' (formerly Backup center).",
+        "see": "Both vaults listed in one place."
+      }
+    ],
+    "check": [
+      "You changed rsv-lab's redundancy before any backup, and saw what each vault protects."
+    ],
+    "cleanup": [
+      "Keep rsv-lab for the next lab, or: When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Create and configure a Recovery Services vault",
+        "url": "https://learn.microsoft.com/azure/backup/backup-create-recovery-services-vault"
+      },
+      {
+        "title": "Create and manage Backup vaults",
+        "url": "https://learn.microsoft.com/azure/backup/create-manage-backup-vault"
+      },
+      {
+        "title": "Soft delete for Azure Backup",
+        "url": "https://learn.microsoft.com/azure/backup/backup-azure-security-feature-cloud"
+      }
+    ]
+  }
+}

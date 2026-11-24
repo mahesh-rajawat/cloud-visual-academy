@@ -1,0 +1,547 @@
+{
+  "id": "az104-app-service-domains",
+  "exam": "az-104",
+  "title": "Custom domains, certificates and TLS for App Service",
+  "objectiveIds": [
+    "AZ104-3.4.4",
+    "AZ104-3.4.5"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Map custom domains to App Service with the right DNS records and verification, and secure them with the right certificate type and TLS settings.",
+  "prerequisites": [
+    {
+      "text": "Azure DNS",
+      "objectiveId": "AZ104-4.3.1"
+    },
+    {
+      "text": "App Service plans",
+      "objectiveId": "AZ104-3.4.1",
+      "lessonId": "az104-app-service-plans"
+    }
+  ],
+  "foundation": [
+    "Every web app gets a free name like app-contoso.azurewebsites.net. To use www.contoso.com you add DNS records and prove you own the domain.",
+    "To serve https:// on your own domain you need a TLS certificate bound to the app. App Service can issue a free managed certificate for many cases."
+  ],
+  "engineer": [
+    "DNS mapping: subdomains (www) use a CNAME to <app>.azurewebsites.net. The apex (contoso.com) uses an A record to the app's inbound IP (or an alias record in Azure DNS). Domain verification uses a TXT record asuid.<subdomain> (asuid for the apex) containing the app's custom domain verification ID. Custom domains require Shared tier or higher; TLS bindings require Basic or higher.",
+    "Certificates: App Service managed certificate (free, auto-renewing, no wildcard, not exportable); import from Key Vault (the app needs access to the vault; renewals sync automatically); upload a PFX (password-protected, includes the private key, at least 2048-bit RSA); App Service Certificate (purchased, stored in Key Vault).",
+    "Bindings: SNI SSL (standard) or IP-based SSL (dedicated IP). Enable HTTPS Only to redirect HTTP, and set the minimum TLS version (1.2 recommended). End-to-end TLS through Front Door or Application Gateway may need certificates there too.",
+    "Troubleshoot with nslookup/dig for CNAME/A/TXT, and remember DNS propagation and TTL."
+  ],
+  "animation": {
+    "id": "appservice-sim",
+    "caption": "Open 'Custom domain + TLS': choose records, verification and certificates for subdomain, apex and wildcard hosts."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "dns",
+        "label": "DNS: CNAME www → app-contoso.azurewebsites.net, TXT asuid.www",
+        "x": 0,
+        "y": 0,
+        "kind": "network"
+      },
+      {
+        "id": "app",
+        "label": "app-contoso (Basic+)",
+        "x": 300,
+        "y": 60,
+        "kind": "globe"
+      },
+      {
+        "id": "cert",
+        "label": "Managed certificate (SNI)",
+        "x": 560,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "user",
+        "label": "https://www.contoso.com",
+        "x": 560,
+        "y": 130,
+        "kind": "user"
+      }
+    ],
+    "edges": [
+      {
+        "from": "dns",
+        "to": "app",
+        "label": "verify + route"
+      },
+      {
+        "from": "cert",
+        "to": "app",
+        "label": "binding"
+      },
+      {
+        "from": "user",
+        "to": "app",
+        "label": "TLS 1.2"
+      }
+    ]
+  },
+  "example": {
+    "title": "Launching www and apex",
+    "body": [
+      "www.contoso.com gets a CNAME and asuid.www TXT record and a free managed certificate. The apex contoso.com uses an A record to the app's IP and a TXT asuid record; HTTPS Only redirects HTTP traffic.",
+      "A future *.contoso.com requirement is met with a wildcard certificate imported from Key Vault, because managed certificates do not support wildcards."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "Access to the DNS zone",
+      "Basic tier or higher for TLS"
+    ],
+    "permissions": [
+      "Website Contributor on the app",
+      "DNS Zone Contributor (Azure DNS) or registrar access",
+      "Key Vault Secrets User for the app's identity (Key Vault certs)"
+    ],
+    "limits": [
+      "Free tier: no custom domains",
+      "Managed certificates: no wildcard, not exportable",
+      "PFX must include the private key"
+    ],
+    "portal": [
+      "Web app > Custom domains > Add custom domain: choose hostname record type, copy the A/CNAME and TXT values, validate, add.",
+      "Web app > Certificates: create managed certificate, import from Key Vault, or upload PFX.",
+      "Custom domains > Add binding (SNI SSL).",
+      "Configuration > General settings: HTTPS Only, minimum TLS version."
+    ],
+    "cli": "az webapp show -g rg-web -n app-contoso --query customDomainVerificationId -o tsv\naz network dns record-set cname set-record -g rg-dns -z contoso.com -n www -c app-contoso.azurewebsites.net\naz network dns record-set txt add-record -g rg-dns -z contoso.com -n asuid.www -v <verification-id>\naz webapp config hostname add -g rg-web --webapp-name app-contoso --hostname www.contoso.com\naz webapp config ssl create -g rg-web -n app-contoso --hostname www.contoso.com\naz webapp config ssl bind -g rg-web -n app-contoso --certificate-thumbprint <thumbprint> --ssl-type SNI\naz webapp update -g rg-web -n app-contoso --https-only true\naz webapp config set -g rg-web -n app-contoso --min-tls-version 1.2",
+    "powershell": "New-AzWebAppSSLBinding -ResourceGroupName rg-web -WebAppName app-contoso -Name www.contoso.com -CertificateFilePath .\\www.pfx -CertificatePassword (Read-Host -AsSecureString) -SslState SniEnabled\nSet-AzWebApp -ResourceGroupName rg-web -Name app-contoso -HttpsOnly $true -HostNames @('www.contoso.com','app-contoso.azurewebsites.net')"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "appservice-sim",
+    "objective": "Map and secure subdomain, apex and wildcard hostnames.",
+    "duration": 10,
+    "steps": [
+      "Run the default (www, CNAME, TXT, managed cert).",
+      "Apply 'Apex with CNAME' and fix the record type.",
+      "Apply 'Wildcard with free certificate' and fix the certificate.",
+      "Apply 'Shared tier with TLS'."
+    ],
+    "expected": [
+      "Apex needs an A (or alias) record",
+      "Wildcard needs a non-managed certificate",
+      "TLS needs Basic+"
+    ],
+    "validation": [
+      {
+        "id": "domain-failed",
+        "text": "Diagnosed a mapping problem"
+      },
+      {
+        "id": "domain-mapped",
+        "text": "Mapped a custom domain"
+      },
+      {
+        "id": "tls-bound",
+        "text": "Bound a TLS certificate"
+      }
+    ],
+    "failureScenarios": [
+      "Missing TXT record",
+      "CNAME at apex",
+      "Free tier"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Domain validation fails.",
+      "cause": "TXT asuid record missing/incorrect or not yet propagated.",
+      "fix": "Check with nslookup -type=TXT asuid.www.contoso.com and wait for TTL."
+    },
+    {
+      "symptom": "Browser shows certificate warning.",
+      "cause": "No binding for that hostname, or certificate does not match.",
+      "fix": "Add an SNI binding with a matching certificate."
+    },
+    {
+      "symptom": "Cannot create managed certificate for *.contoso.com.",
+      "cause": "Wildcards not supported.",
+      "fix": "Use Key Vault or upload a wildcard PFX."
+    },
+    {
+      "symptom": "Uploading the PFX fails.",
+      "cause": "No private key, weak key or wrong password.",
+      "fix": "Export the PFX with private key and password, RSA ≥ 2048."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Front Door managed certificates",
+      "difference": "Front Door can terminate TLS and manage certificates at the edge for apps behind it."
+    },
+    {
+      "service": "AWS Certificate Manager + CloudFront/ALB",
+      "difference": "ACM issues free certificates for AWS endpoints."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "A CNAME works at the zone apex.",
+      "reality": "DNS does not allow a CNAME at the apex; use A or alias records."
+    },
+    {
+      "myth": "Free managed certificates can be exported.",
+      "reality": "They cannot."
+    }
+  ],
+  "architectureDecisions": [
+    "Use managed certificates for simple hostnames, Key Vault for wildcards and central rotation.",
+    "Always enable HTTPS Only and TLS 1.2."
+  ],
+  "docs": [
+    {
+      "title": "Map an existing custom DNS name",
+      "url": "https://learn.microsoft.com/azure/app-service/app-service-web-tutorial-custom-domain"
+    },
+    {
+      "title": "Add and manage TLS/SSL certificates",
+      "url": "https://learn.microsoft.com/azure/app-service/configure-ssl-certificate"
+    },
+    {
+      "title": "Secure a custom DNS name with a TLS/SSL binding",
+      "url": "https://learn.microsoft.com/azure/app-service/configure-ssl-bindings"
+    },
+    {
+      "title": "Enforce HTTPS and TLS versions",
+      "url": "https://learn.microsoft.com/azure/app-service/configure-ssl-bindings#enforce-https"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Put your own domain name on a web app and serve it securely over HTTPS.",
+    "learn": [
+      "DNS records for a custom domain",
+      "Domain verification",
+      "Certificate options",
+      "TLS bindings and HTTPS settings"
+    ],
+    "nodes": [
+      {
+        "id": "user",
+        "label": "Browser",
+        "x": 110,
+        "y": 220,
+        "kind": "user",
+        "sub": "www.contoso.com"
+      },
+      {
+        "id": "dns",
+        "label": "DNS zone",
+        "x": 360,
+        "y": 90,
+        "kind": "network",
+        "sub": "CNAME + TXT"
+      },
+      {
+        "id": "app",
+        "label": "Web app",
+        "x": 360,
+        "y": 220,
+        "kind": "compute",
+        "sub": "app.azurewebsites.net"
+      },
+      {
+        "id": "cert",
+        "label": "Certificate",
+        "x": 640,
+        "y": 220,
+        "kind": "security"
+      },
+      {
+        "id": "kv",
+        "label": "Key Vault",
+        "x": 640,
+        "y": 380,
+        "kind": "security",
+        "sub": "imported cert"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Ugly URL",
+        "title": "Customers see app-xyz.azurewebsites.net",
+        "body": [
+          "You want www.contoso.com, with a padlock in the browser."
+        ],
+        "show": [
+          "user",
+          "app"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "app",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "DNS",
+        "title": "Point the name at the app",
+        "body": [
+          "For a subdomain (www): a CNAME record to the app's default domain. For the root domain (contoso.com): an A record to the app's IP address.",
+          "Azure also asks for a TXT record named asuid.<subdomain> with a verification ID, to prove you own the domain."
+        ],
+        "show": [
+          "user",
+          "app",
+          "dns"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "app"
+          },
+          {
+            "from": "user",
+            "to": "dns",
+            "label": "lookup",
+            "fresh": true
+          },
+          {
+            "from": "dns",
+            "to": "app",
+            "label": "CNAME",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "tip",
+          "text": "Custom domains work from the Shared tier; TLS bindings and free managed certificates need Basic or higher."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Certificates",
+        "title": "Get a certificate",
+        "body": [
+          "Options: a free App Service managed certificate (Basic+, no wildcards), an App Service certificate you buy, a certificate imported from Key Vault, or uploading your own .pfx file."
+        ],
+        "show": [
+          "user",
+          "app",
+          "dns",
+          "cert",
+          "kv"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "app"
+          },
+          {
+            "from": "user",
+            "to": "dns",
+            "label": "lookup"
+          },
+          {
+            "from": "dns",
+            "to": "app",
+            "label": "CNAME"
+          },
+          {
+            "from": "kv",
+            "to": "cert",
+            "label": "import",
+            "fresh": true
+          },
+          {
+            "from": "cert",
+            "to": "app",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Binding",
+        "title": "Bind it, and force HTTPS",
+        "body": [
+          "Add a TLS/SSL binding: SNI SSL (normal) or IP-based SSL. Then turn on HTTPS Only and set the minimum TLS version (1.2 or higher)."
+        ],
+        "show": [
+          "user",
+          "app",
+          "dns",
+          "cert",
+          "kv"
+        ],
+        "focus": [
+          "app"
+        ],
+        "edges": [
+          {
+            "from": "user",
+            "to": "app"
+          },
+          {
+            "from": "user",
+            "to": "dns",
+            "label": "lookup"
+          },
+          {
+            "from": "dns",
+            "to": "app",
+            "label": "CNAME"
+          },
+          {
+            "from": "kv",
+            "to": "cert",
+            "label": "import"
+          },
+          {
+            "from": "cert",
+            "to": "app"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Custom domains",
+        "body": [
+          "DNS, verify, certificate, bind."
+        ],
+        "show": [
+          "user",
+          "app",
+          "dns",
+          "cert",
+          "kv"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "user",
+            "to": "app"
+          },
+          {
+            "from": "user",
+            "to": "dns",
+            "label": "lookup"
+          },
+          {
+            "from": "dns",
+            "to": "app",
+            "label": "CNAME"
+          },
+          {
+            "from": "kv",
+            "to": "cert",
+            "label": "import"
+          },
+          {
+            "from": "cert",
+            "to": "app"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "recap": [
+          "CNAME for subdomains, A record for the root",
+          "TXT asuid record proves ownership",
+          "Managed cert (free, no wildcard), Key Vault, upload or buy",
+          "SNI binding; HTTPS Only; minimum TLS 1.2",
+          "Basic tier or higher"
+        ]
+      }
+    ]
+  },
+  "handsOn": {
+    "title": "Find the domain and TLS settings and force HTTPS",
+    "minutes": 15,
+    "costLevel": "free",
+    "cost": "Free on the F1 tier. Mapping a real domain needs a domain you own and the Basic tier (billed hourly).",
+    "before": [
+      "Signed in at portal.azure.com as Owner of a subscription (a free or pay-as-you-go account works). Work in a resource group called rg-az104-lab.",
+      "If rg-az104-lab does not exist yet: search 'Resource groups' > Create > name rg-az104-lab, region UAE North (or any region near you) > Review + create > Create.",
+      "A web app on a Free plan (from the App Service plans lab)."
+    ],
+    "steps": [
+      {
+        "do": "Open the web app > Settings > Configuration > General settings (or Settings > Configuration).",
+        "see": "HTTPS Only and Minimum Inbound TLS Version settings. Turn HTTPS Only On and set minimum TLS 1.2. Save."
+      },
+      {
+        "do": "Browse to http://<your app>.azurewebsites.net.",
+        "see": "The browser is redirected to https://."
+      },
+      {
+        "do": "Open Settings > Custom domains > + Add custom domain.",
+        "see": "On Free tier, a message that custom domains need a higher tier. On Basic+, you would see the Domain provider, TLS/SSL certificate and Domain fields."
+      },
+      {
+        "do": "Read the Custom domains page: note the 'Custom Domain Verification ID'.",
+        "see": "The value you would put in the TXT asuid record."
+      },
+      {
+        "do": "Open Settings > Certificates.",
+        "see": "Tabs for managed certificates, bring your own certificate (.pfx) and public key certificates."
+      },
+      {
+        "do": "Optional, if you own a domain and accept Basic B1 charges for an hour: scale the plan to B1, add the CNAME and TXT records at your DNS host, add the custom domain with an App Service managed certificate.",
+        "see": "Your domain served over HTTPS. Scale back to F1 or delete afterwards."
+      }
+    ],
+    "check": [
+      "HTTPS Only is on and you located the verification ID and certificate options."
+    ],
+    "cleanup": [
+      "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
+    ],
+    "screens": [
+      {
+        "title": "Map an existing custom DNS name to App Service",
+        "url": "https://learn.microsoft.com/azure/app-service/app-service-web-tutorial-custom-domain"
+      },
+      {
+        "title": "Add and manage TLS/SSL certificates",
+        "url": "https://learn.microsoft.com/azure/app-service/configure-ssl-certificate"
+      },
+      {
+        "title": "Secure a custom DNS name with a TLS binding",
+        "url": "https://learn.microsoft.com/azure/app-service/configure-ssl-bindings"
+      }
+    ]
+  }
+}

@@ -1,0 +1,233 @@
+{
+  "id": "az900-resource-hierarchy",
+  "exam": "az-900",
+  "title": "Resources, resource groups, subscriptions and management groups",
+  "objectiveIds": [
+    "AZ900-2.1.4",
+    "AZ900-2.1.5",
+    "AZ900-2.1.6",
+    "AZ900-2.1.7"
+  ],
+  "estimatedMinutes": 40,
+  "learningObjective": "Describe resources, resource groups, subscriptions and management groups, and how settings flow down the hierarchy.",
+  "prerequisites": [
+    {
+      "text": "Regions",
+      "objectiveId": "AZ900-2.1.1",
+      "lessonId": "az900-regions-zones"
+    }
+  ],
+  "foundation": [
+    "Resource: anything you create in Azure: a VM, a storage account, a database, a virtual network.",
+    "Resource group: a folder for resources that share a lifecycle (for example everything for one app). Every resource is in exactly one group; groups can't be nested. Delete the group and you delete everything in it.",
+    "Subscription: a billing and access boundary. All resource groups live in a subscription, and you get one bill per subscription.",
+    "Management group: a container for subscriptions, so you can apply policies and access to many subscriptions at once. Hierarchy from the top: management groups → subscriptions → resource groups → resources."
+  ],
+  "engineer": [
+    "Resource groups: can contain resources from different regions; the group's own location only stores its metadata. You can move most resources between groups. Apply RBAC, policies, locks and tags at the group level to cover all its resources.",
+    "Subscriptions: two boundary types: billing (separate invoices, for example per department) and access control (different RBAC and policies). Organisations create separate subscriptions for environments (dev/test/prod), departments or compliance needs. Subscriptions trust one Microsoft Entra tenant.",
+    "Management groups: up to 10,000 in a tenant, up to six levels of depth (not counting the root and subscription level), each management group and subscription has one parent. All sit under the tenant root group.",
+    "Inheritance: RBAC role assignments and Azure Policy assignments made at a higher scope are inherited by everything below. Tags are NOT inherited by default.",
+    "Typical structure: Root → Platform / Landing zones / Sandbox management groups → Prod and Dev subscriptions → resource groups per application."
+  ],
+  "animation": {
+    "id": "az900-hierarchy-sim",
+    "caption": "Assign at a scope and see what inherits it; pick the right hierarchy level for each need."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "root",
+        "label": "Tenant root management group",
+        "x": 260,
+        "y": -60,
+        "kind": "security"
+      },
+      {
+        "id": "mg",
+        "label": "Management group: Production",
+        "x": 260,
+        "y": 40,
+        "kind": "security"
+      },
+      {
+        "id": "s1",
+        "label": "Subscription: Sales",
+        "x": 120,
+        "y": 140,
+        "kind": "scope"
+      },
+      {
+        "id": "s2",
+        "label": "Subscription: HR",
+        "x": 400,
+        "y": 140,
+        "kind": "scope"
+      },
+      {
+        "id": "rg",
+        "label": "Resource group: rg-web",
+        "x": 120,
+        "y": 240,
+        "kind": "storage"
+      },
+      {
+        "id": "vm",
+        "label": "Resource: VM",
+        "x": 120,
+        "y": 340,
+        "kind": "compute"
+      }
+    ],
+    "edges": [
+      {
+        "from": "root",
+        "to": "mg"
+      },
+      {
+        "from": "mg",
+        "to": "s1"
+      },
+      {
+        "from": "mg",
+        "to": "s2"
+      },
+      {
+        "from": "s1",
+        "to": "rg"
+      },
+      {
+        "from": "rg",
+        "to": "vm"
+      }
+    ]
+  },
+  "example": {
+    "title": "A growing company",
+    "body": [
+      "Contoso puts each app in its own resource group so it can be deployed and deleted as a unit. Sales and HR each get a subscription so their costs appear on separate invoices.",
+      "A 'Production' management group holds both subscriptions; an allowed-regions policy assigned there applies to every resource in them."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An Azure subscription (a free account works)"
+    ],
+    "permissions": [
+      "Reader to explore; Contributor to create resources"
+    ],
+    "limits": [
+      "Concept-level: no limits to configure"
+    ],
+    "portal": [
+      "Management groups: create the hierarchy and move subscriptions into it.",
+      "Subscriptions > Access control (IAM) / Policies.",
+      "Resource groups > Create; Resource group > Delete resource group."
+    ],
+    "cli": "az account management-group create --name mg-prod\naz account management-group subscription add --name mg-prod --subscription <sub-id>\naz group create -n rg-web -l westeurope",
+    "powershell": "New-AzManagementGroup -GroupName mg-prod\nNew-AzResourceGroup -Name rg-web -Location westeurope"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "az900-hierarchy-sim",
+    "objective": "Understand scope and inheritance.",
+    "duration": 15,
+    "steps": [
+      "Resource hierarchy tab: assign at each scope and test each target; try nesting resource groups.",
+      "Which level of the hierarchy? tab: answer every need."
+    ],
+    "expected": [
+      "Assignments flow down, never up",
+      "Resource groups can't be nested"
+    ],
+    "validation": [
+      {
+        "id": "hierarchy-applies",
+        "text": "Saw an assignment inherited"
+      },
+      {
+        "id": "hierarchy-blocked",
+        "text": "Saw why something doesn't apply"
+      },
+      {
+        "id": "scope-level-correct",
+        "text": "Chose the right hierarchy level"
+      },
+      {
+        "id": "scope-level-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Expecting a resource-group assignment to affect the subscription"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Deleting a resource group removed a database someone still needed.",
+      "cause": "Deleting a group deletes all its resources.",
+      "fix": "Group by lifecycle and use CanNotDelete locks."
+    },
+    {
+      "symptom": "A policy doesn't apply to a new subscription.",
+      "cause": "The subscription isn't under the management group where the policy is assigned.",
+      "fix": "Move the subscription into that management group."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Resource group vs subscription",
+      "difference": "Groups organise resources by lifecycle; subscriptions are billing and access boundaries."
+    },
+    {
+      "service": "Management group vs tag",
+      "difference": "Management groups structure subscriptions for policy and access; tags are metadata for reporting."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "A resource can be in two resource groups.",
+      "reality": "Exactly one."
+    },
+    {
+      "myth": "Resources must be in the same region as their resource group.",
+      "reality": "They can be in any region."
+    },
+    {
+      "myth": "Tags are inherited like policies.",
+      "reality": "Not by default."
+    }
+  ],
+  "architectureDecisions": [
+    "Group resources by lifecycle.",
+    "Use subscriptions for billing and isolation boundaries.",
+    "Assign governance at management groups."
+  ],
+  "docs": [
+    {
+      "title": "Describe the core architectural components of Azure (Learn)",
+      "url": "https://learn.microsoft.com/training/modules/describe-core-architectural-components-of-azure/"
+    },
+    {
+      "title": "Management groups overview",
+      "url": "https://learn.microsoft.com/azure/governance/management-groups/overview"
+    },
+    {
+      "title": "Resource Manager overview: resource groups",
+      "url": "https://learn.microsoft.com/azure/azure-resource-manager/management/overview"
+    },
+    {
+      "title": "Organize subscriptions (Cloud Adoption Framework)",
+      "url": "https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/organize-subscriptions"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  }
+}

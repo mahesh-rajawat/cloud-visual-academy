@@ -1,0 +1,713 @@
+{
+  "id": "clf-security-compliance",
+  "exam": "aws-clf-c02",
+  "title": "Security, governance and compliance concepts on AWS",
+  "objectiveIds": [
+    "CLFC02-2.2.1",
+    "CLFC02-2.2.2",
+    "CLFC02-2.2.3",
+    "CLFC02-2.2.4",
+    "CLFC02-2.2.5",
+    "CLFC02-2.2.6",
+    "CLFC02-2.2.7",
+    "CLFC02-2.2.8",
+    "CLFC02-2.2.9"
+  ],
+  "estimatedMinutes": 45,
+  "learningObjective": "Describe AWS compliance and governance concepts, encryption options, where security logs live, where to find compliance information, and the services that monitor, audit and protect resources.",
+  "prerequisites": [
+    {
+      "text": "Shared responsibility",
+      "objectiveId": "CLFC02-2.1.1",
+      "lessonId": "clf-shared-responsibility"
+    }
+  ],
+  "foundation": [
+    "AWS follows many compliance programs (such as ISO 27001, SOC, PCI DSS, HIPAA eligibility). You download AWS's audit reports from AWS Artifact.",
+    "Encryption protects data at rest (stored) and in transit (moving).",
+    "Logs show what happened: AWS CloudTrail records API activity, Amazon CloudWatch collects metrics and logs, AWS Config records resource configuration."
+  ],
+  "engineer": [
+    "Compliance: AWS Compliance programs by industry and geography (for example GDPR, HIPAA, FedRAMP, C5); compliance is shared, and not every service is in scope for every program (check AWS Services in Scope by Compliance Program). AWS Artifact gives on-demand reports (SOC, PCI) and agreements (BAA). AWS Audit Manager helps collect evidence.",
+    "Encryption: at rest with AWS KMS keys (AWS managed or customer managed) or CloudHSM; in transit with TLS (AWS Certificate Manager for certificates). Many services support server-side encryption, and S3 encrypts new objects by default (SSE-S3).",
+    "Logs: CloudTrail (management and data events; trail to S3; CloudTrail Lake), CloudWatch Logs and metrics, VPC Flow Logs, AWS Config history, S3 server access logs, ELB access logs.",
+    "Protect and detect: Amazon Inspector (vulnerabilities), Amazon GuardDuty (threat detection), AWS Security Hub (aggregated findings and standards), AWS Shield (DDoS), AWS WAF, Amazon Macie (sensitive data in S3), Amazon Detective (investigation).",
+    "Governance and compliance services: CloudWatch (monitoring), CloudTrail and AWS Config (auditing), IAM access reports (access advisor, credential reports), AWS Organizations SCPs, AWS Control Tower (governed multi-account landing zone)."
+  ],
+  "animation": {
+    "id": "aws-security-sim",
+    "caption": "Open 'Security services' and match needs to services."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "res",
+        "label": "AWS resources",
+        "x": 0,
+        "y": 60,
+        "kind": "compute"
+      },
+      {
+        "id": "ct",
+        "label": "CloudTrail (API audit)",
+        "x": 230,
+        "y": 0,
+        "kind": "storage"
+      },
+      {
+        "id": "cfg",
+        "label": "AWS Config (configuration)",
+        "x": 230,
+        "y": 120,
+        "kind": "storage"
+      },
+      {
+        "id": "gd",
+        "label": "GuardDuty / Inspector / Macie",
+        "x": 460,
+        "y": 0,
+        "kind": "security"
+      },
+      {
+        "id": "sh",
+        "label": "Security Hub",
+        "x": 690,
+        "y": 60,
+        "kind": "security"
+      },
+      {
+        "id": "art",
+        "label": "AWS Artifact (reports)",
+        "x": 460,
+        "y": 180,
+        "kind": "service"
+      }
+    ],
+    "edges": [
+      {
+        "from": "res",
+        "to": "ct"
+      },
+      {
+        "from": "res",
+        "to": "cfg"
+      },
+      {
+        "from": "ct",
+        "to": "gd"
+      },
+      {
+        "from": "gd",
+        "to": "sh"
+      },
+      {
+        "from": "cfg",
+        "to": "sh"
+      }
+    ]
+  },
+  "example": {
+    "title": "Preparing for a PCI audit",
+    "body": [
+      "The team downloads AWS's PCI DSS Attestation of Compliance from Artifact, confirms that the services used are in scope, enables CloudTrail in all Regions with log file validation, uses AWS Config conformance packs, encrypts data with KMS, and reviews findings in Security Hub."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "AWS Artifact > Reports.",
+      "CloudTrail > Trails > Create trail.",
+      "Security Hub > Enable; GuardDuty > Enable."
+    ],
+    "cli": "aws cloudtrail create-trail --name org-trail --s3-bucket-name <bucket> --is-multi-region-trail\naws guardduty create-detector --enable\naws securityhub enable-security-hub\naws kms create-key --description app-key",
+    "powershell": "New-CTTrail -Name org-trail -S3BucketName <bucket> -IsMultiRegionTrail $true\nNew-GDDetector -Enable $true"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-security-sim",
+    "objective": "Practise choosing the right security service.",
+    "duration": 10,
+    "steps": [
+      "Open the 'Security services' tab.",
+      "Pick each requirement, choose an answer and run it.",
+      "Read why the best answer fits."
+    ],
+    "expected": [
+      "Every choice is explained"
+    ],
+    "validation": [
+      {
+        "id": "aws-sec-service-correct",
+        "text": "Chose a correct security service"
+      },
+      {
+        "id": "aws-sec-service-wrong",
+        "text": "Learned from a wrong choice"
+      }
+    ],
+    "failureScenarios": [
+      "Choosing by name instead of requirement"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Cannot tell who changed a security group.",
+      "cause": "CloudTrail not reviewed or not enabled for that Region.",
+      "fix": "Use CloudTrail event history and a multi-Region trail."
+    },
+    {
+      "symptom": "Auditor needs AWS's SOC report.",
+      "cause": "Not available in the console you checked.",
+      "fix": "Download it from AWS Artifact."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Microsoft Purview / Defender for Cloud / Service Trust Portal",
+      "difference": "Azure equivalents for compliance reports and security posture."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "Using a compliant service makes your workload compliant.",
+      "reality": "Compliance is shared; you must configure it correctly."
+    },
+    {
+      "myth": "CloudWatch records who called an API.",
+      "reality": "CloudTrail does."
+    }
+  ],
+  "architectureDecisions": [
+    "Turn on CloudTrail, Config, GuardDuty and Security Hub across all accounts from day one (Control Tower can do this)."
+  ],
+  "docs": [
+    {
+      "title": "AWS Compliance programs",
+      "url": "https://aws.amazon.com/compliance/programs/"
+    },
+    {
+      "title": "AWS Artifact",
+      "url": "https://docs.aws.amazon.com/artifact/latest/ug/what-is-aws-artifact.html"
+    },
+    {
+      "title": "AWS services in scope by compliance program",
+      "url": "https://aws.amazon.com/compliance/services-in-scope/"
+    },
+    {
+      "title": "AWS CloudTrail",
+      "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html"
+    },
+    {
+      "title": "AWS Config",
+      "url": "https://docs.aws.amazon.com/config/latest/developerguide/WhatIsConfig.html"
+    },
+    {
+      "title": "AWS KMS",
+      "url": "https://docs.aws.amazon.com/kms/latest/developerguide/overview.html"
+    },
+    {
+      "title": "Amazon GuardDuty",
+      "url": "https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "An auditor visits. Show them encryption, logs, compliance reports and continuous monitoring.",
+    "learn": [
+      "Encryption in transit and at rest",
+      "Where security logs live (CloudTrail, CloudWatch, Config)",
+      "Finding compliance information (AWS Artifact)",
+      "Services that find and stop threats",
+      "Compliance differs by location, industry and service"
+    ],
+    "nodes": [
+      {
+        "id": "auditor",
+        "label": "Auditor",
+        "x": 90,
+        "y": 60,
+        "kind": "user",
+        "sub": "\"prove it\""
+      },
+      {
+        "id": "app",
+        "label": "Your app",
+        "x": 400,
+        "y": 60,
+        "kind": "service"
+      },
+      {
+        "id": "kms",
+        "label": "AWS KMS",
+        "x": 650,
+        "y": 60,
+        "kind": "security",
+        "sub": "encryption keys"
+      },
+      {
+        "id": "ct",
+        "label": "AWS CloudTrail",
+        "x": 160,
+        "y": 210,
+        "kind": "security",
+        "sub": "who did what"
+      },
+      {
+        "id": "cw",
+        "label": "Amazon CloudWatch",
+        "x": 400,
+        "y": 210,
+        "kind": "service",
+        "sub": "metrics, logs, alarms"
+      },
+      {
+        "id": "cfg",
+        "label": "AWS Config",
+        "x": 640,
+        "y": 210,
+        "kind": "service",
+        "sub": "config history, rules"
+      },
+      {
+        "id": "art",
+        "label": "AWS Artifact",
+        "x": 120,
+        "y": 370,
+        "kind": "security",
+        "sub": "AWS's reports"
+      },
+      {
+        "id": "detect",
+        "label": "GuardDuty, Inspector",
+        "x": 400,
+        "y": 370,
+        "kind": "security",
+        "sub": "find threats, flaws"
+      },
+      {
+        "id": "hub",
+        "label": "Security Hub + Shield",
+        "x": 660,
+        "y": 370,
+        "kind": "security",
+        "sub": "one view, DDoS"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Audit",
+        "title": "The auditor asks you to prove it",
+        "body": [
+          "\"Is customer data encrypted? Who changed the firewall last Tuesday? Is AWS itself certified? How would you notice an attack?\"",
+          "Each question has an AWS service that answers it."
+        ],
+        "show": [
+          "auditor",
+          "app"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "auditor",
+            "to": "app",
+            "label": "questions",
+            "fresh": true
+          }
+        ],
+        "learned": []
+      },
+      {
+        "kind": "technique",
+        "label": "Encryption",
+        "title": "Encrypt data at rest and in transit",
+        "body": [
+          "At rest: data stored on disks, in S3 or in databases is encrypted, usually with keys managed in AWS Key Management Service (KMS). In transit: data moving over the network is protected with TLS (HTTPS).",
+          "Encryption is a key benefit of cloud security: it's built in and often just one setting."
+        ],
+        "show": [
+          "auditor",
+          "app",
+          "kms"
+        ],
+        "focus": [
+          "kms"
+        ],
+        "edges": [
+          {
+            "from": "auditor",
+            "to": "app",
+            "label": "questions"
+          },
+          {
+            "from": "app",
+            "to": "kms",
+            "label": "encrypt at rest",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Logs",
+        "title": "Capture logs that answer \"who, what, when\"",
+        "body": [
+          "AWS CloudTrail records API calls: who did what, from where, and when. Amazon CloudWatch collects metrics and logs and raises alarms. AWS Config records how each resource's configuration changes over time and checks it against rules.",
+          "Together they handle auditing, monitoring and compliance checks."
+        ],
+        "show": [
+          "auditor",
+          "app",
+          "kms",
+          "ct",
+          "cw",
+          "cfg"
+        ],
+        "focus": [
+          "ct",
+          "cw",
+          "cfg"
+        ],
+        "edges": [
+          {
+            "from": "auditor",
+            "to": "app",
+            "label": "questions"
+          },
+          {
+            "from": "app",
+            "to": "kms",
+            "label": "encrypt at rest"
+          },
+          {
+            "from": "app",
+            "to": "ct",
+            "label": "API calls",
+            "fresh": true
+          },
+          {
+            "from": "app",
+            "to": "cw",
+            "label": "metrics, logs",
+            "fresh": true
+          },
+          {
+            "from": "app",
+            "to": "cfg",
+            "label": "config changes",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "CloudTrail = who made the change (audit). Config = what the resource looked like and whether it is compliant. CloudWatch = performance and alarms."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Artifact",
+        "title": "Show AWS's own compliance reports",
+        "body": [
+          "AWS Artifact is a free, self-service portal for downloading AWS's compliance reports and agreements, such as SOC reports, ISO certifications and PCI attestations.",
+          "You give these to auditors to prove the AWS part of the shared responsibility model."
+        ],
+        "show": [
+          "auditor",
+          "app",
+          "kms",
+          "ct",
+          "cw",
+          "cfg",
+          "art"
+        ],
+        "focus": [
+          "art"
+        ],
+        "edges": [
+          {
+            "from": "auditor",
+            "to": "app",
+            "label": "questions"
+          },
+          {
+            "from": "app",
+            "to": "kms",
+            "label": "encrypt at rest"
+          },
+          {
+            "from": "app",
+            "to": "ct",
+            "label": "API calls"
+          },
+          {
+            "from": "app",
+            "to": "cw",
+            "label": "metrics, logs"
+          },
+          {
+            "from": "app",
+            "to": "cfg",
+            "label": "config changes"
+          },
+          {
+            "from": "auditor",
+            "to": "art",
+            "label": "downloads",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Detect",
+        "title": "Find threats and weaknesses automatically",
+        "body": [
+          "Amazon GuardDuty spots threats, such as unusual API calls or compromised instances, by analysing logs. Amazon Inspector scans EC2 instances, container images and Lambda functions for software vulnerabilities.",
+          "AWS Security Hub gathers findings from these services in one place. AWS Shield protects against DDoS attacks."
+        ],
+        "show": [
+          "auditor",
+          "app",
+          "kms",
+          "ct",
+          "cw",
+          "cfg",
+          "art",
+          "detect",
+          "hub"
+        ],
+        "focus": [
+          "detect",
+          "hub"
+        ],
+        "edges": [
+          {
+            "from": "auditor",
+            "to": "app",
+            "label": "questions"
+          },
+          {
+            "from": "app",
+            "to": "kms",
+            "label": "encrypt at rest"
+          },
+          {
+            "from": "app",
+            "to": "ct",
+            "label": "API calls"
+          },
+          {
+            "from": "app",
+            "to": "cw",
+            "label": "metrics, logs"
+          },
+          {
+            "from": "app",
+            "to": "cfg",
+            "label": "config changes"
+          },
+          {
+            "from": "auditor",
+            "to": "art",
+            "label": "downloads"
+          },
+          {
+            "from": "ct",
+            "to": "detect",
+            "label": "analysed",
+            "fresh": true
+          },
+          {
+            "from": "detect",
+            "to": "hub",
+            "label": "findings",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "case",
+        "label": "Where & what",
+        "title": "Case: a bank in Germany",
+        "body": [
+          "The bank has to meet financial regulations and EU data rules. It checks the AWS compliance programs for its industry and country, keeps data in an EU Region, and confirms that every service it uses is in scope for the certification it needs.",
+          "Not every service is covered by every compliance program."
+        ],
+        "show": [
+          "auditor",
+          "app",
+          "kms",
+          "ct",
+          "cw",
+          "cfg",
+          "art",
+          "detect",
+          "hub"
+        ],
+        "focus": [
+          "art",
+          "cfg"
+        ],
+        "edges": [
+          {
+            "from": "auditor",
+            "to": "app",
+            "label": "questions"
+          },
+          {
+            "from": "app",
+            "to": "kms",
+            "label": "encrypt at rest"
+          },
+          {
+            "from": "app",
+            "to": "ct",
+            "label": "API calls"
+          },
+          {
+            "from": "app",
+            "to": "cw",
+            "label": "metrics, logs"
+          },
+          {
+            "from": "app",
+            "to": "cfg",
+            "label": "config changes"
+          },
+          {
+            "from": "auditor",
+            "to": "art",
+            "label": "downloads"
+          },
+          {
+            "from": "ct",
+            "to": "detect",
+            "label": "analysed"
+          },
+          {
+            "from": "detect",
+            "to": "hub",
+            "label": "findings"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Every auditor question has an answer",
+        "body": [
+          "Encryption, logs, reports and detection, all built in."
+        ],
+        "show": [
+          "auditor",
+          "app",
+          "kms",
+          "ct",
+          "cw",
+          "cfg",
+          "art",
+          "detect",
+          "hub"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "auditor",
+            "to": "app",
+            "label": "questions"
+          },
+          {
+            "from": "app",
+            "to": "kms",
+            "label": "encrypt at rest"
+          },
+          {
+            "from": "app",
+            "to": "ct",
+            "label": "API calls"
+          },
+          {
+            "from": "app",
+            "to": "cw",
+            "label": "metrics, logs"
+          },
+          {
+            "from": "app",
+            "to": "cfg",
+            "label": "config changes"
+          },
+          {
+            "from": "auditor",
+            "to": "art",
+            "label": "downloads"
+          },
+          {
+            "from": "ct",
+            "to": "detect",
+            "label": "analysed"
+          },
+          {
+            "from": "detect",
+            "to": "hub",
+            "label": "findings"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "KMS + TLS: encryption at rest and in transit",
+          "CloudTrail = audit API calls; Config = configuration compliance; CloudWatch = monitoring",
+          "AWS Artifact = AWS's compliance reports",
+          "GuardDuty threats, Inspector vulnerabilities, Security Hub in one view, Shield DDoS",
+          "Compliance needs differ by country, industry and service"
+        ]
+      }
+    ]
+  }
+}

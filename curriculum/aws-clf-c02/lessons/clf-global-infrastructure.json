@@ -1,0 +1,668 @@
+{
+  "id": "clf-global-infrastructure",
+  "exam": "aws-clf-c02",
+  "title": "AWS global infrastructure: Regions, Availability Zones and edge locations",
+  "objectiveIds": [
+    "CLFC02-3.2.1",
+    "CLFC02-3.2.2",
+    "CLFC02-3.2.3",
+    "CLFC02-3.2.4",
+    "CLFC02-3.2.5",
+    "CLFC02-3.2.6",
+    "CLFC02-3.2.7",
+    "CLFC02-3.2.8"
+  ],
+  "estimatedMinutes": 35,
+  "learningObjective": "Describe Regions, Availability Zones and edge locations, how they relate, how to achieve high availability with multiple AZs, and when to use multiple Regions.",
+  "prerequisites": [
+    {
+      "text": "Benefits of the AWS Cloud",
+      "objectiveId": "CLFC02-1.1.2",
+      "lessonId": "clf-benefits"
+    }
+  ],
+  "foundation": [
+    "A Region is a geographic area (for example eu-west-1, Ireland) with several Availability Zones.",
+    "An Availability Zone (AZ) is one or more discrete data centers with redundant power, networking and connectivity, isolated from other AZs but connected by fast, low-latency links.",
+    "Edge locations are sites near users that CloudFront, Route 53 and Global Accelerator use to deliver content and DNS quickly."
+  ],
+  "engineer": [
+    "Regions are fully isolated from each other; most services are Regional, some are global (IAM, Route 53, CloudFront). Choose a Region by compliance/data sovereignty, proximity to users, service availability and price.",
+    "AZs: each Region has at least three AZs; AZs are physically separated so they do not share single points of failure. Deploy across at least two AZs with Elastic Load Balancing and Auto Scaling; managed services offer Multi-AZ options (RDS Multi-AZ, S3 stores data across AZs by default for most classes).",
+    "Multiple Regions: disaster recovery and business continuity, low latency for global users, data sovereignty requirements, and resilience to Regional events.",
+    "Edge: CloudFront caches content; Route 53 answers DNS at the edge; Global Accelerator routes users over the AWS network. Local Zones place compute closer to population centers; Wavelength Zones sit in telecom 5G networks."
+  ],
+  "animation": {
+    "id": "aws-tech-sim",
+    "caption": "Open 'AZs, Regions and edge locations' and inject failures."
+  },
+  "diagram": {
+    "nodes": [
+      {
+        "id": "r1",
+        "label": "Region eu-west-1",
+        "x": 150,
+        "y": 0,
+        "kind": "globe"
+      },
+      {
+        "id": "a",
+        "label": "AZ a",
+        "x": 0,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "b",
+        "label": "AZ b",
+        "x": 150,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "c",
+        "label": "AZ c",
+        "x": 300,
+        "y": 120,
+        "kind": "compute"
+      },
+      {
+        "id": "r2",
+        "label": "Region us-east-1 (DR)",
+        "x": 520,
+        "y": 0,
+        "kind": "globe"
+      },
+      {
+        "id": "edge",
+        "label": "Edge locations",
+        "x": 520,
+        "y": 160,
+        "kind": "network"
+      }
+    ],
+    "edges": [
+      {
+        "from": "r1",
+        "to": "a"
+      },
+      {
+        "from": "r1",
+        "to": "b"
+      },
+      {
+        "from": "r1",
+        "to": "c"
+      },
+      {
+        "from": "r1",
+        "to": "r2",
+        "label": "replication"
+      },
+      {
+        "from": "edge",
+        "to": "r1",
+        "label": "CloudFront origin"
+      }
+    ]
+  },
+  "example": {
+    "title": "Resilient e-commerce",
+    "body": [
+      "The shop runs in three AZs in Frankfurt behind an Application Load Balancer, with RDS Multi-AZ. A pilot-light copy in another Region covers Regional disasters, and CloudFront serves images worldwide."
+    ]
+  },
+  "configuration": {
+    "prerequisites": [
+      "An AWS account (use an IAM Identity Center user, not root)"
+    ],
+    "permissions": [
+      "Read-only access to explore; least-privilege permissions to change resources"
+    ],
+    "limits": [
+      "Conceptual objective: explore in the console; no configuration limits are tested"
+    ],
+    "portal": [
+      "EC2 > Launch instance > Subnet: choose AZs.",
+      "RDS > Multi-AZ deployment.",
+      "CloudFront > Create distribution."
+    ],
+    "cli": "aws ec2 describe-availability-zones --output table\naws ec2 describe-regions --all-regions --output table",
+    "powershell": "Get-EC2AvailabilityZone\nGet-EC2Region"
+  },
+  "lab": {
+    "type": "A",
+    "simulationId": "aws-tech-sim",
+    "objective": "See which deployment survives which failure.",
+    "duration": 10,
+    "steps": [
+      "Run the default (multi-AZ, AZ failure).",
+      "Apply 'Region outage' and 'Single AZ'."
+    ],
+    "expected": [
+      "Multi-AZ survives AZ loss; multi-Region survives Region loss"
+    ],
+    "validation": [
+      {
+        "id": "aws-ha-ok",
+        "text": "Kept the app available"
+      },
+      {
+        "id": "aws-ha-outage",
+        "text": "Caused an outage"
+      }
+    ],
+    "failureScenarios": [
+      "Single AZ"
+    ],
+    "cleanup": [
+      "Simulation only: use Reset."
+    ],
+    "cost": "None. The simulation runs entirely in the browser."
+  },
+  "troubleshooting": [
+    {
+      "symptom": "Outage when one AZ fails.",
+      "cause": "All instances in one AZ.",
+      "fix": "Spread across AZs with ELB and Auto Scaling."
+    },
+    {
+      "symptom": "Slow for users on another continent.",
+      "cause": "Single distant Region.",
+      "fix": "CloudFront, or deploy nearer."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure regions/zones",
+      "difference": "Equivalent; Azure also defines region pairs."
+    }
+  ],
+  "misconceptions": [
+    {
+      "myth": "An AZ is a single data center.",
+      "reality": "An AZ is one or more data centers."
+    },
+    {
+      "myth": "Edge locations run EC2 instances.",
+      "reality": "They host CloudFront/Route 53 and similar edge services."
+    }
+  ],
+  "architectureDecisions": [
+    "Multi-AZ for high availability; multi-Region for DR, latency or sovereignty."
+  ],
+  "docs": [
+    {
+      "title": "Regions and Availability Zones",
+      "url": "https://aws.amazon.com/about-aws/global-infrastructure/regions_az/"
+    },
+    {
+      "title": "AWS global infrastructure",
+      "url": "https://aws.amazon.com/about-aws/global-infrastructure/"
+    },
+    {
+      "title": "Amazon CloudFront",
+      "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html"
+    },
+    {
+      "title": "Fault isolation boundaries",
+      "url": "https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/abstract-and-introduction.html"
+    }
+  ],
+  "verification": {
+    "status": "self-reviewed",
+    "reviewedOn": "2026-11-18",
+    "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
+  },
+  "walkthrough": {
+    "subtitle": "Place one app on the AWS map: pick a Region, spread across AZs, add Regions and edge locations.",
+    "learn": [
+      "Regions, Availability Zones and edge locations",
+      "High availability across multiple AZs",
+      "AZs share no single points of failure",
+      "When to use multiple Regions",
+      "What edge locations are for"
+    ],
+    "nodes": [
+      {
+        "id": "users",
+        "label": "Users in Europe",
+        "x": 110,
+        "y": 70,
+        "kind": "user"
+      },
+      {
+        "id": "r1",
+        "label": "Region: Ireland",
+        "x": 330,
+        "y": 70,
+        "kind": "globe",
+        "sub": "eu-west-1"
+      },
+      {
+        "id": "a",
+        "label": "AZ a",
+        "x": 210,
+        "y": 200,
+        "kind": "compute",
+        "sub": "own power, network"
+      },
+      {
+        "id": "b",
+        "label": "AZ b",
+        "x": 380,
+        "y": 200,
+        "kind": "compute"
+      },
+      {
+        "id": "c",
+        "label": "AZ c",
+        "x": 550,
+        "y": 200,
+        "kind": "compute"
+      },
+      {
+        "id": "lb",
+        "label": "Load balancer",
+        "x": 380,
+        "y": 330,
+        "kind": "network",
+        "sub": "spreads traffic"
+      },
+      {
+        "id": "r2",
+        "label": "Region: Tokyo",
+        "x": 650,
+        "y": 70,
+        "kind": "globe",
+        "sub": "ap-northeast-1"
+      },
+      {
+        "id": "edge",
+        "label": "Edge location",
+        "x": 650,
+        "y": 370,
+        "kind": "network",
+        "sub": "CloudFront cache"
+      }
+    ],
+    "steps": [
+      {
+        "kind": "problem",
+        "label": "Where?",
+        "title": "Where should your app live?",
+        "body": [
+          "Your users are in Europe. If one data center fails the app must keep running, and next year you expand to Japan.",
+          "You need to understand AWS's map: Regions, AZs and edge locations."
+        ],
+        "show": [
+          "users"
+        ],
+        "focus": [
+          "users"
+        ],
+        "edges": [],
+        "learned": []
+      },
+      {
+        "kind": "concept",
+        "label": "Region",
+        "title": "A Region is a geographic area",
+        "body": [
+          "A Region, for example Europe (Ireland), is a separate geographic area. You choose the Region for each resource, based on where users are, data rules, service availability and price.",
+          "Data stays in the Region you pick unless you move it."
+        ],
+        "show": [
+          "users",
+          "r1"
+        ],
+        "focus": [
+          "r1"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "r1",
+            "label": "nearby",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0
+        ]
+      },
+      {
+        "kind": "concept",
+        "label": "AZs",
+        "title": "Each Region has several Availability Zones",
+        "body": [
+          "An Availability Zone is one or more data centers with their own power, cooling and networking. A Region has several AZs (normally at least three), kilometres apart but linked by fast, low-latency connections.",
+          "Because AZs don't share single points of failure, a fire or power cut in one doesn't take down the others."
+        ],
+        "show": [
+          "users",
+          "r1",
+          "a",
+          "b",
+          "c"
+        ],
+        "focus": [
+          "a",
+          "b",
+          "c"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "r1",
+            "label": "nearby"
+          },
+          {
+            "from": "r1",
+            "to": "a",
+            "fresh": true
+          },
+          {
+            "from": "r1",
+            "to": "b",
+            "fresh": true
+          },
+          {
+            "from": "r1",
+            "to": "c",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          2
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Multi-AZ",
+        "title": "Run in multiple AZs for high availability",
+        "body": [
+          "Put servers in at least two AZs behind a load balancer, and use a Multi-AZ database. If AZ a fails, traffic flows to b and c.",
+          "This is AWS's basic recipe for high availability."
+        ],
+        "show": [
+          "users",
+          "r1",
+          "a",
+          "b",
+          "c",
+          "lb"
+        ],
+        "focus": [
+          "lb"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "r1",
+            "label": "nearby"
+          },
+          {
+            "from": "r1",
+            "to": "a"
+          },
+          {
+            "from": "r1",
+            "to": "b"
+          },
+          {
+            "from": "r1",
+            "to": "c"
+          },
+          {
+            "from": "lb",
+            "to": "a",
+            "fresh": true
+          },
+          {
+            "from": "lb",
+            "to": "b",
+            "fresh": true
+          },
+          {
+            "from": "lb",
+            "to": "c",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2
+        ],
+        "callout": {
+          "type": "key",
+          "text": "High availability within a Region = multiple AZs. One AZ alone is a single point of failure."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Multi-Region",
+        "title": "Add Regions when you need them",
+        "body": [
+          "Use more than one Region for disaster recovery and business continuity if a whole Region fails, for low latency for users on other continents, or for data sovereignty laws that require data to stay in a country.",
+          "Multi-Region costs more and is harder, so do it for a reason."
+        ],
+        "show": [
+          "users",
+          "r1",
+          "a",
+          "b",
+          "c",
+          "lb",
+          "r2"
+        ],
+        "focus": [
+          "r2"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "r1",
+            "label": "nearby"
+          },
+          {
+            "from": "r1",
+            "to": "a"
+          },
+          {
+            "from": "r1",
+            "to": "b"
+          },
+          {
+            "from": "r1",
+            "to": "c"
+          },
+          {
+            "from": "lb",
+            "to": "a"
+          },
+          {
+            "from": "lb",
+            "to": "b"
+          },
+          {
+            "from": "lb",
+            "to": "c"
+          },
+          {
+            "from": "r1",
+            "to": "r2",
+            "label": "DR copy",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "kind": "technique",
+        "label": "Edge",
+        "title": "Edge locations bring content closer",
+        "body": [
+          "Edge locations are many smaller sites in cities worldwide. CloudFront caches content there, Route 53 answers DNS there, and Global Accelerator routes traffic onto the AWS network there.",
+          "Users get faster responses because the first hop is close."
+        ],
+        "show": [
+          "users",
+          "r1",
+          "a",
+          "b",
+          "c",
+          "lb",
+          "r2",
+          "edge"
+        ],
+        "focus": [
+          "edge"
+        ],
+        "edges": [
+          {
+            "from": "users",
+            "to": "r1",
+            "label": "nearby"
+          },
+          {
+            "from": "r1",
+            "to": "a"
+          },
+          {
+            "from": "r1",
+            "to": "b"
+          },
+          {
+            "from": "r1",
+            "to": "c"
+          },
+          {
+            "from": "lb",
+            "to": "a"
+          },
+          {
+            "from": "lb",
+            "to": "b"
+          },
+          {
+            "from": "lb",
+            "to": "c"
+          },
+          {
+            "from": "r1",
+            "to": "r2",
+            "label": "DR copy"
+          },
+          {
+            "from": "r1",
+            "to": "edge",
+            "label": "cached content",
+            "fresh": true
+          },
+          {
+            "from": "edge",
+            "to": "users",
+            "fresh": true
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "Edge locations don't run your EC2 servers. They cache and route; your app runs in a Region."
+        }
+      },
+      {
+        "kind": "recap",
+        "label": "Recap",
+        "title": "Region → AZs → edge",
+        "body": [
+          "Many edge locations at the edge; inside each Region, isolated AZs."
+        ],
+        "show": [
+          "users",
+          "r1",
+          "a",
+          "b",
+          "c",
+          "lb",
+          "r2",
+          "edge"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "users",
+            "to": "r1",
+            "label": "nearby"
+          },
+          {
+            "from": "r1",
+            "to": "a"
+          },
+          {
+            "from": "r1",
+            "to": "b"
+          },
+          {
+            "from": "r1",
+            "to": "c"
+          },
+          {
+            "from": "lb",
+            "to": "a"
+          },
+          {
+            "from": "lb",
+            "to": "b"
+          },
+          {
+            "from": "lb",
+            "to": "c"
+          },
+          {
+            "from": "r1",
+            "to": "r2",
+            "label": "DR copy"
+          },
+          {
+            "from": "r1",
+            "to": "edge",
+            "label": "cached content"
+          },
+          {
+            "from": "edge",
+            "to": "users"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "recap": [
+          "Region = geographic area; AZ = isolated data center(s) in a Region",
+          "Multi-AZ = high availability",
+          "AZs share no single points of failure",
+          "Multi-Region for DR, latency and data sovereignty",
+          "Edge locations: CloudFront, Route 53, Global Accelerator"
+        ]
+      }
+    ]
+  }
+}
