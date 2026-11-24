@@ -4,7 +4,8 @@
   "title": "Blob versioning, soft delete, and Azure Files snapshots",
   "objectiveIds": [
     "AZ104-2.3.4",
-    "AZ104-2.3.6"
+    "AZ104-2.3.6",
+    "AZ104-2.3.7"
   ],
   "estimatedMinutes": 45,
   "learningObjective": "Configure blob versioning, blob and container soft delete, file share snapshots and share soft delete, and choose the right recovery path for overwrites and deletions.",

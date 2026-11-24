@@ -74,10 +74,10 @@ add(("AZ104-3.2.1", 2, "troubleshooting", "Creating a D4s_v5 VM fails with 'Oper
      [("Request a vCPU quota increase for the region (or pick a smaller size)", "Correct."), ("Change the resource group", "Quota is per subscription and region."),
       ("Add a tag", "Unrelated."), ("Use a different VNet", "Unrelated.")],
      "a", "Increase the regional and family vCPU quota in Usage + quotas.", D + "azure/quotas/per-vm-quota-requests"))
-add(("AZ104-3.2.2", 3, "multiple", "You must enable Azure Disk Encryption on a Windows VM. Which TWO are required?",
-     [("A Key Vault in the same region and subscription as the VM", "Correct."), ("The Key Vault setting 'Azure Disk Encryption for volume encryption' enabled", "Correct."),
-      ("A Recovery Services vault", "Not needed."), ("A Standard load balancer", "Unrelated.")],
-     "ab", "ADE stores secrets in a Key Vault in the same region and subscription, enabled for disk encryption.", D + "azure/virtual-machines/windows/disk-encryption-key-vault"))
+add(("AZ104-3.2.2", 3, "multiple", "VM2 has used Azure Disk Encryption since 2024. You must move it to encryption at host before ADE retires. Which TWO statements are true?",
+     [("Encryption at host cannot be turned on for VM2 itself because it has had ADE", "Correct."), ("You create a new VM with new disks, enable encryption at host, and copy the data across", "Correct."),
+      ("Disabling ADE on VM2 lets you then enable encryption at host on the same VM", "A VM that ever had ADE cannot use encryption at host."), ("ADE keeps working after 15 September 2028", "After retirement, ADE disks fail to unlock on reboot.")],
+     "ab", "Encryption at host can't be enabled on VMs that currently or ever had Azure Disk Encryption, so migration means a new VM with new disks.", D + "azure/virtual-machines/disk-encryption-migrate"))
 add(("AZ104-3.2.2", 2, "single", "Which option also encrypts a VM's temporary disk and disk caches at the Azure host, without software inside the VM?",
      [("Server-side encryption with platform keys only", "Does not cover temp disk and caches."), ("Encryption at host", "Correct."), ("Azure Disk Encryption", "Encrypts inside the guest OS."), ("TLS 1.2", "In transit only.")],
      "b", "Encryption at host encrypts temp disks and caches on the host.", D + "azure/virtual-machines/disk-encryption"))
@@ -363,3 +363,13 @@ add(("AZ104-5.2.7", 2, "scenario", "Backup reports across 15 vaults show no data
 add(("AZ104-5.2.7", 2, "single", "Backup job failures should email the backup team. What do you configure?",
      [("An alert processing rule routing Azure Backup alerts to an action group", "Correct."), ("A budget", "Cost."), ("Soft delete", "Protection, not notification."), ("A resource lock", "Unrelated.")],
      "a", "Built-in backup alerts are routed to notifications via processing rules and action groups.", D + "azure/backup/backup-azure-monitoring-alerts"))
+
+# Added for the April 2026 skills outline: soft delete for blobs and containers.
+add(("AZ104-2.3.7", 2, "troubleshooting", "A user deleted container 'invoices' an hour ago. Blob soft delete (14 days) is on; container soft delete is off. Can you recover the container?",
+     [("Yes, with Undelete under Show deleted blobs", "Blob soft delete does not cover deleting the whole container."), ("No: container deletion is only recoverable when container soft delete was on before the delete", "Correct."),
+      ("Yes, from the storage account's snapshots", "Storage accounts have no account-level snapshots."), ("Yes, by turning on container soft delete now", "It does not apply to containers deleted before it was enabled.")],
+     "b", "Container soft delete must already be enabled to restore a deleted container; blob soft delete alone does not protect against container deletion.", D + "azure/storage/blobs/soft-delete-container-overview"))
+add(("AZ104-2.3.7", 2, "configuration", "Policy says deleted blobs must be recoverable for 30 days, and versioning is off. What do you configure, and how do you recover a blob?",
+     [("Blob soft delete with 30 days retention; recover with Show deleted blobs > Undelete", "Correct (retention can be 1 to 365 days)."), ("Container soft delete with 30 days; it also covers single blobs", "Container soft delete only restores deleted containers."),
+      ("A lifecycle rule that keeps blobs for 30 days", "Lifecycle rules move or delete data; they do not undelete."), ("A resource lock on the storage account", "Locks protect the account, not blob data.")],
+     "a", "Blob soft delete keeps deleted blobs (and snapshots) for the retention period you choose, from 1 to 365 days; without versioning, you restore them with Undelete.", D + "azure/storage/blobs/soft-delete-blob-overview"))

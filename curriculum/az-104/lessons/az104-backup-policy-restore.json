@@ -20,7 +20,7 @@
     "Restores range from a single file to a whole VM, in place or as a new VM, or in another region."
   ],
   "engineer": [
-    "VM policies: Standard (one backup a day, instant restore snapshots kept 1–5 days, default 2) or Enhanced (multiple backups a day every 4, 6, 8 or 12 hours, snapshots 1–30 days, required for Trusted Launch VMs and some disk types). Retention ranges: daily, weekly, monthly, yearly (daily 7–9999 days).",
+    "VM policies: Standard (one backup a day, instant restore snapshots kept 1–5 days, default 2) or Enhanced (a backup every 4, 6, 8, 12 or 24 hours, instant restore snapshots 1–30 days, default 7; needed for Trusted Launch VMs in the portal and for some disk types such as Premium SSD v2 and Ultra). Retention ranges: daily, weekly, monthly, yearly (daily 7–9999 days).",
     "Backups use the VM agent and a snapshot (application-consistent with VSS on Windows / pre-post scripts on Linux when possible), stored first as instant restore snapshots then transferred to the vault.",
     "Backup now creates an on-demand recovery point with its own retention.",
     "Restore options: Create new VM, Restore disks (to a staging storage account and resource group; then attach or use the generated template), Replace existing (swap disks in place, VM must exist), Cross Region Restore (from GRS+CRR vaults), and File Recovery (mount a recovery point with a script and copy files).",
@@ -98,7 +98,7 @@
     ],
     "limits": [
       "Standard policy: 1 backup/day, instant restore 1–5 days",
-      "Enhanced policy: every 4–12 hours, instant restore 1–30 days"
+      "Enhanced policy: every 4, 6, 8, 12 or 24 hours, instant restore 1–30 days"
     ],
     "portal": [
       "Vault > Backup policies > + Add: Azure Virtual Machine, Standard or Enhanced, schedule and retention.",
@@ -163,8 +163,8 @@
     },
     {
       "symptom": "Can't choose Standard policy for a Trusted Launch VM.",
-      "cause": "Trusted Launch requires Enhanced.",
-      "fix": "Use an Enhanced policy."
+      "cause": "The portal only offers Enhanced for Trusted Launch VMs.",
+      "fix": "Use an Enhanced policy (Standard is possible only through newer CLI, PowerShell or API versions)."
     },
     {
       "symptom": "Replace existing is greyed out.",
@@ -321,7 +321,7 @@
         "label": "Standard vs Enhanced",
         "title": "Two VM policy types",
         "body": [
-          "Standard: one backup per day. Enhanced: several per day (as often as every 4 hours), required for Trusted Launch VMs and some disk types."
+          "Standard: one backup per day. Enhanced: a backup every 4, 6, 8, 12 or 24 hours; the portal requires it for Trusted Launch VMs and some disk types."
         ],
         "show": [
           "vm",

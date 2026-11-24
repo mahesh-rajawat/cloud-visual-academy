@@ -178,11 +178,13 @@ export function resizeCheck(p: { running: boolean; availableOnCluster: boolean; 
   return { ok: false, needsDeallocate: true, detail: p.inSet ? 'Size not available on the current cluster: deallocate ALL VMs in the availability set, then resize.' : 'Size not available on the current cluster: deallocate the VM first.' }
 }
 
-export function adeCheck(p: { vaultRegionMatches: boolean; enabledForDiskEncryption: boolean; vmSupported: boolean }) {
+// Encryption at host replaces Azure Disk Encryption (ADE retires 15 Sep 2028).
+export function hostEncryptionCheck(p: { featureRegistered: boolean; sizeSupported: boolean; running: boolean; hadAde: boolean }) {
   const errors: string[] = []
-  if (!p.vaultRegionMatches) errors.push('Key Vault must be in the same region and subscription as the VM.')
-  if (!p.enabledForDiskEncryption) errors.push('Key Vault access policy/setting "Azure Disk Encryption for volume encryption" (enabledForDiskEncryption) is off.')
-  if (!p.vmSupported) errors.push('The VM size/OS combination is not supported by Azure Disk Encryption.')
+  if (p.hadAde) errors.push('Encryption at host cannot be enabled on a VM that has, or ever had, Azure Disk Encryption. Migrate to a new VM with new disks.')
+  if (!p.featureRegistered) errors.push('Register the EncryptionAtHost feature for the subscription first (az feature register --namespace Microsoft.Compute --name EncryptionAtHost).')
+  if (!p.sizeSupported) errors.push('This VM size does not support encryption at host (check the EncryptionAtHostSupported capability); resize first.')
+  if (p.running) errors.push('Deallocate the VM first: an existing VM must be deallocated to turn encryption at host on or off.')
   return errors
 }
 
@@ -283,22 +285,27 @@ const vmGroup: ScenarioGroup = {
         { type: 'checkbox', key: 'availableOnCluster', label: 'New size available on the current hardware cluster' },
         { type: 'checkbox', key: 'inSet', label: 'VM is in an availability set' },
         { type: 'select', key: 'diskOp', label: 'Disk operation', options: opt('Expand data disk 128 → 256 GiB', 'Shrink data disk 256 → 128 GiB', 'Change Standard SSD → Premium SSD', 'Add data disk beyond the size\'s max data disks') },
-        { type: 'select', key: 'encryption', label: 'Encryption', options: opt('SSE with platform-managed keys (default)', 'SSE with customer-managed keys (disk encryption set)', 'Encryption at host', 'Azure Disk Encryption (BitLocker / DM-Crypt)') },
-        { type: 'checkbox', key: 'vaultRegionMatches', label: 'ADE: Key Vault in same region and subscription' },
-        { type: 'checkbox', key: 'enabledForDiskEncryption', label: 'ADE: Key Vault enabled for disk encryption' },
+        { type: 'select', key: 'encryption', label: 'Encryption', options: opt('SSE with platform-managed keys (default)', 'SSE with customer-managed keys (disk encryption set)', 'Encryption at host', 'Azure Disk Encryption (retiring 15 Sep 2028)') },
+        { type: 'checkbox', key: 'featureRegistered', label: 'Host encryption: EncryptionAtHost feature registered' },
+        { type: 'checkbox', key: 'sizeSupported', label: 'Host encryption: VM size supports it' },
+        { type: 'checkbox', key: 'hadAde', label: 'VM has or ever had Azure Disk Encryption' },
       ],
-      initial: { running: true, availableOnCluster: false, inSet: false, diskOp: 'Expand data disk 128 → 256 GiB', encryption: 'Azure Disk Encryption (BitLocker / DM-Crypt)', vaultRegionMatches: true, enabledForDiskEncryption: false },
+      initial: { running: true, availableOnCluster: false, inSet: false, diskOp: 'Expand data disk 128 → 256 GiB', encryption: 'Encryption at host', featureRegistered: false, sizeSupported: true, hadAde: false },
       evaluate: (s) => {
         const rz = resizeCheck({ running: bool(s, 'running'), availableOnCluster: bool(s, 'availableOnCluster'), inSet: bool(s, 'inSet') })
         const op = str(s, 'diskOp')
         const diskOk = !op.startsWith('Shrink') && !op.startsWith('Add data disk beyond') && !(op.startsWith('Change') && bool(s, 'running'))
         const diskMsg = op.startsWith('Expand') ? 'Data disks can be expanded (often without downtime); then extend the partition in the OS.' : op.startsWith('Shrink') ? 'Managed disks cannot be shrunk. Create a smaller disk and copy data.' : op.startsWith('Change') ? (bool(s, 'running') ? 'Changing the disk type requires the VM to be deallocated.' : 'Disk type changed while deallocated.') : 'Each VM size has a maximum number of data disks; choose a larger size.'
-        const isAde = str(s, 'encryption').startsWith('Azure Disk Encryption')
-        const ade = isAde ? adeCheck({ vaultRegionMatches: bool(s, 'vaultRegionMatches'), enabledForDiskEncryption: bool(s, 'enabledForDiskEncryption'), vmSupported: true }) : []
-        const encMsg = isAde ? (ade.length ? ade.join(' ') : 'ADE encrypts OS/data volumes inside the guest with keys in Key Vault.') : str(s, 'encryption').startsWith('SSE with platform') ? 'Always on: server-side encryption with platform-managed keys.' : str(s, 'encryption').startsWith('SSE with customer') ? 'Disk encryption set points to a Key Vault key; managed identity needs key access.' : 'Encryption at host also encrypts temp disks and caches on the host. Requires the feature registered and a supported size.'
-        const stages = chain([{ id: 'size', label: 'Resize', kind: 'compute' }, { id: 'disk', label: 'Managed disks', kind: 'storage' }, { id: 'enc', label: 'Encryption', kind: 'security' }], [[rz.ok, rz.detail], [diskOk, diskMsg], [ade.length === 0, encMsg]])
+        const enc = str(s, 'encryption')
+        const isHost = enc === 'Encryption at host'
+        const host = isHost ? hostEncryptionCheck({ featureRegistered: bool(s, 'featureRegistered'), sizeSupported: bool(s, 'sizeSupported'), running: bool(s, 'running'), hadAde: bool(s, 'hadAde') }) : []
+        const encMsg = isHost ? (host.length ? host.join(' ') : 'Encryption at host on: temp disk, ephemeral OS disk and disk caches are encrypted on the host, and data flows encrypted to storage. Start the VM again.')
+          : enc.startsWith('SSE with platform') ? 'Always on: server-side encryption with platform-managed keys.'
+          : enc.startsWith('SSE with customer') ? 'Disk encryption set points to a Key Vault key; its managed identity needs key access.'
+          : 'Azure Disk Encryption (BitLocker / DM-Crypt inside the guest) retires on 15 Sep 2028. Use encryption at host for new VMs.'
+        const stages = chain([{ id: 'size', label: 'Resize', kind: 'compute' }, { id: 'disk', label: 'Managed disks', kind: 'storage' }, { id: 'enc', label: 'Encryption', kind: 'security' }], [[rz.ok, rz.detail], [diskOk, diskMsg], [host.length === 0, encMsg]])
         const ok = allOk(stages)
-        return { stages, outcome: { ok, title: ok ? 'CHANGES APPLIED' : 'OPERATION BLOCKED', detail: ok ? 'All operations succeeded.' : stages.find((x) => x.ok === false)!.detail }, checks: [rz.needsDeallocate ? 'resize-deallocate' : 'resize-online', ...(ok && isAde ? ['ade-enabled'] : []), ...(diskOk ? [] : ['disk-blocked'])] }
+        return { stages, outcome: { ok, title: ok ? 'CHANGES APPLIED' : 'OPERATION BLOCKED', detail: ok ? 'All operations succeeded.' : stages.find((x) => x.ok === false)!.detail }, checks: [rz.needsDeallocate ? 'resize-deallocate' : 'resize-online', ...(ok && isHost ? ['host-encryption'] : []), ...(diskOk ? [] : ['disk-blocked'])] }
       },
     },
     {

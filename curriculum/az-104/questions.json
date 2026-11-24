@@ -4070,35 +4070,35 @@
     "difficulty": 2,
     "type": "troubleshooting",
     "answerMode": "single",
-    "stem": "Enabling Azure Disk Encryption on VM1 (West Europe) fails. The key vault is in North Europe. What is required?",
+    "stem": "You try to turn on encryption at host for running VM1. The EncryptionAtHost feature is registered and the size is supported, but the setting cannot be saved. What should you do first?",
     "options": [
       {
         "id": "a",
-        "text": "A key vault in the same region and subscription as the VM, enabled for disk encryption",
+        "text": "Stop (deallocate) VM1, turn on encryption at host, then start it",
         "explanation": "Correct."
       },
       {
         "id": "b",
-        "text": "Geo-redundant disks",
-        "explanation": "Unrelated."
+        "text": "Create a Key Vault enabled for disk encryption",
+        "explanation": "That was an Azure Disk Encryption prerequisite."
       },
       {
         "id": "c",
-        "text": "A public IP on the VM",
-        "explanation": "Unrelated."
+        "text": "Install the Azure Disk Encryption extension",
+        "explanation": "Encryption at host needs no guest extension."
       },
       {
         "id": "d",
-        "text": "Encryption at host enabled first",
-        "explanation": "ADE and encryption at host cannot be combined."
+        "text": "Move VM1 to an availability zone",
+        "explanation": "Unrelated."
       }
     ],
     "correct": [
       "a"
     ],
-    "explanation": "ADE requires enabledForDiskEncryption on a vault in the VM's region.",
+    "explanation": "An existing VM must be deallocated to turn encryption at host on or off.",
     "docs": [
-      "https://learn.microsoft.com/azure/virtual-machines/windows/disk-encryption-key-vault"
+      "https://learn.microsoft.com/azure/virtual-machines/disk-encryption"
     ]
   },
   {
@@ -10740,36 +10740,36 @@
     "difficulty": 3,
     "type": "multiple",
     "answerMode": "multiple",
-    "stem": "You must enable Azure Disk Encryption on a Windows VM. Which TWO are required?",
+    "stem": "VM2 has used Azure Disk Encryption since 2024. You must move it to encryption at host before ADE retires. Which TWO statements are true?",
     "options": [
       {
         "id": "a",
-        "text": "A Key Vault in the same region and subscription as the VM",
+        "text": "Encryption at host cannot be turned on for VM2 itself because it has had ADE",
         "explanation": "Correct."
       },
       {
         "id": "b",
-        "text": "The Key Vault setting 'Azure Disk Encryption for volume encryption' enabled",
+        "text": "You create a new VM with new disks, enable encryption at host, and copy the data across",
         "explanation": "Correct."
       },
       {
         "id": "c",
-        "text": "A Recovery Services vault",
-        "explanation": "Not needed."
+        "text": "Disabling ADE on VM2 lets you then enable encryption at host on the same VM",
+        "explanation": "A VM that ever had ADE cannot use encryption at host."
       },
       {
         "id": "d",
-        "text": "A Standard load balancer",
-        "explanation": "Unrelated."
+        "text": "ADE keeps working after 15 September 2028",
+        "explanation": "After retirement, ADE disks fail to unlock on reboot."
       }
     ],
     "correct": [
       "a",
       "b"
     ],
-    "explanation": "ADE stores secrets in a Key Vault in the same region and subscription, enabled for disk encryption.",
+    "explanation": "Encryption at host can't be enabled on VMs that currently or ever had Azure Disk Encryption, so migration means a new VM with new disks.",
     "docs": [
-      "https://learn.microsoft.com/azure/virtual-machines/windows/disk-encryption-key-vault"
+      "https://learn.microsoft.com/azure/virtual-machines/disk-encryption-migrate"
     ]
   },
   {
@@ -14076,6 +14076,82 @@
     "explanation": "Custom conditions use KQL log search alerts over the backup diagnostic tables.",
     "docs": [
       "https://learn.microsoft.com/azure/backup/backup-azure-monitoring-use-azuremonitor"
+    ]
+  },
+  {
+    "id": "az104-q-x-163",
+    "exam": "az-104",
+    "objectiveId": "AZ104-2.3.7",
+    "difficulty": 2,
+    "type": "troubleshooting",
+    "answerMode": "single",
+    "stem": "A user deleted container 'invoices' an hour ago. Blob soft delete (14 days) is on; container soft delete is off. Can you recover the container?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Yes, with Undelete under Show deleted blobs",
+        "explanation": "Blob soft delete does not cover deleting the whole container."
+      },
+      {
+        "id": "b",
+        "text": "No: container deletion is only recoverable when container soft delete was on before the delete",
+        "explanation": "Correct."
+      },
+      {
+        "id": "c",
+        "text": "Yes, from the storage account's snapshots",
+        "explanation": "Storage accounts have no account-level snapshots."
+      },
+      {
+        "id": "d",
+        "text": "Yes, by turning on container soft delete now",
+        "explanation": "It does not apply to containers deleted before it was enabled."
+      }
+    ],
+    "correct": [
+      "b"
+    ],
+    "explanation": "Container soft delete must already be enabled to restore a deleted container; blob soft delete alone does not protect against container deletion.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/blobs/soft-delete-container-overview"
+    ]
+  },
+  {
+    "id": "az104-q-x-164",
+    "exam": "az-104",
+    "objectiveId": "AZ104-2.3.7",
+    "difficulty": 2,
+    "type": "configuration",
+    "answerMode": "single",
+    "stem": "Policy says deleted blobs must be recoverable for 30 days, and versioning is off. What do you configure, and how do you recover a blob?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Blob soft delete with 30 days retention; recover with Show deleted blobs > Undelete",
+        "explanation": "Correct (retention can be 1 to 365 days)."
+      },
+      {
+        "id": "b",
+        "text": "Container soft delete with 30 days; it also covers single blobs",
+        "explanation": "Container soft delete only restores deleted containers."
+      },
+      {
+        "id": "c",
+        "text": "A lifecycle rule that keeps blobs for 30 days",
+        "explanation": "Lifecycle rules move or delete data; they do not undelete."
+      },
+      {
+        "id": "d",
+        "text": "A resource lock on the storage account",
+        "explanation": "Locks protect the account, not blob data."
+      }
+    ],
+    "correct": [
+      "a"
+    ],
+    "explanation": "Blob soft delete keeps deleted blobs (and snapshots) for the retention period you choose, from 1 to 365 days; without versioning, you restore them with Undelete.",
+    "docs": [
+      "https://learn.microsoft.com/azure/storage/blobs/soft-delete-blob-overview"
     ]
   }
 ]

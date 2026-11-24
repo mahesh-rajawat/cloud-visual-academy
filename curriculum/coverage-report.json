@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-24T17:42:15+00:00",
+  "generatedAt": "2026-11-24T18:04:50+00:00",
   "exams": {
     "az-900": {
       "total": 57,
@@ -753,12 +753,12 @@
       ]
     },
     "az-104": {
-      "total": 81,
-      "complete": 81,
-      "withLesson": 81,
-      "withTestedAnimation": 81,
-      "withAssessment": 81,
-      "unverified": 81,
+      "total": 82,
+      "complete": 82,
+      "withLesson": 82,
+      "withTestedAnimation": 82,
+      "withAssessment": 82,
+      "unverified": 82,
       "entries": [
         {
           "objectiveId": "AZ104-1.1.1",
@@ -1118,6 +1118,19 @@
           "assessment": true,
           "appliedAssessment": true,
           "questionCount": 4,
+          "lab": true,
+          "docs": true,
+          "verification": "self-reviewed",
+          "complete": true,
+          "missing": []
+        },
+        {
+          "objectiveId": "AZ104-2.3.7",
+          "lesson": true,
+          "animation": true,
+          "assessment": true,
+          "appliedAssessment": true,
+          "questionCount": 2,
           "lab": true,
           "docs": true,
           "verification": "self-reviewed",

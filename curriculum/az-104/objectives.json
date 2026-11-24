@@ -3,7 +3,7 @@
   "examName": "Microsoft Azure Administrator",
   "vendor": "Microsoft",
   "sourceUrl": "https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-104",
-  "skillsMeasuredAsOf": "October 26, 2023",
+  "skillsMeasuredAsOf": "April 17, 2026",
   "domains": [
     {
       "id": "AZ104-1",
@@ -228,15 +228,15 @@
           "objectives": [
             {
               "id": "AZ104-2.3.1",
-              "text": "Create and configure a file share in Azure Storage",
-              "fingerprint": "710a18fd7031",
+              "text": "Create and configure a file share in Azure Files",
+              "fingerprint": "bbb4e821daaa",
               "handsOn": true,
               "status": "active"
             },
             {
               "id": "AZ104-2.3.2",
-              "text": "Create and configure a container in Blob Storage",
-              "fingerprint": "81b4f1546f86",
+              "text": "Create and configure a container in Azure Blob Storage",
+              "fingerprint": "c6aeb3e21a15",
               "handsOn": true,
               "status": "active"
             },
@@ -244,6 +244,13 @@
               "id": "AZ104-2.3.3",
               "text": "Configure storage tiers",
               "fingerprint": "0256e349ee66",
+              "handsOn": true,
+              "status": "active"
+            },
+            {
+              "id": "AZ104-2.3.7",
+              "text": "Configure soft delete for blobs and containers",
+              "fingerprint": "ba4c5d06470a",
               "handsOn": true,
               "status": "active"
             },
@@ -331,8 +338,8 @@
             },
             {
               "id": "AZ104-3.2.2",
-              "text": "Configure Azure Disk Encryption",
-              "fingerprint": "d16afcc0e2c2",
+              "text": "Configure encryption at host for Azure virtual machines",
+              "fingerprint": "c339d0a886d4",
               "handsOn": true,
               "status": "active"
             },
@@ -379,7 +386,7 @@
           "objectives": [
             {
               "id": "AZ104-3.3.1",
-              "text": "Create and manage an Azure container registry",
+              "text": "Create and manage an Azure Container Registry",
               "fingerprint": "4f35f0bcf36e",
               "handsOn": true,
               "status": "active"
@@ -503,8 +510,8 @@
             },
             {
               "id": "AZ104-4.1.4",
-              "text": "Configure user-defined network routes",
-              "fingerprint": "450a269aee0c",
+              "text": "Configure user-defined routes",
+              "fingerprint": "2a90d6956de4",
               "handsOn": true,
               "status": "active"
             },
@@ -633,7 +640,7 @@
             },
             {
               "id": "AZ104-5.1.6",
-              "text": "Use Azure Network Watcher and Connection Monitor",
+              "text": "Use Azure Network Watcher and Connection monitor",
               "fingerprint": "ce697ff41a98",
               "handsOn": true,
               "status": "active"
@@ -698,6 +705,6 @@
       ]
     }
   ],
-  "retrievedAt": "2026-11-23T19:17:03+00:00",
-  "objectiveCount": 81
+  "retrievedAt": "2026-11-24T17:53:48+00:00",
+  "objectiveCount": 82
 }

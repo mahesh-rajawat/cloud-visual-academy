@@ -18,9 +18,9 @@ const baseInput = (over: Partial<PlanInput> = {}): PlanInput => ({
 })
 
 describe('curriculum registry', () => {
-  it('AZ-104 has 81 objectives across 5 domains', () => {
+  it('AZ-104 has 82 objectives across 5 domains', () => {
     expect(registries['az-104'].domains).toHaveLength(5)
-    expect(allObjectives('az-104')).toHaveLength(81)
+    expect(allObjectives('az-104')).toHaveLength(82)
   })
   it('study plan schedules every AZ-104 objective exactly once', () => {
     const planned = sprintPlan.days.flatMap((d) => d.skills).sort()
@@ -37,7 +37,7 @@ describe('sprint planner', () => {
   it('schedules every objective or reports it as overflow', () => {
     const plan = buildSprint(baseInput())
     const scheduled = plan.days.flatMap((d) => d.items.map((i) => i.objectiveId))
-    expect(scheduled.length + plan.overflow.length).toBe(81)
+    expect(scheduled.length + plan.overflow.length).toBe(82)
     expect(new Set(scheduled).size).toBe(scheduled.length)
   })
   it('flags an unrealistic schedule when hours are too low', () => {
@@ -51,6 +51,12 @@ describe('sprint planner', () => {
     const plan = buildSprint(baseInput({ start, weekdayHours: 1.75, weekendHours: 2 }))
     expect(plan.warnings).toEqual([])
     expect(plan.realistic).toBe(true)
+  })
+  it.each([0, 1, 2, 3, 4, 5, 6])('never rolls topics to later days and leaves week 8 for revision (start offset %i)', (offset) => {
+    const plan = buildSprint(baseInput({ start: new Date(2026, 10, 23 + offset), weekdayHours: 1.75, weekendHours: 2 }))
+    const items = plan.days.flatMap((d) => d.items.map((i) => ({ ...i, day: d.day })))
+    expect(items.filter((i) => i.rolledFrom)).toEqual([])
+    expect(Math.max(...items.map((i) => i.day))).toBeLessThanOrEqual(49)
   })
   it('skips the recall check on mock exam days', () => {
     const plan = buildSprint(baseInput({ weekdayHours: 1.75, weekendHours: 2 }))

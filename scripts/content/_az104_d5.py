@@ -234,7 +234,7 @@ WALK["az104-backup-policy-restore"] = walk(
        "Schedule: when backups run. Retention: how long daily, weekly, monthly and yearly recovery points are kept. One policy can protect many VMs.",
        add=["pol"], edges=[("pol", "vm")], learn=[0]),
      S("concept", "Standard vs Enhanced", "Two VM policy types",
-       "Standard: one backup per day. Enhanced: several per day (as often as every 4 hours), required for Trusted Launch VMs and some disk types.",
+       "Standard: one backup per day. Enhanced: a backup every 4, 6, 8, 12 or 24 hours; the portal requires it for Trusted Launch VMs and some disk types.",
        learn=[1]),
      S("concept", "Tiers", "Snapshots first, then the vault",
        "Each backup first takes a snapshot kept with the VM's disks for 1–5 days (Standard) for fast 'instant restore'. The data is then copied to the vault for long-term retention.",

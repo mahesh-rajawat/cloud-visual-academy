@@ -98,8 +98,8 @@ LAB["az104-vm-create"] = H(
 
 # ---------------------------------------------------------------- 3.2 disks and encryption
 WALK["az104-vm-disks-encryption"] = walk(
-    "Give a VM the right disks, change them safely, and choose how they are encrypted.",
-    ["OS, temporary and data disks", "Disk types", "Disk operations: attach, resize, snapshot", "Encryption options: SSE, CMK, encryption at host, ADE"],
+    "Give a VM the right disks, change them safely, and turn on encryption at host.",
+    ["OS, temporary and data disks", "Disk types", "Disk operations: attach, resize, snapshot", "Encryption: always-on SSE, your own keys, encryption at host"],
     [N("vm", "VM", 400, 80, "compute"), N("os", "OS disk", 160, 220, "storage", "C: or /"), N("temp", "Temp disk", 400, 220, "storage", "lost on deallocate"),
      N("data", "Data disk", 640, 220, "storage", "your files"), N("snap", "Snapshot", 640, 380, "storage", "point in time"), N("kv", "Key Vault", 160, 380, "security", "your keys")],
     [S("problem", "Disks", "The database needs more space and faster disks",
@@ -114,28 +114,35 @@ WALK["az104-vm-disks-encryption"] = walk(
      S("technique", "Operations", "Everyday disk jobs",
        "Attach or detach data disks (often without a restart). Increase size (never shrink), then extend the partition inside the OS. Take a snapshot for a quick copy; create new disks from it.",
        add=["snap"], edges=[("data", "snap", "snapshot")], learn=[2]),
-     S("technique", "Encryption", "Four ways encryption fits in",
-       "Server-side encryption (SSE) is always on, with platform-managed keys by default. Customer-managed keys use a disk encryption set pointing to Key Vault. Encryption at host also covers temp disks and caches. Azure Disk Encryption (ADE) encrypts inside the OS with BitLocker or DM-Crypt, keys in Key Vault.\n\nMicrosoft now recommends encryption at host instead of ADE for new VMs.",
-       add=["kv"], edges=[("kv", "os", "CMK / ADE")], learn=[3], tip="ADE needs a Key Vault in the same region and subscription, enabled for disk encryption."),
+     S("technique", "Encryption", "Encryption, layer by layer",
+       "Server-side encryption (SSE) is always on: every managed disk is encrypted in storage with a Microsoft key. Want your own key? Create a disk encryption set that points to a Key Vault key.\n\nEncryption at host goes one step further: the server running your VM encrypts the temporary disk and disk caches, so data is encrypted before it even leaves the server.",
+       add=["kv"], edges=[("kv", "os", "your key (optional)")], learn=[3], tip="Azure Disk Encryption (ADE), the older in-OS option, retires on 15 Sep 2028. Use encryption at host instead."),
+     S("technique", "Host encryption", "Turning on encryption at host",
+       "1. Register the EncryptionAtHost feature on the subscription (once).\n2. Use a VM size that supports it.\n3. New VM: tick Encryption at host on the Disks tab. Existing VM: stop (deallocate) it, then Disks > Additional settings > Encryption at host > Yes.",
+       learn=[3], warn="A VM that has, or ever had, ADE can never get encryption at host. Migrate to a new VM with new disks."),
      S("recap", "Recap", "Disks", "Right disk, right size, right keys.",
        recap=["OS, temporary (not persistent), data disks", "HDD < Standard SSD < Premium SSD < Premium v2 / Ultra", "Grow only; snapshots for copies",
-              "SSE always on; CMK via disk encryption set", "Encryption at host preferred; ADE uses BitLocker/DM-Crypt"])])
+              "SSE always on; CMK via disk encryption set", "Encryption at host: register feature, supported size, deallocate", "ADE retires 15 Sep 2028; ex-ADE VMs need a new VM"])])
 
 LAB["az104-vm-disks-encryption"] = H(
-    "Add, resize and snapshot a data disk, and review encryption", 25, "low", VM_COST + " A small data disk and snapshot add cents.",
+    "Add, resize and snapshot a data disk, and turn on encryption at host", 30, "low", VM_COST + " A small data disk and snapshot add cents.",
     [BASE, NEW_RG, VM],
     [("Open vm-lab > Settings > Disks > + Create and attach a new disk. Name: vm-lab-data1, Standard SSD, size 4 GiB. Apply.", "The data disk listed under Data disks with LUN 0."),
      ("Stop (deallocate) the VM. Open the data disk > Settings > Size + performance. Choose 8 GiB. Save.", "The disk now shows 8 GiB. Shrinking is not offered."),
      ("On the same disk, try changing the performance tier or disk type to Premium SSD.", "Allowed while the VM is deallocated. Change it back to Standard SSD."),
      ("Open the data disk > Overview > Create snapshot. Name: snap-data1, type: Incremental.", "A snapshot resource in the group."),
      ("Open the data disk > Settings > Encryption.", "Encryption at rest with a platform-managed key; options for customer-managed keys via a disk encryption set."),
-     ("Open vm-lab > Settings > Disks > Additional settings.", "Encryption at host (may say it needs registering) and Azure Disk Encryption options."),
+     ("Open Cloud Shell (Bash) and register the encryption-at-host feature. Repeat the second command until it says Registered (a few minutes).", "\"Registered\".", "Registering a feature is free.",
+      "az feature register --namespace Microsoft.Compute --name EncryptionAtHost\naz feature show --namespace Microsoft.Compute --name EncryptionAtHost --query properties.state -o tsv\naz provider register --namespace Microsoft.Compute\n# Does your VM size support it? (use your VM's region; True = supported)\naz vm list-skus -l uaenorth --size Standard_B1s --query \"[0].capabilities[?name=='EncryptionAtHostSupported'].value\" -o tsv"),
+     ("With vm-lab still stopped (deallocated), open vm-lab > Settings > Disks > Additional settings. Set Encryption at host to Yes. Save.", "The save succeeds. If the option is greyed out, the VM size does not support it (resize to a D-series v5 size) or the feature is not registered yet.", "It only saves while the VM is deallocated."),
+     ("Start vm-lab. In Cloud Shell, check the setting.", "true", None, "az vm show -g rg-az104-lab -n vm-lab --query securityProfile.encryptionAtHost"),
      ("Back on Disks, detach the data disk and Save.", "The disk still exists in the resource group, unattached (and still billed).")],
-    ["You grew a disk and made an incremental snapshot."],
+    ["You grew a disk and made an incremental snapshot.", "az vm show reports encryptionAtHost true."],
     [DELETE_RG],
     [("Attach a data disk to a Linux VM in the portal", ML + "azure/virtual-machines/linux/attach-disk-portal"),
      ("Expand virtual hard disks on a Linux VM", ML + "azure/virtual-machines/linux/expand-disks"),
-     ("Overview of managed disk encryption options", ML + "azure/virtual-machines/disk-encryption-overview")])
+     ("Overview of managed disk encryption options", ML + "azure/virtual-machines/disk-encryption-overview"),
+     ("Enable encryption at host (portal)", ML + "azure/virtual-machines/disks-enable-host-based-encryption-portal")])
 
 # ---------------------------------------------------------------- 3.2 availability
 WALK["az104-vm-availability"] = walk(

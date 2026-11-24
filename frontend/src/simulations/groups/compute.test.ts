@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { APP_TIERS, acaReplicas, acrNameValid, adeCheck, availabilityOutcome, deploymentModeEffect, deploymentOrder, groups, resizeCheck, simulateAutoscale } from './compute'
+import { APP_TIERS, acaReplicas, acrNameValid, hostEncryptionCheck, availabilityOutcome, deploymentModeEffect, deploymentOrder, groups, resizeCheck, simulateAutoscale } from './compute'
 
 const sc = (g: string, s: string) => groups.find((x) => x.id === g)!.scenarios.find((x) => x.id === s)!
 
@@ -30,8 +30,10 @@ describe('virtual machines', () => {
     expect(resizeCheck({ running: true, availableOnCluster: true, inSet: false }).needsDeallocate).toBe(false)
     expect(resizeCheck({ running: true, availableOnCluster: false, inSet: true }).detail).toMatch(/ALL VMs/)
   })
-  it('ADE requires a key vault in the same region enabled for disk encryption', () => {
-    expect(adeCheck({ vaultRegionMatches: false, enabledForDiskEncryption: false, vmSupported: true })).toHaveLength(2)
+  it('encryption at host needs the feature, a supported size, a deallocated VM and no ADE history', () => {
+    expect(hostEncryptionCheck({ featureRegistered: true, sizeSupported: true, running: false, hadAde: false })).toHaveLength(0)
+    expect(hostEncryptionCheck({ featureRegistered: false, sizeSupported: true, running: true, hadAde: false })).toHaveLength(2)
+    expect(hostEncryptionCheck({ featureRegistered: true, sizeSupported: true, running: false, hadAde: true })[0]).toMatch(/ever had/)
   })
   it('VM creation fails on quota and reserved usernames', () => {
     const s = sc('vm-sim', 'create')

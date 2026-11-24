@@ -91,7 +91,7 @@ export interface VmPolicy { type: 'Standard' | 'Enhanced'; frequency: 'Daily' | 
 export function policyIssues(p: VmPolicy, trustedLaunch: boolean): string[] {
   const i: string[] = []
   if (p.frequency === 'Hourly' && p.type !== 'Enhanced') i.push('Multiple backups per day (hourly) need the Enhanced policy.')
-  if (trustedLaunch && p.type !== 'Enhanced') i.push('Trusted Launch VMs require the Enhanced policy.')
+  if (trustedLaunch && p.type !== 'Enhanced') i.push('Trusted Launch VMs need the Enhanced policy in the portal (newer CLI, PowerShell and API versions also allow Standard).')
   const maxIr = p.type === 'Enhanced' ? 30 : 5
   if (p.instantRestoreDays < 1 || p.instantRestoreDays > maxIr) i.push(`Instant restore snapshot retention must be 1–${maxIr} days for the ${p.type} policy.`)
   if (p.dailyDays < 7 || p.dailyDays > 9999) i.push('Daily retention must be 7–9999 days.')

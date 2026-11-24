@@ -1,9 +1,22 @@
 {
-  "syncedAt": "2026-11-23T19:17:03+00:00",
+  "syncedAt": "2026-11-24T17:53:48+00:00",
   "sourceUrl": "https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-104",
-  "skillsMeasuredAsOf": "October 26, 2023",
-  "added": [],
+  "skillsMeasuredAsOf": "April 17, 2026",
+  "added": [
+    "AZ104-2.3.7"
+  ],
   "retired": [],
-  "renumbered": [],
-  "unchanged": 81
+  "reworded": [
+    "AZ104-2.3.1",
+    "AZ104-2.3.2",
+    "AZ104-4.1.4"
+  ],
+  "replaced": [
+    {
+      "id": "AZ104-3.2.2",
+      "was": "Configure Azure Disk Encryption",
+      "now": "Configure encryption at host for Azure virtual machines"
+    }
+  ],
+  "note": "Wording-only changes keep their IDs. 3.2.2 keeps its ID with new meaning; its lesson was rewritten."
 }

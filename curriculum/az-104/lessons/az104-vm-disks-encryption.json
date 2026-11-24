@@ -1,13 +1,13 @@
 {
   "id": "az104-vm-disks-encryption",
   "exam": "az-104",
-  "title": "Managed disks and disk encryption",
+  "title": "Managed disks and encryption at host",
   "objectiveIds": [
     "AZ104-3.2.2",
     "AZ104-3.2.5"
   ],
   "estimatedMinutes": 50,
-  "learningObjective": "Add, expand, convert, snapshot and detach managed disks, and choose and configure the right encryption option, including Azure Disk Encryption.",
+  "learningObjective": "Add, expand, convert, snapshot and detach managed disks, and choose and configure the right encryption option, especially encryption at host.",
   "prerequisites": [
     {
       "text": "Creating VMs",
@@ -23,18 +23,21 @@
   "foundation": [
     "VM disks in Azure are managed disks: Azure handles the underlying storage. Each VM has an OS disk, can have data disks, and often a temporary disk that is wiped on redeployment.",
     "Disk types trade speed for price: Standard HDD, Standard SSD, Premium SSD, Premium SSD v2 and Ultra Disk.",
-    "All managed disks are encrypted at rest automatically. You can add your own keys, encryption at the host, or Azure Disk Encryption, which encrypts the volumes inside the operating system."
+    "All managed disks are encrypted at rest automatically. Encryption at host goes further: the server running your VM encrypts the temporary disk and disk caches too, so nothing sits unencrypted on that server.",
+    "Azure Disk Encryption (ADE), the older option that encrypts inside the operating system, retires on 15 September 2028. Use encryption at host for new VMs."
   ],
   "engineer": [
     "Operations: attach or detach data disks while the VM runs; expand disk size (shrinking is not supported; data disks can often be expanded without downtime, then extend the partition in the OS); change disk type (for example Standard SSD → Premium SSD) with the VM deallocated; incremental snapshots for backup or cloning; host caching (None/ReadOnly/ReadWrite) per disk.",
     "Limits: the VM size sets the maximum number of data disks and combined IOPS/throughput; Premium SSD performance depends on disk size (P-tiers) unless you use Premium SSD v2 or Ultra, where IOPS and throughput are set independently. Ultra and Premium SSD v2 have restrictions such as no OS disk support (Ultra) and zone requirements.",
-    "Encryption options: server-side encryption (SSE) with platform-managed keys (default, always on); SSE with customer-managed keys through a disk encryption set pointing to a Key Vault key; encryption at host (also encrypts temp disks and disk caches, needs the feature enabled and a supported size); Azure Disk Encryption (ADE), which uses BitLocker (Windows) or DM-Crypt (Linux) inside the guest with keys and secrets in Key Vault.",
-    "ADE requirements: Key Vault in the same region and subscription as the VM, with 'Azure Disk Encryption for volume encryption' enabled (enabledForDiskEncryption); optionally a key encryption key (KEK). ADE does not work on some sizes and images, and cannot be combined with encryption at host. Microsoft recommends encryption at host for new deployments and has announced a retirement date for ADE, so check current guidance before choosing it.",
+    "Encryption options: server-side encryption (SSE) with platform-managed keys (default, always on); SSE with customer-managed keys through a disk encryption set pointing to a Key Vault key; encryption at host (end-to-end: data is encrypted on the VM host and flows encrypted to Azure Storage); Azure Disk Encryption (legacy, inside the guest).",
+    "Encryption at host: the temporary disk and ephemeral OS disk are encrypted with platform-managed keys; OS and data disk caches use platform- or customer-managed keys, matching each disk's encryption type (use a disk encryption set for customer-managed keys).",
+    "Turning it on: register the EncryptionAtHost feature on the subscription once (az feature register --namespace Microsoft.Compute --name EncryptionAtHost, wait for Registered); pick a supported VM size (older sizes are not supported; the SKU capability is EncryptionAtHostSupported). New VM: portal Disks tab > Encryption at host. Existing VM: deallocate it, set VM > Disks > Additional settings > Encryption at host, save, start. Scale sets: only VMs created after enabling it are encrypted.",
+    "Azure Disk Encryption (ADE) uses BitLocker (Windows) or DM-Crypt (Linux) inside the guest, with keys in a Key Vault in the same region and subscription. It retires on 15 September 2028; after that, ADE disks fail to unlock on reboot. Encryption at host cannot be enabled on a VM that has, or ever had, ADE, so migration means new disks on a new VM.",
     "Confidential disk encryption is available for confidential VMs."
   ],
   "animation": {
     "id": "vm-sim",
-    "caption": "Open 'Resize, disks and encryption': try disk operations and encryption options."
+    "caption": "Open 'Resize, disks and encryption': try disk operations and turn on encryption at host."
   },
   "diagram": {
     "nodes": [
@@ -68,7 +71,7 @@
       },
       {
         "id": "kv",
-        "label": "Key Vault (enabledForDiskEncryption)",
+        "label": "Key Vault (key)",
         "x": 480,
         "y": 130,
         "kind": "security"
@@ -89,9 +92,9 @@
         "label": "SSE + CMK"
       },
       {
-        "from": "data",
+        "from": "des",
         "to": "kv",
-        "label": "ADE (in-guest)"
+        "label": "key"
       }
     ]
   },
@@ -99,33 +102,35 @@
     "title": "Expanding a full data disk",
     "body": [
       "A database VM's 128 GiB data disk is 95% full. The admin expands it to 256 GiB in the portal while the VM runs, then extends the volume in Disk Management.",
-      "Compliance later requires customer-managed keys, so the team creates a disk encryption set with a Key Vault key and assigns it to the disks."
+      "Security then asks that the temporary disk and caches are encrypted too. The admin registers EncryptionAtHost, deallocates the VM, turns on Encryption at host under Disks > Additional settings, and starts it again."
     ]
   },
   "configuration": {
     "prerequisites": [
       "Supported VM size for the disk type",
-      "For ADE: Key Vault in the same region/subscription, enabled for disk encryption",
-      "For encryption at host: feature registered"
+      "Encryption at host: EncryptionAtHost feature registered, a supported VM size, and no Azure Disk Encryption on the VM now or before"
     ],
     "permissions": [
-      "Virtual Machine Contributor / Disk Pool roles for disk operations",
-      "Key Vault access for disk encryption sets or ADE"
+      "Virtual Machine Contributor for disk and VM operations",
+      "Key Vault key access for the disk encryption set's managed identity (customer-managed keys)"
     ],
     "limits": [
       "Disks cannot be shrunk",
       "Changing disk type requires deallocation",
-      "Max data disks depends on VM size"
+      "Max data disks depends on VM size",
+      "Encryption at host on an existing VM requires deallocation",
+      "Encryption at host is blocked on VMs that ever had ADE"
     ],
     "portal": [
       "VM > Disks > + Create and attach a new disk / Attach existing; Detach.",
       "Disk > Size + performance: increase size or change tier.",
       "Disk > Encryption: choose encryption type and disk encryption set.",
       "Disk > Create snapshot (incremental).",
-      "VM > Disks > Additional settings: encryption at host, Azure Disk Encryption."
+      "Create a VM > Disks tab > Encryption at host.",
+      "Existing VM: Stop (deallocate) > Disks > Additional settings > Encryption at host = Yes > Save > Start."
     ],
-    "cli": "az vm disk attach -g rg-app --vm-name vm1 --name vm1-data1 --new --size-gb 128 --sku Premium_LRS\naz disk update -g rg-app -n vm1-data1 --size-gb 256\naz vm deallocate -g rg-app -n vm1 && az disk update -g rg-app -n vm1-data1 --sku Premium_LRS\naz snapshot create -g rg-app -n vm1-data1-snap --source vm1-data1 --incremental true\naz keyvault update -n kv-contoso --enabled-for-disk-encryption true\naz vm encryption enable -g rg-app -n vm1 --disk-encryption-keyvault kv-contoso --volume-type All\naz feature register --namespace Microsoft.Compute --name EncryptionAtHost\naz vm update -g rg-app -n vm1 --set securityProfile.encryptionAtHost=true",
-    "powershell": "$vm = Get-AzVM -ResourceGroupName rg-app -Name vm1\n$cfg = New-AzDiskConfig -Location westeurope -CreateOption Empty -DiskSizeGB 128 -SkuName Premium_LRS\n$disk = New-AzDisk -ResourceGroupName rg-app -DiskName vm1-data1 -Disk $cfg\nAdd-AzVMDataDisk -VM $vm -Name vm1-data1 -CreateOption Attach -ManagedDiskId $disk.Id -Lun 0 | Update-AzVM\n$kv = Get-AzKeyVault -VaultName kv-contoso\nSet-AzVMDiskEncryptionExtension -ResourceGroupName rg-app -VMName vm1 -DiskEncryptionKeyVaultUrl $kv.VaultUri -DiskEncryptionKeyVaultId $kv.ResourceId -VolumeType All"
+    "cli": "az vm disk attach -g rg-app --vm-name vm1 --name vm1-data1 --new --size-gb 128 --sku Premium_LRS\naz disk update -g rg-app -n vm1-data1 --size-gb 256\naz vm deallocate -g rg-app -n vm1 && az disk update -g rg-app -n vm1-data1 --sku Premium_LRS\naz snapshot create -g rg-app -n vm1-data1-snap --source vm1-data1 --incremental true\naz feature register --namespace Microsoft.Compute --name EncryptionAtHost\naz feature show --namespace Microsoft.Compute --name EncryptionAtHost --query properties.state\naz vm create -g rg-app -n vm2 --image Ubuntu2204 --size Standard_D2s_v5 --encryption-at-host --generate-ssh-keys\naz vm deallocate -g rg-app -n vm1\naz vm update -g rg-app -n vm1 --set securityProfile.encryptionAtHost=true\naz vm start -g rg-app -n vm1",
+    "powershell": "$vm = Get-AzVM -ResourceGroupName rg-app -Name vm1\n$cfg = New-AzDiskConfig -Location westeurope -CreateOption Empty -DiskSizeGB 128 -SkuName Premium_LRS\n$disk = New-AzDisk -ResourceGroupName rg-app -DiskName vm1-data1 -Disk $cfg\nAdd-AzVMDataDisk -VM $vm -Name vm1-data1 -CreateOption Attach -ManagedDiskId $disk.Id -Lun 0 | Update-AzVM\nRegister-AzProviderFeature -FeatureName EncryptionAtHost -ProviderNamespace Microsoft.Compute\nStop-AzVM -ResourceGroupName rg-app -Name vm1 -Force\n$vm = Get-AzVM -ResourceGroupName rg-app -Name vm1\nUpdate-AzVM -ResourceGroupName rg-app -VM $vm -EncryptionAtHost $true\nStart-AzVM -ResourceGroupName rg-app -Name vm1"
   },
   "lab": {
     "type": "A",
@@ -134,12 +139,12 @@
     "duration": 15,
     "steps": [
       "Try each disk operation, with the VM running and deallocated.",
-      "Select Azure Disk Encryption and fix the Key Vault prerequisites.",
-      "Compare SSE with CMK and encryption at host."
+      "Select Encryption at host and fix each blocker: feature registration, VM size, deallocation.",
+      "Tick 'ever had Azure Disk Encryption' and see why migration needs a new VM."
     ],
     "expected": [
       "Shrinking is blocked; type change needs deallocation",
-      "ADE needs Key Vault enabled for disk encryption in the same region"
+      "Encryption at host needs the feature registered, a supported size and a deallocated VM"
     ],
     "validation": [
       {
@@ -147,13 +152,13 @@
         "text": "Saw a disk operation blocked"
       },
       {
-        "id": "ade-enabled",
-        "text": "Enabled Azure Disk Encryption successfully"
+        "id": "host-encryption",
+        "text": "Turned on encryption at host successfully"
       }
     ],
     "failureScenarios": [
       "Shrinking a disk",
-      "Key Vault in another region",
+      "Enabling encryption at host while the VM runs",
       "Too many data disks for the size"
     ],
     "cleanup": [
@@ -168,9 +173,9 @@
       "fix": "Create a smaller disk and copy data."
     },
     {
-      "symptom": "ADE extension fails.",
-      "cause": "Key Vault not enabled for disk encryption or in another region.",
-      "fix": "az keyvault update --enabled-for-disk-encryption true; use a vault in the VM's region."
+      "symptom": "Encryption at host option is greyed out or fails.",
+      "cause": "Feature not registered, VM size not supported, VM still running, or the VM had Azure Disk Encryption.",
+      "fix": "Register EncryptionAtHost, resize to a supported size, deallocate; for ex-ADE VMs migrate to a new VM."
     },
     {
       "symptom": "New disk size not visible in the OS.",
@@ -195,8 +200,12 @@
   ],
   "misconceptions": [
     {
-      "myth": "Disks are unencrypted unless you enable ADE.",
-      "reality": "SSE with platform-managed keys is always on."
+      "myth": "Disks are unencrypted unless you turn on extra encryption.",
+      "reality": "SSE with platform-managed keys is always on; encryption at host adds the temp disk and caches."
+    },
+    {
+      "myth": "You can switch an ADE VM to encryption at host in place.",
+      "reality": "Not allowed on a VM that ever had ADE; create a new VM with new disks."
     },
     {
       "myth": "You can switch a disk to Premium while the VM runs.",
@@ -209,7 +218,7 @@
   ],
   "architectureDecisions": [
     "Use Premium SSD (or v2) for production databases.",
-    "Prefer encryption at host or SSE with CMK over ADE for new deployments.",
+    "Use encryption at host for new VMs (add a disk encryption set if you need your own keys); plan ADE migrations before 15 Sep 2028.",
     "Snapshot before risky changes."
   ],
   "docs": [
@@ -230,12 +239,16 @@
       "url": "https://learn.microsoft.com/azure/virtual-machines/disk-encryption-overview"
     },
     {
-      "title": "Azure Disk Encryption for Windows VMs",
-      "url": "https://learn.microsoft.com/azure/virtual-machines/windows/disk-encryption-overview"
+      "title": "Encryption at host (portal)",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/disks-enable-host-based-encryption-portal"
     },
     {
-      "title": "Encryption at host",
-      "url": "https://learn.microsoft.com/azure/virtual-machines/disks-enable-host-based-encryption-portal"
+      "title": "Encryption at host (CLI)",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/linux/disks-enable-host-based-encryption-cli"
+    },
+    {
+      "title": "Migrate from Azure Disk Encryption to encryption at host",
+      "url": "https://learn.microsoft.com/azure/virtual-machines/disk-encryption-migrate"
     }
   ],
   "verification": {
@@ -244,12 +257,12 @@
     "notes": "Drafted by AI and checked against the linked official documentation. Not yet reviewed by a human subject-matter expert."
   },
   "walkthrough": {
-    "subtitle": "Give a VM the right disks, change them safely, and choose how they are encrypted.",
+    "subtitle": "Give a VM the right disks, change them safely, and turn on encryption at host.",
     "learn": [
       "OS, temporary and data disks",
       "Disk types",
       "Disk operations: attach, resize, snapshot",
-      "Encryption options: SSE, CMK, encryption at host, ADE"
+      "Encryption: always-on SSE, your own keys, encryption at host"
     ],
     "nodes": [
       {
@@ -431,10 +444,10 @@
       {
         "kind": "technique",
         "label": "Encryption",
-        "title": "Four ways encryption fits in",
+        "title": "Encryption, layer by layer",
         "body": [
-          "Server-side encryption (SSE) is always on, with platform-managed keys by default. Customer-managed keys use a disk encryption set pointing to Key Vault. Encryption at host also covers temp disks and caches. Azure Disk Encryption (ADE) encrypts inside the OS with BitLocker or DM-Crypt, keys in Key Vault.",
-          "Microsoft now recommends encryption at host instead of ADE for new VMs."
+          "Server-side encryption (SSE) is always on: every managed disk is encrypted in storage with a Microsoft key. Want your own key? Create a disk encryption set that points to a Key Vault key.",
+          "Encryption at host goes one step further: the server running your VM encrypts the temporary disk and disk caches, so data is encrypted before it even leaves the server."
         ],
         "show": [
           "vm",
@@ -466,7 +479,7 @@
           {
             "from": "kv",
             "to": "os",
-            "label": "CMK / ADE",
+            "label": "your key (optional)",
             "fresh": true
           }
         ],
@@ -478,7 +491,58 @@
         ],
         "callout": {
           "type": "tip",
-          "text": "ADE needs a Key Vault in the same region and subscription, enabled for disk encryption."
+          "text": "Azure Disk Encryption (ADE), the older in-OS option, retires on 15 Sep 2028. Use encryption at host instead."
+        }
+      },
+      {
+        "kind": "technique",
+        "label": "Host encryption",
+        "title": "Turning on encryption at host",
+        "body": [
+          "1. Register the EncryptionAtHost feature on the subscription (once).\n2. Use a VM size that supports it.\n3. New VM: tick Encryption at host on the Disks tab. Existing VM: stop (deallocate) it, then Disks > Additional settings > Encryption at host > Yes."
+        ],
+        "show": [
+          "vm",
+          "os",
+          "temp",
+          "data",
+          "snap",
+          "kv"
+        ],
+        "focus": [],
+        "edges": [
+          {
+            "from": "vm",
+            "to": "os"
+          },
+          {
+            "from": "vm",
+            "to": "temp"
+          },
+          {
+            "from": "vm",
+            "to": "data"
+          },
+          {
+            "from": "data",
+            "to": "snap",
+            "label": "snapshot"
+          },
+          {
+            "from": "kv",
+            "to": "os",
+            "label": "your key (optional)"
+          }
+        ],
+        "learned": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callout": {
+          "type": "warn",
+          "text": "A VM that has, or ever had, ADE can never get encryption at host. Migrate to a new VM with new disks."
         }
       },
       {
@@ -518,7 +582,7 @@
           {
             "from": "kv",
             "to": "os",
-            "label": "CMK / ADE"
+            "label": "your key (optional)"
           }
         ],
         "learned": [
@@ -532,14 +596,15 @@
           "HDD < Standard SSD < Premium SSD < Premium v2 / Ultra",
           "Grow only; snapshots for copies",
           "SSE always on; CMK via disk encryption set",
-          "Encryption at host preferred; ADE uses BitLocker/DM-Crypt"
+          "Encryption at host: register feature, supported size, deallocate",
+          "ADE retires 15 Sep 2028; ex-ADE VMs need a new VM"
         ]
       }
     ]
   },
   "handsOn": {
-    "title": "Add, resize and snapshot a data disk, and review encryption",
-    "minutes": 25,
+    "title": "Add, resize and snapshot a data disk, and turn on encryption at host",
+    "minutes": 30,
     "costLevel": "low",
     "cost": "Low. A B1s Linux VM costs about US$0.01 per hour (it is in the free account's 750 free hours). Delete it the same day. A small data disk and snapshot add cents.",
     "before": [
@@ -569,8 +634,20 @@
         "see": "Encryption at rest with a platform-managed key; options for customer-managed keys via a disk encryption set."
       },
       {
-        "do": "Open vm-lab > Settings > Disks > Additional settings.",
-        "see": "Encryption at host (may say it needs registering) and Azure Disk Encryption options."
+        "do": "Open Cloud Shell (Bash) and register the encryption-at-host feature. Repeat the second command until it says Registered (a few minutes).",
+        "see": "\"Registered\".",
+        "tip": "Registering a feature is free.",
+        "code": "az feature register --namespace Microsoft.Compute --name EncryptionAtHost\naz feature show --namespace Microsoft.Compute --name EncryptionAtHost --query properties.state -o tsv\naz provider register --namespace Microsoft.Compute\n# Does your VM size support it? (use your VM's region; True = supported)\naz vm list-skus -l uaenorth --size Standard_B1s --query \"[0].capabilities[?name=='EncryptionAtHostSupported'].value\" -o tsv"
+      },
+      {
+        "do": "With vm-lab still stopped (deallocated), open vm-lab > Settings > Disks > Additional settings. Set Encryption at host to Yes. Save.",
+        "see": "The save succeeds. If the option is greyed out, the VM size does not support it (resize to a D-series v5 size) or the feature is not registered yet.",
+        "tip": "It only saves while the VM is deallocated."
+      },
+      {
+        "do": "Start vm-lab. In Cloud Shell, check the setting.",
+        "see": "true",
+        "code": "az vm show -g rg-az104-lab -n vm-lab --query securityProfile.encryptionAtHost"
       },
       {
         "do": "Back on Disks, detach the data disk and Save.",
@@ -578,7 +655,8 @@
       }
     ],
     "check": [
-      "You grew a disk and made an incremental snapshot."
+      "You grew a disk and made an incremental snapshot.",
+      "az vm show reports encryptionAtHost true."
     ],
     "cleanup": [
       "When you finish for the day: Resource groups > rg-az104-lab > Delete resource group > type the name > Delete. This removes everything inside it."
@@ -595,6 +673,10 @@
       {
         "title": "Overview of managed disk encryption options",
         "url": "https://learn.microsoft.com/azure/virtual-machines/disk-encryption-overview"
+      },
+      {
+        "title": "Enable encryption at host (portal)",
+        "url": "https://learn.microsoft.com/azure/virtual-machines/disks-enable-host-based-encryption-portal"
       }
     ]
   }

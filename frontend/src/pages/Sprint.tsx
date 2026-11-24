@@ -48,7 +48,7 @@ export default function Sprint() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">AZ-104 study plan: {plan.days.length} days</h1>
-          <p className="text-sm text-slate-500">About 1¾ hours on weekdays and 2 hours at weekends. Every one of the 81 official AZ-104 objectives is scheduled, with its easy walkthrough, hands-on Azure lab and questions. Weak objectives get {sprintPlan.struggleMultiplier}× time automatically. <Link className="underline" to="/exam-guide">Exam-day guide</Link></p>
+          <p className="text-sm text-slate-500">About 1¾ hours on weekdays and 2 hours at weekends. Every one of the {allObjectives('az-104').length} official AZ-104 objectives is scheduled in weeks 1–7; week 8 is mock exams and revision, with its easy walkthrough, hands-on Azure lab and questions. Weak objectives get {sprintPlan.struggleMultiplier}× time automatically. <Link className="underline" to="/exam-guide">Exam-day guide</Link></p>
         </div>
         <div className="flex flex-wrap items-end gap-2 text-sm">
           <label className="flex flex-col"><span className="label">Start date</span><input type="date" className="input" value={settings.sprint_start ?? ''} onChange={(e) => void saveSettings({ ...settings, sprint_start: e.target.value || null })} /></label>

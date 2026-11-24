@@ -137,7 +137,8 @@
       "AZ104-2.3.3",
       "AZ104-2.3.4",
       "AZ104-2.3.5",
-      "AZ104-2.3.6"
+      "AZ104-2.3.6",
+      "AZ104-2.3.7"
     ],
     "fidelity": "accurate-model",
     "testFile": "frontend/src/simulations/storageAccountData.test.ts",

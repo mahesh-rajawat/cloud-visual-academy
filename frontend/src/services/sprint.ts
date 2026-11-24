@@ -1,5 +1,5 @@
 /**
- * Adaptive study planner (the AZ-104 plan runs 7 weeks). Pure functions so the schedule is deterministic and testable.
+ * Adaptive study planner (the AZ-104 plan runs 8 weeks). Pure functions so the schedule is deterministic and testable.
  *
  * Each objective gets a base estimate (hands-on vs conceptual). Weak objectives get the struggle
  * multiplier. Completed objectives (lesson completed and not weak) drop to a short review slot.
