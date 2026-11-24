@@ -22,7 +22,7 @@
     "Platform choice: Azure SQL Database (single database or elastic pool; database-scoped features; ideal for new cloud apps); Azure SQL Managed Instance (instance-scoped features: SQL Agent, cross-database queries, Database Mail, CLR, Service Broker, linked servers; VNet-injected; best for lifting many SQL Server databases with few changes; the Managed Instance link supports hybrid DR with SQL Server 2016+); SQL Server on Azure VMs (OS access, SSRS/SSIS/SSAS on the same machine, unsupported versions or third-party agents).",
     "Purchasing models: DTU (bundled compute, storage and I/O in Basic, Standard, Premium; simple) or vCore (choose vCores, memory and storage separately; use Azure Hybrid Benefit and reserved capacity to cut cost; recommended for flexibility).",
     "vCore service tiers: General Purpose (balanced, remote premium storage, budget-friendly), Business Critical (local SSD, lowest latency, three secondary replicas with one readable, In-Memory OLTP), Hyperscale (up to 128 TB, near-instant backups, fast scale, up to 4 high-availability replicas and named replicas). Managed Instance offers General Purpose (including Next-gen) and Business Critical.",
-    "Compute tiers: provisioned (fixed vCores, predictable workloads) or serverless (auto-scales between min and max vCores, billed per second; can auto-pause when idle in General Purpose; good for intermittent or unpredictable use). Elastic pools share eDTUs or vCores across many databases with different peak times (multi-tenant SaaS). New databases can use the Azure SQL Database free offer for experiments."
+    "Compute tiers: provisioned (fixed vCores, predictable workloads) or serverless (auto-scales between min and max vCores, billed per second; can auto-pause when idle in General Purpose and Hyperscale; good for intermittent or unpredictable use). Elastic pools share eDTUs or vCores across many databases with different peak times (multi-tenant SaaS). New development databases can use the Azure SQL Database free tier (a monthly allowance of vCore seconds and storage)."
   ],
   "animation": {
     "id": "az305-sql-sim",
@@ -603,14 +603,14 @@
     "title": "Create a free serverless Azure SQL database",
     "minutes": 20,
     "costLevel": "free",
-    "cost": "Free with the Azure SQL Database free offer (limited vCore-seconds and storage each month). If the free offer is not shown, choose serverless with auto-pause and delete it today.",
+    "cost": "Free with the Azure SQL Database free tier (100,000 vCore seconds and 32 GB of data per database each month). If the free tier is not offered, choose serverless with auto-pause and delete it today.",
     "before": [
       "Signed in at portal.azure.com as Owner of a subscription. Work in a resource group called rg-az305-lab.",
       "If rg-az305-lab does not exist yet: Resource groups > Create > name rg-az305-lab, region UAE North (or any region near you) > Review + create > Create."
     ],
     "steps": [
       {
-        "do": "Search 'Azure SQL' > Create > SQL databases > Single database. Look for the banner to apply the free offer and apply it.",
+        "do": "Search 'Azure SQL' > Create > SQL databases > Single database. Look for the banner to apply the free tier and apply it.",
         "see": "Compute + storage shows General Purpose, Serverless."
       },
       {
@@ -644,8 +644,8 @@
     ],
     "screens": [
       {
-        "title": "Azure SQL Database free offer",
-        "url": "https://learn.microsoft.com/azure/azure-sql/database/free-offer"
+        "title": "Azure SQL Database free tier",
+        "url": "https://learn.microsoft.com/azure/azure-sql/database/free-tier"
       },
       {
         "title": "Serverless compute tier",

@@ -1072,7 +1072,7 @@
     "difficulty": 2,
     "type": "scenario",
     "answerMode": "single",
-    "stem": "A company used Azure Blueprints to deploy compliant subscriptions. Blueprints is deprecated. What do you recommend instead?",
+    "stem": "A company used Azure Blueprints to deploy compliant subscriptions. Blueprints is being retired. What do you recommend instead?",
     "options": [
       {
         "id": "a",
@@ -1082,7 +1082,7 @@
       {
         "id": "b",
         "text": "Keep using Blueprints",
-        "explanation": "Deprecated."
+        "explanation": "Being retired on 31 January 2027."
       },
       {
         "id": "c",
@@ -1098,7 +1098,7 @@
     "correct": [
       "a"
     ],
-    "explanation": "Microsoft recommends template specs and deployment stacks (plus policy) to replace Blueprints.",
+    "explanation": "Microsoft recommends template specs and deployment stacks (plus policy) to replace Blueprints before its 31 January 2027 retirement.",
     "docs": [
       "https://learn.microsoft.com/azure/governance/blueprints/overview"
     ]
@@ -1478,7 +1478,7 @@
     "correct": [
       "a"
     ],
-    "explanation": "Serverless bills per second of use and pauses when idle (General Purpose).",
+    "explanation": "Serverless bills per second of use and can pause when idle.",
     "docs": [
       "https://learn.microsoft.com/azure/azure-sql/database/serverless-tier-overview"
     ]
@@ -2641,7 +2641,7 @@
       {
         "id": "b",
         "text": "Geo-restore",
-        "explanation": "RPO about an hour and long RTO."
+        "explanation": "Minutes to hours of data loss and downtime."
       },
       {
         "id": "c",
@@ -3800,7 +3800,7 @@
     ],
     "explanation": "Service Bus provides FIFO sessions, duplicate detection and dead-letter queues.",
     "docs": [
-      "https://learn.microsoft.com/azure/service-bus-messaging/service-bus-azure-and-storage-queues-compared-contrasted"
+      "https://learn.microsoft.com/azure/service-bus-messaging/service-bus-azure-and-service-bus-queues-compared-contrasted"
     ]
   },
   {
@@ -3876,7 +3876,7 @@
     ],
     "explanation": "Queue Storage is simple and very large; Service Bus adds enterprise features.",
     "docs": [
-      "https://learn.microsoft.com/azure/service-bus-messaging/service-bus-azure-and-storage-queues-compared-contrasted"
+      "https://learn.microsoft.com/azure/service-bus-messaging/service-bus-azure-and-service-bus-queues-compared-contrasted"
     ]
   },
   {
@@ -4433,7 +4433,7 @@
       {
         "id": "c",
         "text": "Azure Blueprints",
-        "explanation": "Deprecated."
+        "explanation": "Being retired."
       },
       {
         "id": "d",

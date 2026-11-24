@@ -68,9 +68,9 @@ LAB["az305-secrets"] = H(
     [("Key Vault RBAC guide", ML + "azure/key-vault/general/rbac-guide"), ("Quickstart: secrets with the CLI", ML + "azure/key-vault/secrets/quick-create-cli")])
 
 LAB["az305-relational"] = H(
-    "Create a free serverless Azure SQL database", 20, "free", "Free with the Azure SQL Database free offer (limited vCore-seconds and storage each month). If the free offer is not shown, choose serverless with auto-pause and delete it today.",
+    "Create a free serverless Azure SQL database", 20, "free", "Free with the Azure SQL Database free tier (100,000 vCore seconds and 32 GB of data per database each month). If the free tier is not offered, choose serverless with auto-pause and delete it today.",
     [BASE, NEW_RG],
-    [("Search 'Azure SQL' > Create > SQL databases > Single database. Look for the banner to apply the free offer and apply it.", "Compute + storage shows General Purpose, Serverless."),
+    [("Search 'Azure SQL' > Create > SQL databases > Single database. Look for the banner to apply the free tier and apply it.", "Compute + storage shows General Purpose, Serverless."),
      ("Resource group rg-az305-lab; database name sqldb-lab; Server: Create new (unique name, your region, Microsoft Entra-only authentication with yourself as admin).", "A new logical server configured."),
      ("Open Configure database.", "General Purpose / Hyperscale / Business Critical options, provisioned vs serverless, and the auto-pause delay.", "Notice what you'd change for a 40 TB database (Hyperscale) or the lowest-latency OLTP (Business Critical)."),
      ("Networking: allow your client IP. Review + create > Create.", "Deployment completes in a few minutes."),
@@ -78,7 +78,7 @@ LAB["az305-relational"] = H(
      ("Open Compute + storage again.", "Auto-pause settings: the database pauses when idle and resumes on the next connection.")],
     ["The query returned the service objective (a GP serverless objective)."],
     [DELETE_RG],
-    [("Azure SQL Database free offer", ML + "azure/azure-sql/database/free-offer"), ("Serverless compute tier", ML + "azure/azure-sql/database/serverless-tier-overview")])
+    [("Azure SQL Database free tier", ML + "azure/azure-sql/database/free-tier"), ("Serverless compute tier", ML + "azure/azure-sql/database/serverless-tier-overview")])
 
 LAB["az305-messaging-events"] = H(
     "Publish to a Service Bus topic with filtered subscriptions", 20, "low", "Low. A Standard namespace is billed hourly (a few US cents for this lab). Delete it the same day.",

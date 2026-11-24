@@ -30,7 +30,7 @@
   "engineer": [
     "Recovery design: classify workloads (mission-critical, business-critical, other) with RPO/RTO targets; choose backup, replication or active-active accordingly; document runbooks and test failovers regularly (Site Recovery test failover doesn't affect production). Use paired or chosen secondary regions; consider data residency.",
     "Compute: Azure Backup for VMs (Standard policy: daily; Enhanced: every 4–24 hours, longer instant-restore snapshots, required for Trusted Launch in the portal), restore as new VM, replace disks or file-level recovery. Azure Site Recovery replicates Azure VMs to another region (and VMware, Hyper-V or physical servers to Azure) with crash-consistent recovery points every few minutes, app-consistent points on a schedule, recovery plans for multi-tier ordering, and test failovers. Hybrid: MARS agent for files and folders, Azure Backup Server or DPM for on-premises workloads.",
-    "Databases: Azure SQL automated backups with point-in-time restore (1–35 days), long-term retention (weekly, monthly, yearly up to 10 years), geo-restore from geo-redundant backups (RPO about 1 hour, RTO up to about 12 hours), active geo-replication (readable secondaries, RPO about 5 seconds) and auto-failover groups (listener endpoints, SQL Database and Managed Instance). SQL Server in VMs: Azure Backup with 15-minute log backups. Cosmos DB: continuous backup with point-in-time restore (7 or 30 days) or periodic backup.",
+    "Databases: Azure SQL automated backups with point-in-time restore (1–35 days), long-term retention (weekly, monthly, yearly up to 10 years), geo-restore from geo-redundant backups (RTO and RPO typically minutes to hours), active geo-replication (readable secondaries) and auto-failover groups (listener endpoints, SQL Database and Managed Instance), with RTO typically under 60 seconds and RPO close to zero but depending on changes not yet replicated (replication is asynchronous). Zone redundancy gives RTO typically under 30 seconds with zero data loss. SQL Server in VMs: Azure Backup with 15-minute log backups. Cosmos DB: continuous backup with point-in-time restore (7 or 30 days) or periodic backup.",
     "Unstructured data: blob soft delete, versioning, point-in-time restore, operational and vaulted backup for blobs, object replication; Azure Files share snapshots and Azure Backup for Files (snapshot and vaulted tiers); geo-redundant storage with customer-managed failover. Protect backups: vault soft delete, immutable vaults, multi-user authorization with Resource Guard, and cross-region restore on GRS vaults."
   ],
   "animation": {
@@ -208,7 +208,7 @@
     },
     {
       "service": "Geo-restore vs geo-replication",
-      "difference": "Geo-restore: cheap, hours of RTO and ~1 h RPO. Geo-replication: running secondary, seconds of RPO."
+      "difference": "Geo-restore: cheap, minutes to hours of RTO and RPO. Geo-replication / failover groups: running secondary, RTO under a minute and near-zero RPO."
     }
   ],
   "misconceptions": [
@@ -417,7 +417,7 @@
         "label": "Compute + data",
         "title": "VMs and databases",
         "body": [
-          "VMs: Azure Backup plus Site Recovery for regional failover with test failovers. SQL: point-in-time restore (up to 35 days), long-term retention (up to 10 years), and failover groups for a geo-replica with seconds of RPO."
+          "VMs: Azure Backup plus Site Recovery for regional failover with test failovers. SQL: point-in-time restore (up to 35 days), long-term retention (up to 10 years), and failover groups for a geo-replica with near-zero RPO."
         ],
         "show": [
           "prim",

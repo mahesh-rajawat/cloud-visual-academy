@@ -228,7 +228,7 @@
     },
     {
       "title": "Storage queues vs Service Bus queues",
-      "url": "https://learn.microsoft.com/azure/service-bus-messaging/service-bus-azure-and-storage-queues-compared-contrasted"
+      "url": "https://learn.microsoft.com/azure/service-bus-messaging/service-bus-azure-and-service-bus-queues-compared-contrasted"
     },
     {
       "title": "Event-driven architecture style",
