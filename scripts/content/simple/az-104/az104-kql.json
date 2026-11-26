@@ -1,0 +1,72 @@
+{
+  "learningObjective": "Write and run KQL (Kusto Query Language) queries in Log Analytics to filter, summarise and chart monitoring data.",
+  "engineer": [
+    "How KQL reads: start with a table, then pipe (|) the rows through one step after another, top to bottom. For example: Perf | where … | summarize … | render timechart.",
+    "The main steps: where, keeps matching rows; project, keeps only the columns you list; extend, adds a calculated column; summarize, groups and counts (count(), avg(), max(), percentile()) by columns or by time with bin(TimeGenerated, 1h); order by or sort; take or limit, the first N rows; top; join; render, draws a chart (timechart, barchart).",
+    "Time: use the time range picker, or where TimeGenerated > ago(1h). Use bin() to group rows into time buckets for charts.",
+    "Query 1, which machines stopped reporting: Heartbeat | summarize LastSeen = max(TimeGenerated) by Computer | where LastSeen < ago(5m)",
+    "Query 2, who deleted things: AzureActivity | where OperationNameValue endswith 'DELETE'",
+    "Query 3, CPU over time: Perf | where CounterName == '% Processor Time' | summarize avg(CounterValue) by bin(TimeGenerated, 5m), Computer | render timechart",
+    "Scope: the whole workspace, or resource context (only one resource's data). Save queries, pin them to dashboards or workbooks, and use them in log search alerts."
+  ],
+  "example": {
+    "title": "Finding the busiest VMs",
+    "body": [
+      "Perf | where CounterName == \"% Processor Time\" | summarize AvgCPU = avg(CounterValue) by Computer | order by AvgCPU desc | take 5 shows vm-db1 at the top. A timechart by bin(TimeGenerated, 1h) shows its CPU rising all morning."
+    ]
+  },
+  "architectureDecisions": [
+    "Save and share good queries: put them in query packs.",
+    "Filter early: filter by time and table first, so queries are faster and cheaper."
+  ],
+  "misconceptions": [
+    {
+      "myth": "KQL can change data.",
+      "reality": "No. Queries only read data."
+    },
+    {
+      "myth": "summarize keeps all the columns.",
+      "reality": "No. Only the results and the 'by' columns are left."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "SQL",
+      "difference": "KQL reads top to bottom with pipes: Perf | where … | summarize …, instead of SELECT … FROM … GROUP BY."
+    },
+    {
+      "service": "CloudWatch Logs Insights",
+      "difference": "AWS's query language for logs."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "The query returns no rows.",
+      "cause": "The time range is too short, the filters are too strict, or the data isn't collected.",
+      "fix": "Widen the time range. Check the table has data with … | take 10."
+    },
+    {
+      "symptom": "Failed to resolve column.",
+      "cause": "That column doesn't exist in that table.",
+      "fix": "Check the column list in the schema pane."
+    },
+    {
+      "symptom": "The query is slow.",
+      "cause": "It scans big tables without a time filter.",
+      "fix": "Filter on TimeGenerated first, and project only the columns you need."
+    }
+  ],
+  "configuration.permissions": [
+    "Log Analytics Reader on the workspace (or read access to the resources, in resource context)"
+  ],
+  "from": {
+    "learningObjective": "5b35743cefcd",
+    "engineer": "8d07312ac55d",
+    "example": "32bb6ecdb879",
+    "architectureDecisions": "a567aceb7103",
+    "misconceptions": "059126395676",
+    "comparisons": "1aa5ef014819",
+    "troubleshooting": "a67e1ee437a3",
+    "configuration.permissions": "15ee137aa457"
+  }
+}

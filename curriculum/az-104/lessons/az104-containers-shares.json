@@ -7,7 +7,7 @@
     "AZ104-2.3.2"
   ],
   "estimatedMinutes": 40,
-  "learningObjective": "Create and configure blob containers (naming, anonymous access level) and file shares (protocol, tier, quota, mounting).",
+  "learningObjective": "Create and set up blob containers (names, anonymous access) and file shares (protocol, tier, size limit, mounting).",
   "prerequisites": [
     {
       "text": "Storage accounts",
@@ -25,12 +25,16 @@
     "Containers are private by default. You can allow anonymous read access only if the storage account allows it."
   ],
   "engineer": [
-    "Container names: 3–63 characters, lowercase letters, numbers and hyphens, starting with a letter or number, with no consecutive hyphens. Blob names can include '/' to simulate folders, unless hierarchical namespace provides real directories.",
-    "Anonymous access levels: Private (default), Blob (anonymous read of blobs by URL), Container (anonymous read and list). They are available only when the account setting 'Allow blob anonymous access' is enabled.",
-    "Blob types: block blobs (most data), append blobs (logging), page blobs (random read/write, for example VHDs). Container-level features include immutability policies (time-based retention, legal hold), metadata and stored access policies.",
-    "File shares on Standard GPv2 accounts use the pay-as-you-go tiers Transaction optimized, Hot and Cool, with SMB only. A share quota up to 5 TiB, or up to 100 TiB with large file shares enabled. Premium file shares (FileStorage accounts) are provisioned, offer SMB or NFS 4.1, and support up to 100 TiB.",
-    "Mounting: SMB over TCP 445. The portal's Connect blade generates net use / mount scripts. Use a private endpoint or VPN when 445 is blocked. Azure File Sync caches shares on Windows Servers on-premises.",
-    "Hierarchical namespace accounts (Data Lake Storage Gen2) expose containers as file systems with POSIX ACLs and a dfs endpoint."
+    "Container names: 3 to 63 characters; lowercase letters, numbers and hyphens; start with a letter or number; no two hyphens in a row.",
+    "Folders in blob storage: a '/' in a blob name only looks like a folder. Real folders exist only with hierarchical namespace.",
+    "Anonymous access levels: Private, the default, with no anonymous access; Blob, where anyone with the URL can read a blob; Container, where anyone can read and also list the blobs. Blob and Container only appear if the account allows blob anonymous access.",
+    "Blob types: block blobs, for most data; append blobs, for logs (you only add to the end); page blobs, for random reads and writes, such as VHD disks.",
+    "Container features: immutability policies (time-based retention, legal hold); metadata; stored access policies.",
+    "Standard file shares (on Standard GPv2 accounts): pay as you go, with three tiers: Transaction optimized, Hot and Cool. SMB only. Size limit 5 TiB, or up to 100 TiB with large file shares turned on.",
+    "Premium file shares (on FileStorage accounts): you pay for the size you reserve (provisioned). SMB or NFS 4.1. Up to 100 TiB.",
+    "Mounting a share: SMB uses TCP port 445. The share's Connect page gives you a ready script (net use on Windows, mount on Linux). If port 445 is blocked, use a private endpoint or VPN.",
+    "Azure File Sync: keeps a copy (cache) of the share on your own Windows Servers.",
+    "Hierarchical namespace (Data Lake Storage Gen2): containers become file systems, with real folders, POSIX permissions (ACLs) and a dfs endpoint."
   ],
   "animation": {
     "id": "storage-account-sim",
@@ -95,10 +99,10 @@
     ]
   },
   "example": {
-    "title": "Website assets and team shares",
+    "title": "Website images and team shares",
     "body": [
-      "Marketing serves product images from a container with Blob-level anonymous access in a dedicated account (anonymous access allowed only there), fronted by Azure Front Door.",
-      "The finance team's share 'finance' (Hot tier, 2 TiB quota) is mounted as Z: on their PCs through a private endpoint, with identity-based access."
+      "Marketing serves product images from a container with Blob-level anonymous access. It's in its own storage account, the only one where anonymous access is allowed, and Azure Front Door sits in front.",
+      "The finance team's share 'finance' (Hot tier, 2 TiB limit) is mounted as drive Z: on their PCs, through a private endpoint, with identity-based access."
     ]
   },
   "configuration": {
@@ -107,13 +111,13 @@
       "Anonymous access allowed on the account, for public containers"
     ],
     "permissions": [
-      "Storage Blob Data Contributor (data plane) or Contributor (control plane) to create containers",
-      "Storage Account Contributor to create file shares (control plane)"
+      "Storage Blob Data Contributor (data) or Contributor (management), to create containers",
+      "Storage Account Contributor, to create file shares"
     ],
     "limits": [
-      "Container/share names 3–63 characters",
-      "Standard share quota 5 TiB, or 100 TiB with large file shares",
-      "NFS needs Premium file shares"
+      "Container and share names: 3 to 63 characters",
+      "Standard share: 5 TiB, or 100 TiB with large file shares",
+      "NFS needs premium file shares"
     ],
     "portal": [
       "Storage account > Data storage > Containers > + Container: name and anonymous access level.",
@@ -166,45 +170,45 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Anonymous access level options are greyed out.",
-      "cause": "The account has 'Allow blob anonymous access' disabled.",
-      "fix": "Enable it on the account (if policy permits), or use SAS / Entra ID."
+      "symptom": "The anonymous access options are greyed out.",
+      "cause": "The account has 'Allow blob anonymous access' turned off.",
+      "fix": "Turn it on for the account (if your rules allow it), or use a SAS or Entra ID."
     },
     {
-      "symptom": "Public URL returns 404 ResourceNotFound.",
-      "cause": "Container is Private; anonymous requests get 404 rather than 403.",
+      "symptom": "A public URL returns 404 ResourceNotFound.",
+      "cause": "The container is Private. Anonymous requests get 404, not 403.",
       "fix": "Set the level to Blob, or use a SAS."
     },
     {
-      "symptom": "Cannot set a share quota above 5 TiB.",
-      "cause": "Large file shares not enabled.",
-      "fix": "Enable large file shares (a one-way change)."
+      "symptom": "You can't set a share's size limit above 5 TiB.",
+      "cause": "Large file shares isn't turned on.",
+      "fix": "Turn on large file shares. You can't turn it off again."
     },
     {
-      "symptom": "Linux NFS mount fails.",
-      "cause": "NFS requires a premium file share and private network access, and has its own secure-transfer requirements.",
-      "fix": "Use a FileStorage account with a private endpoint or service endpoint, and follow the NFS mounting guidance."
+      "symptom": "Mounting an NFS share on Linux fails.",
+      "cause": "NFS needs a premium share and private network access, and has its own secure-transfer rules.",
+      "fix": "Use a FileStorage account with a private endpoint or service endpoint, and follow the NFS mounting steps."
     }
   ],
   "comparisons": [
     {
       "service": "Amazon S3 buckets / EFS / FSx",
-      "difference": "S3 buckets correspond to containers (but have a global namespace per bucket); EFS (NFS) and FSx correspond to Azure file shares."
+      "difference": "An S3 bucket is like a container (but each bucket name is global). EFS (NFS) and FSx are like Azure file shares."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Folders exist in flat Blob Storage.",
-      "reality": "They are virtual prefixes in blob names unless hierarchical namespace is enabled."
+      "myth": "Normal blob storage has real folders.",
+      "reality": "No. Folders are just parts of the blob name, unless hierarchical namespace is on."
     },
     {
-      "myth": "Any storage account supports NFS shares.",
-      "reality": "NFS shares need Premium file shares."
+      "myth": "Any storage account can have NFS shares.",
+      "reality": "No. NFS needs premium file shares."
     }
   ],
   "architectureDecisions": [
-    "Separate public content into its own account so anonymous access can stay disabled everywhere else.",
-    "Use premium shares for latency-sensitive or NFS workloads, and standard Hot/Cool for general file shares."
+    "Public files get their own account: then anonymous access can stay off everywhere else.",
+    "Pick shares by need: premium for low latency or NFS, standard Hot or Cool for ordinary file shares."
   ],
   "docs": [
     {

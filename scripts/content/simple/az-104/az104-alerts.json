@@ -1,0 +1,75 @@
+{
+  "learningObjective": "Create metric, log search and activity log alert rules. Set up action groups. Use alert processing rules to send or silence notifications.",
+  "engineer": [
+    "An alert rule has four parts: scope, what to watch; condition, the signal, how to combine it, the comparison, a fixed or dynamic threshold, how far back to look and how often to check; actions, the action groups to call; details, severity 0 to 4 (0 is the most serious), name and auto-resolve.",
+    "Alert types: metric alerts, almost real time, and they resolve themselves when the problem goes away; log search alerts, a KQL query run on a schedule; activity log alerts, for example when a VM is deleted, or for Service Health and Resource Health events; smart detection; Prometheus alerts.",
+    "Action groups, who to tell: email, SMS, Azure app push notification, voice call, or email everyone with an Azure Resource Manager role.",
+    "Action groups, what to run: Automation runbook; Azure Functions; Event Hubs; ITSM tool; Logic Apps; webhook or secure webhook.",
+    "Action group tips: one action group can be used by many rules. SMS, voice and email have rate limits.",
+    "Alert processing rules: choose a scope (subscription, resource group or resource) and filters (severity, alert rule, resource type…). Then either add action groups, or silence notifications. You can give them a schedule, once or repeating.",
+    "Silenced still means fired: suppressed alerts still fire and still appear in the alerts list. Only the notifications are stopped.",
+    "Alert states: the condition is Fired or Resolved. Your response is New, Acknowledged or Closed."
+  ],
+  "example": {
+    "title": "Calling the right team",
+    "body": [
+      "A metric alert fires when average CPU is above 80% for 5 minutes on any production VM. Its action group emails and texts the ops team, and calls a Logic App that opens a ticket.",
+      "An alert processing rule silences notifications every Sunday from 01:00 to 03:00, while patching runs."
+    ]
+  },
+  "architectureDecisions": [
+    "Use severities the same way everywhere: then route by severity with processing rules.",
+    "Noisy metrics: use dynamic thresholds, which learn what's normal.",
+    "Keep alert rules in code: Bicep or ARM, one set per environment."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Alert processing rules delete alerts.",
+      "reality": "No. They add action groups or silence notifications. Alerts still fire."
+    },
+    {
+      "myth": "Each alert rule needs its own action group.",
+      "reality": "No. Many rules can share one action group."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon CloudWatch alarms + SNS",
+      "difference": "A CloudWatch alarm is like an alert rule. An SNS topic is like an action group."
+    },
+    {
+      "service": "Service Health alerts",
+      "difference": "Activity log alerts for Azure problems that affect your subscriptions."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "The alert never fires.",
+      "cause": "The window or the Average smooths out the spikes, or the scope is wrong.",
+      "fix": "Use a shorter window or Maximum, and check the scope."
+    },
+    {
+      "symptom": "The alert fires, but nobody is told.",
+      "cause": "No action group, or an alert processing rule silences it.",
+      "fix": "Add an action group, and check the processing rules."
+    },
+    {
+      "symptom": "Too many SMS alerts.",
+      "cause": "Thresholds are too noisy, or rate limits kick in.",
+      "fix": "Use dynamic thresholds, and route by severity."
+    }
+  ],
+  "configuration.permissions": [
+    "Monitoring Contributor (alerts, diagnostic settings) or Backup Contributor (vaults, policies)"
+  ],
+  "from": {
+    "learningObjective": "efb813bf1994",
+    "engineer": "23d194c975cc",
+    "example": "68602f503fa1",
+    "architectureDecisions": "da67dfbb3922",
+    "misconceptions": "cf8214c3917e",
+    "comparisons": "bc6e7f8c9df3",
+    "troubleshooting": "ab7339dbf840",
+    "configuration.permissions": "c554cc2de377"
+  }
+}

@@ -11,7 +11,7 @@ import { api } from '../services/api'
 import { useApp } from '../services/AppContext'
 import { EXAM_LABEL, findLesson, hiddenPrerequisiteLesson, findObjective, lessonForObjective, lessonSequence, questionsFor, registries } from '../services/curriculum'
 import type { Lesson } from '../services/types'
-import { Rich, RichParagraph } from '../components/RichText'
+import { Rich, RichParagraph, WithLeads } from '../components/RichText'
 import { LOOKALIKES } from '../services/clarity'
 
 const TABS = ['Hands-on (Azure)', 'Lab', 'Configure', 'Troubleshoot', 'Questions', 'Misconceptions', 'Compare', 'Docs & verification'] as const
@@ -365,7 +365,7 @@ export default function LessonPage() {
           <h2 className="font-semibold">Real-world example: {lesson.example.title}</h2>
           <div className="prose-cva">{lesson.example.body.map((p) => <RichParagraph key={p} text={p} />)}</div>
           <h2 className="font-semibold">Architecture decisions</h2>
-          <ul className="ml-5 list-disc">{lesson.architectureDecisions.map((a) => <li key={a}>{a}</li>)}</ul>
+          <ul className="ml-5 list-disc">{lesson.architectureDecisions.map((a) => <li key={a}><WithLeads text={a} /></li>)}</ul>
         </div>
       </aside>
     </div>

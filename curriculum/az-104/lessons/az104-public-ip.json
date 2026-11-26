@@ -6,7 +6,7 @@
     "AZ104-4.1.3"
   ],
   "estimatedMinutes": 30,
-  "learningObjective": "Create and configure public IP addresses and prefixes, choosing SKU, assignment, tier and zone settings, and associate them with resources.",
+  "learningObjective": "Create public IP addresses and prefixes, choose the SKU, assignment, tier and zone settings, and attach them to resources.",
   "prerequisites": [
     {
       "text": "Virtual networks and subnets",
@@ -19,11 +19,14 @@
     "You can attach public IPs to VM NICs, load balancers, application gateways, VPN gateways, NAT gateways, Azure Firewall and Bastion."
   ],
   "engineer": [
-    "SKU: Standard is the only SKU for new deployments (Basic public IPs were retired on 30 September 2025). Standard IPs use static assignment, are secure by default (closed to inbound until an NSG allows traffic) and support availability zones.",
-    "Zones: zone-redundant (survives zone failure), zonal (pinned to one zone) or no zone. The zone setting can't be changed after creation.",
-    "Tier: Regional or Global (Global is used with the cross-region load balancer). Routing preference: Microsoft network (default) or Internet (cheaper, uses ISP networks).",
-    "Public IP prefixes reserve a contiguous range (for example /28) of static addresses for allow-listing. IP addresses are billed per hour, whether or not they're associated.",
-    "Associate or dissociate a public IP on a NIC's IP configuration. A VM can have a public IP per IP configuration; for outbound-only internet access prefer a NAT gateway."
+    "SKU: Standard is the only choice for new public IPs (Basic was retired on 30 September 2025).",
+    "Standard public IPs: always static; closed to incoming traffic until an NSG allows it (secure by default); support availability zones.",
+    "Zone options: zone-redundant, survives a zone failure; zonal, pinned to one zone; no zone. You can't change this after creation.",
+    "Tier: Regional, the normal one; Global, used with the cross-region load balancer.",
+    "Routing preference: Microsoft network, the default, where traffic stays on Microsoft's network as long as possible; Internet, cheaper, where traffic uses internet providers' networks.",
+    "Public IP prefix: reserves a block of static addresses next to each other (for example a /28), so partners can allow-list one range.",
+    "Cost: you pay for every public IP per hour, attached or not.",
+    "Attaching: attach or detach a public IP on a network card's (NIC's) IP configuration. A VM can have one public IP per IP configuration. If the VM only needs to reach the internet (outbound), use a NAT gateway instead."
   ],
   "animation": {
     "id": "network-routing-sim",
@@ -76,9 +79,9 @@
     ]
   },
   "example": {
-    "title": "A partner allow-list",
+    "title": "Giving a partner fixed addresses",
     "body": [
-      "A partner must allow-list Contoso's outbound addresses. Contoso creates a /30 public IP prefix and assigns its addresses to a NAT gateway, so all outbound traffic uses four known IPs."
+      "A partner must allow-list Contoso's outgoing addresses. Contoso creates a /30 public IP prefix and gives its addresses to a NAT gateway. Now all outgoing traffic uses four known IPs."
     ]
   },
   "configuration": {
@@ -89,8 +92,8 @@
       "Network Contributor on the resource group"
     ],
     "limits": [
-      "Public IP quota per region (default varies by subscription)",
-      "Zone and SKU cannot be changed after creation"
+      "A public IP quota per region (the default depends on the subscription)",
+      "Zone and SKU can't be changed after creation"
     ],
     "portal": [
       "Create a resource > Public IP address: choose SKU Standard, tier Regional, zone-redundant, IP version IPv4.",
@@ -135,45 +138,45 @@
   },
   "troubleshooting": [
     {
-      "symptom": "VM with a Standard public IP is unreachable.",
-      "cause": "Standard is closed to inbound by default.",
-      "fix": "Add an NSG rule allowing the port."
+      "symptom": "A VM with a Standard public IP can't be reached.",
+      "cause": "Standard IPs block incoming traffic by default.",
+      "fix": "Add an NSG rule that allows the port."
     },
     {
-      "symptom": "Cannot attach the public IP to a Standard load balancer.",
-      "cause": "SKU mismatch.",
-      "fix": "Use Standard SKU for both."
+      "symptom": "You can't attach the public IP to a Standard load balancer.",
+      "cause": "The SKUs don't match.",
+      "fix": "Use Standard for both."
     },
     {
-      "symptom": "Public IP changed after a deallocation.",
-      "cause": "It was dynamic (legacy Basic).",
+      "symptom": "The public IP changed after the VM was deallocated.",
+      "cause": "It was a dynamic IP (old Basic SKU).",
       "fix": "Use a static Standard IP."
     }
   ],
   "comparisons": [
     {
       "service": "NAT gateway",
-      "difference": "Outbound-only internet access for a subnet with static public IPs; no inbound."
+      "difference": "Lets a whole subnet reach the internet using fixed public IPs. Outbound only: nothing can come in."
     },
     {
       "service": "AWS Elastic IP",
-      "difference": "Static public IPv4 assigned to an instance or NAT gateway."
+      "difference": "A fixed public IPv4 address you attach to an instance or NAT gateway."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Public IPs are free when not attached.",
-      "reality": "Public IPv4 addresses are billed hourly."
+      "myth": "Public IPs are free when they're not attached.",
+      "reality": "No. Public IPv4 addresses are billed every hour."
     },
     {
       "myth": "A Standard public IP is open to the internet.",
-      "reality": "Inbound is denied until an NSG allows it."
+      "reality": "No. Incoming traffic is blocked until an NSG allows it."
     }
   ],
   "architectureDecisions": [
-    "Avoid public IPs on VMs; use Bastion for admin and load balancers or Application Gateway for apps.",
-    "Use zone-redundant Standard IPs for production.",
-    "Use a prefix for stable allow-listed ranges."
+    "Keep public IPs off VMs: use Bastion for admin, and a load balancer or Application Gateway for apps.",
+    "Production: use zone-redundant Standard IPs.",
+    "Fixed ranges for partners: use a public IP prefix."
   ],
   "docs": [
     {

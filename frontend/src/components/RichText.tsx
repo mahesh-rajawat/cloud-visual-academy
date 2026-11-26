@@ -52,7 +52,7 @@ export function Rich({ text }: { text: string }): ReactNode {
 }
 
 /** "Topic: rest" at the start of a paragraph or after a full stop. Short, without brackets or full stops. */
-const LEAD_RE = /(^|\. )([A-Z][^:.()\n]{1,55}): (?=\S)/g
+const LEAD_RE = /(^|\. )([A-Z](?:[^:.()\n]|\([^:()\n]*\)){1,70}): (?=\S)/g
 
 /** Splits on "; " outside brackets, so lists inside parentheses stay together. */
 export function splitList(text: string): string[] {
@@ -73,7 +73,7 @@ export function splitList(text: string): string[] {
 }
 
 /** Inline text where topic names before a colon are bold and code is formatted. */
-function WithLeads({ text }: { text: string }): ReactNode {
+export function WithLeads({ text }: { text: string }): ReactNode {
   const out: ReactNode[] = []
   let last = 0
   for (const m of text.matchAll(LEAD_RE)) {
@@ -91,7 +91,7 @@ function WithLeads({ text }: { text: string }): ReactNode {
  * topics after a full stop are bold too, and a long list separated by semicolons becomes bullet points.
  */
 export function RichParagraph({ text }: { text: string }): ReactNode {
-  const lead = text.match(/^([A-Z][^:.()\n]{1,55}): (?=\S)/)
+  const lead = text.match(/^([A-Z](?:[^:.()\n]|\([^:()\n]*\)){1,70}): (?=\S)/)
   const body = lead ? text.slice(lead[0].length) : text
   const items = splitList(body)
   if (lead && items.length >= 3) {

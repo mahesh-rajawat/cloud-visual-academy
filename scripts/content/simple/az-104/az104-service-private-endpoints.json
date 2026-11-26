@@ -1,0 +1,80 @@
+{
+  "learningObjective": "Set up service endpoints and private endpoints for Azure PaaS services, including firewall rules and private DNS, and choose between them.",
+  "engineer": [
+    "Service endpoints, how to set up: turn one on for a subnet and a service (Microsoft.Storage, Microsoft.Sql, Microsoft.KeyVault…). Then add a virtual network rule on the service's firewall.",
+    "Service endpoints, what changes: the service now sees the VM's private IP as the source. So old IP rules for your public IPs stop matching for those VMs.",
+    "Service endpoints, limits: they don't work from on-premises, and usually not from peered VNets. Service endpoint policies can limit traffic to specific storage accounts. They are free.",
+    "Private endpoints: a network card (NIC) with a private IP in your subnet, connected to one part of a service (for example blob, file, or sqlServer). They work from peered VNets and from on-premises over VPN or ExpressRoute. After adding one, you can turn public network access off. Billed per hour and per GB.",
+    "Private endpoint DNS, the usual problem: the public name (stcontoso.blob.core.windows.net) points (CNAME) to stcontoso.privatelink.blob.core.windows.net. A private DNS zone, privatelink.blob.core.windows.net, linked to the VNet, answers with the private IP.",
+    "On-premises DNS: on-premises DNS must forward these names to Azure, for example through Azure DNS Private Resolver.",
+    "Approval: a private endpoint connection is approved automatically if you have rights on the resource. Otherwise the resource owner approves it by hand.",
+    "NSGs and route tables (UDRs) on private endpoints: turn on network policies on the subnet if you want them to apply."
+  ],
+  "example": {
+    "title": "Locking down a storage account in two steps",
+    "body": [
+      "Step 1: the team turns on the Microsoft.Storage service endpoint on snet-app and adds a VNet rule. As expected, the old IP rule for the NAT IP stops working for those VMs.",
+      "Step 2: the office needs access too. They add a private endpoint for blob, a linked privatelink DNS zone and a DNS Private Resolver. Then they set public network access to Disabled."
+    ]
+  },
+  "architectureDecisions": [
+    "Private endpoints: when on-premises needs access, to stop data leaving to other accounts, and to turn public access off.",
+    "Service endpoints: for simple, free subnet-only access inside one region.",
+    "One place for DNS: keep the privatelink DNS zones in the hub."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Service endpoints give the service a private IP.",
+      "reality": "No. The service keeps its public IP. Only the source address and the path change."
+    },
+    {
+      "myth": "Private endpoints need no DNS changes.",
+      "reality": "No. Clients must resolve the name to the private IP."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS VPC gateway endpoints and interface endpoints",
+      "difference": "Gateway endpoints (S3, DynamoDB) are like service endpoints. Interface endpoints (PrivateLink) are like private endpoints."
+    },
+    {
+      "service": "Private Link service",
+      "difference": "Lets you offer your own service, behind a Standard load balancer, to others through private endpoints."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "After turning on a service endpoint, VMs get 403 from storage.",
+      "cause": "Storage now sees the private IP, so the old IP rule doesn't match.",
+      "fix": "Add a virtual network rule."
+    },
+    {
+      "symptom": "The private endpoint exists, but the name resolves to a public IP.",
+      "cause": "The private DNS zone isn't linked, or the record is missing.",
+      "fix": "Link privatelink.blob.core.windows.net to the VNet, and add a DNS zone group."
+    },
+    {
+      "symptom": "Office computers can't use the private endpoint.",
+      "cause": "On-premises DNS doesn't know the privatelink zone.",
+      "fix": "Forward those names to Azure DNS Private Resolver."
+    }
+  ],
+  "configuration.limits": [
+    "Private endpoints are billed per hour and per GB",
+    "One private endpoint for each part you need (blob, file, queue…)"
+  ],
+  "configuration.permissions": [
+    "Network Contributor on the resource group"
+  ],
+  "from": {
+    "learningObjective": "019d9e04ea0a",
+    "engineer": "1b63c22194a7",
+    "example": "54eb6219d3c6",
+    "architectureDecisions": "f91f5e74b812",
+    "misconceptions": "2954a9bc1789",
+    "comparisons": "1b0fbbfae4c1",
+    "troubleshooting": "546fa3f12e43",
+    "configuration.limits": "11c578de414a",
+    "configuration.permissions": "9e4728057e11"
+  }
+}

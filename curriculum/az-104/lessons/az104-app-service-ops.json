@@ -8,7 +8,7 @@
     "AZ104-3.4.8"
   ],
   "estimatedMinutes": 50,
-  "learningObjective": "Configure backup and restore, inbound and outbound networking (access restrictions, private endpoints, VNet integration), and deployment slots with safe swaps.",
+  "learningObjective": "Set up backup and restore, network access in and out (access restrictions, private endpoints, VNet integration), and deployment slots with safe swaps.",
   "prerequisites": [
     {
       "text": "App Service plans",
@@ -26,11 +26,19 @@
     "Deployment slots are extra copies of your app, such as 'staging'. You deploy there, test it, then swap it into production with no downtime."
   ],
   "engineer": [
-    "Backups: automatic backups (platform-managed, hourly, kept 30 days) are available in Basic and higher. Automatic backups need no storage account and have a 30 GB limit. Custom backups are also available from Basic (on Basic, only the production slot can be backed up): they go to your storage account on demand or on a schedule (at most every 2 hours), have a 10 GB limit including any linked database, and keep backups 0–30 days or indefinitely. Automatic backups never include databases; support for linked databases in custom backups ends on 31 March 2028, so plan database-native backups. Restore to the same app, another app or a slot.",
-    "Inbound networking: access restrictions (priority-ordered allow/deny rules by IP range, service tag or VNet subnet with service endpoint; separate rules for the SCM/Kudu site); private endpoints (Basic and higher) give the app a private IP and can be combined with disabling public network access, plus privatelink.azurewebsites.net private DNS.",
-    "Outbound networking: regional VNet integration (Basic and higher) lets the app call resources in or through a VNet (private endpoints, VMs, on-premises over gateways) from a dedicated, delegated integration subnet; enable route-all (vnetRouteAllEnabled) to send all outbound traffic through the VNet for NSGs, UDRs and NAT gateway. Hybrid connections reach specific host:port endpoints on-premises.",
-    "Deployment slots (Standard: 5, Premium/Isolated: 20): each slot has its own hostname and can be deployed independently. Swap exchanges content and non-sticky settings; settings marked 'Deployment slot setting' stay with the slot. Some settings never swap: custom domains, TLS bindings, scale settings, IP restrictions, Always On, VNet integration, managed identities, WebJobs schedulers and diagnostic settings.",
-    "Swap safety: the target slot's settings are applied to the source instances, which are warmed up (applicationInitialization) before routing switches. Swap with preview (multi-phase) pauses so you can validate. Auto swap is available for Windows apps. Testing in production routes a percentage of traffic to a slot. Rollback = swap again."
+    "Automatic backups: Basic tier and higher. Azure takes them every hour and keeps them 30 days. No storage account needed. Limit 30 GB. They never include databases.",
+    "Custom backups: Basic tier and higher (on Basic, only the production slot). Saved to your own storage account, on demand or on a schedule (at most every 2 hours). Limit 10 GB, including any linked database. Keep them 0 to 30 days, or forever.",
+    "Databases in backups: custom backups stop supporting linked databases on 31 March 2028. Back up databases with their own backup features.",
+    "Restoring: to the same app, another app, or a slot.",
+    "Controlling who can reach the app (inbound): access restrictions are allow and deny rules in priority order, by IP range, service tag, or VNet subnet (with a service endpoint), and the SCM (Kudu) site has its own rules. Private endpoints (Basic and higher) give the app a private IP; you can then turn off public access, and you need the privatelink.azurewebsites.net private DNS zone.",
+    "Letting the app reach private things (outbound): regional VNet integration (Basic and higher) lets the app call resources in or through a VNet, such as private endpoints, VMs, or on-premises through gateways. It needs its own subnet, delegated to App Service.",
+    "Route all: turn on vnetRouteAllEnabled to send all outbound traffic through the VNet, so NSGs, route tables (UDRs) and NAT gateway apply.",
+    "Hybrid connections: reach one specific host and port on-premises.",
+    "Deployment slots: Standard has 5, Premium and Isolated have 20. Each slot has its own web address and can be deployed on its own.",
+    "What a swap moves: the app content and normal settings swap. Settings marked 'Deployment slot setting' (sticky) stay with their slot.",
+    "Settings that never swap: custom domains; TLS certificates; scale settings; IP restrictions; Always On; VNet integration; managed identities; WebJobs schedulers; diagnostic settings.",
+    "How swaps avoid downtime: the target slot's settings are applied to the source instances, and they are warmed up (applicationInitialization) before traffic switches.",
+    "Swap options: swap with preview pauses halfway so you can test; auto swap (Windows apps) swaps automatically after each deployment; testing in production sends a percentage of traffic to a slot. To roll back, swap again."
   ],
   "animation": {
     "id": "appservice-sim",
@@ -108,26 +116,26 @@
     ]
   },
   "example": {
-    "title": "Zero-downtime releases",
+    "title": "Releases with no downtime",
     "body": [
-      "Every release deploys to the staging slot, which has its own sticky connection string to a staging database. A smoke test runs against app-contoso-staging.azurewebsites.net, then a swap with preview promotes it.",
-      "The production app is reachable only through a private endpoint from Front Door, calls Azure SQL through VNet integration, and has daily custom backups to a storage account."
+      "Every release goes to the staging slot first. That slot has its own sticky connection string to a staging database. A quick test runs against app-contoso-staging.azurewebsites.net, then a swap with preview moves it to production.",
+      "The production app can only be reached through a private endpoint, from Front Door. It calls Azure SQL through VNet integration. A custom backup to a storage account runs every day."
     ]
   },
   "configuration": {
     "prerequisites": [
       "Basic tier for backups (Standard for deployment slots)",
-      "Integration subnet (delegated to Microsoft.Web/serverFarms) for VNet integration",
-      "Storage account for custom backups"
+      "An integration subnet delegated to Microsoft.Web/serverFarms, for VNet integration",
+      "A storage account, for custom backups"
     ],
     "permissions": [
       "Website Contributor",
-      "Network Contributor on the VNet/subnet",
-      "Storage Blob Data Contributor or SAS for backup storage"
+      "Network Contributor on the VNet and subnet",
+      "Storage Blob Data Contributor, or a SAS, for backup storage"
     ],
     "limits": [
-      "Slots: Standard 5, Premium/Isolated 20",
-      "Custom backup limit 10 GB including databases",
+      "Slots: Standard 5, Premium and Isolated 20",
+      "Custom backups: 10 GB including databases",
       "Some settings never swap"
     ],
     "portal": [
@@ -185,53 +193,53 @@
   "troubleshooting": [
     {
       "symptom": "After a swap, production uses the staging database.",
-      "cause": "Connection string not marked as a deployment slot setting.",
+      "cause": "The connection string wasn't marked as a deployment slot setting.",
       "fix": "Mark it sticky, swap back, then swap again."
     },
     {
-      "symptom": "App cannot reach SQL through its private endpoint.",
-      "cause": "No VNet integration, or private DNS not resolving from the integration subnet.",
-      "fix": "Enable VNet integration and link privatelink.database.windows.net to the VNet."
+      "symptom": "The app can't reach SQL through its private endpoint.",
+      "cause": "No VNet integration, or the private DNS name doesn't resolve from the integration subnet.",
+      "fix": "Turn on VNet integration and link privatelink.database.windows.net to the VNet."
     },
     {
       "symptom": "403 from the office after adding access restrictions.",
-      "cause": "Rule priority or missing allow rule for the office range.",
-      "fix": "Check rules; remember the implicit deny once any allow rule exists."
+      "cause": "Rule order is wrong, or there's no allow rule for the office range.",
+      "fix": "Check the rules. Remember: once any allow rule exists, everything else is denied."
     },
     {
-      "symptom": "Backup fails.",
-      "cause": "Content plus database exceeds 10 GB or storage SAS expired.",
-      "fix": "Exclude files, renew SAS, or use database-native backups."
+      "symptom": "The backup fails.",
+      "cause": "Content plus database is over 10 GB, or the storage SAS has expired.",
+      "fix": "Exclude some files, renew the SAS, or back up the database with its own tools."
     }
   ],
   "comparisons": [
     {
       "service": "Azure Front Door + private link to App Service",
-      "difference": "Global entry point with WAF in front of a privately reachable app."
+      "difference": "A global front door with a web application firewall (WAF), in front of an app that's only reachable privately."
     },
     {
       "service": "AWS Elastic Beanstalk environment swap",
-      "difference": "Similar blue/green CNAME swap."
+      "difference": "A similar blue/green swap, done by swapping DNS names (CNAMEs)."
     }
   ],
   "misconceptions": [
     {
       "myth": "Slot swaps cause downtime.",
-      "reality": "Instances are warmed before routing switches."
+      "reality": "No. Instances are warmed up before traffic switches."
     },
     {
       "myth": "All settings swap.",
-      "reality": "Sticky settings and a list of platform settings never swap."
+      "reality": "No. Sticky settings and some platform settings never swap."
     },
     {
       "myth": "VNet integration makes the app private.",
-      "reality": "It is outbound only; use private endpoints/access restrictions for inbound."
+      "reality": "No. It only covers traffic going out. For traffic coming in, use a private endpoint or access restrictions."
     }
   ],
   "architectureDecisions": [
-    "Use staging slots plus swap with preview for every production release.",
-    "Combine private endpoints (inbound) and VNet integration (outbound) for private apps.",
-    "Back up databases with their native features as well."
+    "Every production release: deploy to a staging slot, then swap with preview.",
+    "Private apps need both directions: a private endpoint for traffic coming in, VNet integration for traffic going out.",
+    "Back up databases separately: with their own backup features."
   ],
   "docs": [
     {

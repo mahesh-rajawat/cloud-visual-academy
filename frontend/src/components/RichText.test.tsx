@@ -60,6 +60,11 @@ describe('scannable paragraphs', () => {
     expect(screen.getByText('Roles').tagName).toBe('STRONG')
     expect(screen.getAllByRole('listitem')).toHaveLength(3)
   })
+  it('bolds topics that include a bracketed abbreviation', () => {
+    render(<RichParagraph text="What a rule matches (5-tuple): source and port. Double encryption (infrastructure encryption): set at creation." />)
+    expect(screen.getByText('What a rule matches (5-tuple):').tagName).toBe('STRONG')
+    expect(screen.getByText('Double encryption (infrastructure encryption):').tagName).toBe('STRONG')
+  })
   it('leaves sentences without a topic as plain paragraphs', () => {
     const { container } = render(<RichParagraph text="Deleted users can be restored for 30 days." />)
     expect(container.querySelector('strong')).toBeNull()

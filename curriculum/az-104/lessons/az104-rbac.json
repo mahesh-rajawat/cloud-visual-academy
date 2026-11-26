@@ -8,7 +8,7 @@
     "AZ104-1.2.3"
   ],
   "estimatedMinutes": 70,
-  "learningObjective": "Choose the least-privileged built-in role, assign it at the right scope, and explain exactly why a given principal can or cannot perform an operation.",
+  "learningObjective": "Pick the smallest built-in role that does the job, give it at the right level, and explain why someone can or can't do something.",
   "prerequisites": [
     {
       "text": "Hierarchy of management groups, subscriptions and resource groups (AZ-900)",
@@ -30,14 +30,15 @@
     "Four built-in roles show up everywhere: Owner (everything, including granting access), Contributor (everything except granting access), Reader (look but do not touch) and User Access Administrator (manage who has access)."
   ],
   "engineer": [
-    "A role definition contains Actions, NotActions, DataActions and NotDataActions plus AssignableScopes. Effective permissions of one role = Actions minus NotActions.",
-    "NotActions are not deny rules. If another role assignment grants an operation that one role excludes, the operation is allowed. Azure RBAC is additive: effective access is the union of all assignments for the user and every group they are a member of, at the target scope and all parent scopes.",
-    "Contributor has Actions '*' with NotActions including Microsoft.Authorization/*/Write, Microsoft.Authorization/*/Delete and Microsoft.Authorization/elevateAccess/Action, which is why a Contributor cannot create role assignments or policy assignments.",
-    "Deny assignments are the only thing that overrides a grant. You cannot create them directly; they are created by Azure features such as Azure Managed Applications and deployment stacks.",
-    "Azure roles (control plane for Azure resources) are separate from Microsoft Entra roles (directory: users, groups, licences). A Global Administrator has no Azure resource access by default, but can elevate to User Access Administrator at root scope (/).",
-    "Data-plane access is separate: Owner on a storage account does not let you read blob data with Entra authentication; you need a data role such as Storage Blob Data Reader (DataActions). The portal may still show data if it falls back to account keys.",
-    "Role assignment changes can take several minutes to take effect because tokens and caches refresh; signing out and in again forces a new token.",
-    "To create assignments you need Microsoft.Authorization/roleAssignments/write: Owner, User Access Administrator or Role Based Access Control Administrator (which can be constrained with conditions)."
+    "Inside a role: Actions, the things it allows; NotActions, things taken away from Actions; DataActions and NotDataActions, the same for data such as blobs; AssignableScopes, where the role can be used. What one role allows = Actions minus NotActions.",
+    "NotActions don't block anything: they only remove actions from that one role. If another role gives the action, the user can do it.",
+    "Roles add up: a user's access is everything from all their roles, including roles given to their groups, at this level and every level above it.",
+    "Why Contributor can't give access: Contributor allows everything ('*') except Microsoft.Authorization/*/Write, Microsoft.Authorization/*/Delete and Microsoft.Authorization/elevateAccess/Action. So it can't create role assignments or policy assignments.",
+    "Deny assignments: the only thing that beats a role. You can't create them yourself. Azure features such as Managed Applications and deployment stacks create them.",
+    "Two kinds of roles: Azure roles control Azure resources (VMs, storage, networks); Entra roles control the directory (users, groups, licences). A Global Administrator can't see Azure resources by default. They can 'elevate', which gives them User Access Administrator at the very top (/).",
+    "Data access is separate: Owner of a storage account can't read blobs with Entra sign-in. You need a data role such as Storage Blob Data Reader (it uses DataActions). The portal may still show data, because it can fall back to the account keys.",
+    "Changes take a few minutes: new role assignments need fresh sign-in tokens. Signing out and in again gets a new token.",
+    "Who can give roles: anyone with Microsoft.Authorization/roleAssignments/write, which means Owner, User Access Administrator, or Role Based Access Control Administrator (this one can be limited with conditions)."
   ],
   "animation": {
     "id": "rbac-scope-sim",
@@ -117,27 +118,27 @@
     ]
   },
   "example": {
-    "title": "Least privilege for an operations team",
+    "title": "Just enough access for an operations team",
     "body": [
-      "The operations team must restart and resize VMs in the Prod subscription but must not change networking or grant access.",
-      "Assign Virtual Machine Contributor to the Ops team group at the subscription scope. Every current and future VM in every resource group inherits it.",
-      "A contractor needs to view resources in rg-web only: assign Reader to the contractor's guest account at rg-web, not at the subscription.",
-      "Assign to groups rather than individuals. Assignments then survive staff changes, and you stay under the per-subscription assignment limit."
+      "The operations team must restart and resize VMs in the Prod subscription. They must not change networking or give access to others.",
+      "Give Virtual Machine Contributor to the Ops team group, on the subscription. Every VM in every resource group gets it, including VMs created later.",
+      "A contractor only needs to look at resources in rg-web. Give Reader to the contractor's guest account on rg-web, not on the subscription.",
+      "Give roles to groups, not to people. Then access stays right when staff change, and you stay under the limit on role assignments per subscription."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "The principal exists in the Microsoft Entra tenant that trusts the subscription",
+      "The user, group or identity exists in the Entra tenant the subscription trusts",
       "You know the scope ID (/subscriptions/<id>/resourceGroups/<name>/...)"
     ],
     "permissions": [
-      "Microsoft.Authorization/roleAssignments/write at the target scope (Owner, User Access Administrator, or Role Based Access Control Administrator)"
+      "Microsoft.Authorization/roleAssignments/write at that level: Owner, User Access Administrator, or Role Based Access Control Administrator"
     ],
     "limits": [
       "Up to 4,000 role assignments per subscription",
       "Up to 500 role assignments per management group",
-      "Management group tree depth: up to six levels below the root (not counting the root or subscriptions)",
-      "Role changes can take several minutes to apply"
+      "Management groups go up to six levels below the root (not counting the root or subscriptions)",
+      "Role changes can take a few minutes to work"
     ],
     "portal": [
       "Open the scope (management group, subscription, resource group or resource) > Access control (IAM).",
@@ -192,68 +193,68 @@
   },
   "troubleshooting": [
     {
-      "symptom": "User was just assigned a role but still gets AuthorizationFailed.",
-      "cause": "Token/caches not refreshed yet.",
-      "fix": "Wait a few minutes, sign out and in, or for CLI run az account clear and az login again."
+      "symptom": "A user was just given a role but still gets AuthorizationFailed.",
+      "cause": "Their sign-in token is old and doesn't include the new role yet.",
+      "fix": "Wait a few minutes, or sign out and in. In the CLI, run az account clear and then az login."
     },
     {
-      "symptom": "Contributor cannot assign roles to a managed identity during a deployment.",
-      "cause": "Role assignment writes are in Contributor NotActions.",
-      "fix": "Grant Role Based Access Control Administrator (optionally with conditions) or User Access Administrator at that scope to the deploying identity."
+      "symptom": "A Contributor can't give a role to a managed identity during a deployment.",
+      "cause": "Contributor isn't allowed to create role assignments.",
+      "fix": "Give the deploying identity Role Based Access Control Administrator (with conditions if you like) or User Access Administrator at that level."
     },
     {
-      "symptom": "Global Administrator cannot see any subscriptions.",
-      "cause": "Entra directory roles do not grant Azure resource access.",
-      "fix": "Elevate access (Entra ID > Properties > Access management for Azure resources) temporarily, assign a proper role, then remove the elevation."
+      "symptom": "A Global Administrator can't see any subscriptions.",
+      "cause": "Entra roles don't give access to Azure resources.",
+      "fix": "Elevate access for a short time (Entra ID > Properties > Access management for Azure resources), give the right Azure role, then turn the elevation off."
     },
     {
-      "symptom": "Owner gets 403 reading blobs with --auth-mode login.",
-      "cause": "Owner grants control-plane actions, not blob DataActions.",
-      "fix": "Assign Storage Blob Data Reader/Contributor at the account or container scope."
+      "symptom": "An Owner gets 403 reading blobs with --auth-mode login.",
+      "cause": "Owner covers managing the account, not reading the data.",
+      "fix": "Give Storage Blob Data Reader or Contributor on the account or container."
     },
     {
-      "symptom": "Delete fails even for Owner.",
-      "cause": "A resource lock (CanNotDelete) or a deny assignment applies.",
-      "fix": "Check Locks and the Deny assignments tab in Access control (IAM)."
+      "symptom": "Even an Owner can't delete something.",
+      "cause": "A delete lock (CanNotDelete) or a deny assignment is in place.",
+      "fix": "Check Locks, and the Deny assignments tab in Access control (IAM)."
     }
   ],
   "comparisons": [
     {
       "service": "Microsoft Entra roles",
-      "difference": "Control directory objects (users, groups, apps) in the tenant; scoped to the tenant or administrative units, not to Azure resources."
+      "difference": "They control the directory (users, groups, apps), for the whole tenant or an administrative unit. They don't control Azure resources."
     },
     {
       "service": "Azure Policy",
-      "difference": "Evaluates resource properties (what a resource may look like); RBAC evaluates who may perform an operation. A request can pass RBAC and still be denied by policy."
+      "difference": "Policy checks what a resource looks like. RBAC checks who can do something. A request can pass RBAC and still be blocked by Policy."
     },
     {
       "service": "AWS IAM policies",
-      "difference": "AWS supports explicit Deny statements that always win; Azure RBAC role definitions have no deny (NotActions only subtract), and deny assignments are system-created."
+      "difference": "AWS has Deny statements that always win. Azure roles have no Deny: NotActions only take actions away, and only Azure itself creates deny assignments."
     }
   ],
   "misconceptions": [
     {
-      "myth": "NotActions deny an operation.",
-      "reality": "NotActions only remove operations from that role. Another role can still grant them."
+      "myth": "NotActions block an action.",
+      "reality": "No. They only take it out of that one role. Another role can still allow it."
     },
     {
-      "myth": "Assigning Owner on a VM gives access to its resource group.",
-      "reality": "Inheritance flows downward only."
+      "myth": "Owner on a VM gives access to its resource group.",
+      "reality": "No. Access flows down to child resources, never up."
     },
     {
-      "myth": "Global Administrator is automatically an Owner of all subscriptions.",
-      "reality": "Only after explicitly elevating access, which grants User Access Administrator at root scope."
+      "myth": "A Global Administrator is automatically Owner of every subscription.",
+      "reality": "No. Only after they elevate their access, and that gives User Access Administrator at the top level."
     },
     {
-      "myth": "Contributor can grant access to others.",
-      "reality": "Contributor cannot write role assignments; that needs Owner, User Access Administrator or Role Based Access Control Administrator."
+      "myth": "Contributor can give access to others.",
+      "reality": "No. That needs Owner, User Access Administrator or Role Based Access Control Administrator."
     }
   ],
   "architectureDecisions": [
-    "Assign at the highest scope that is still correct for the whole group; avoid many resource-level assignments that are hard to audit.",
-    "Assign roles to groups, not individual users.",
-    "Prefer job-function built-in roles (Virtual Machine Contributor, Network Contributor) over Contributor; create a custom role only when no built-in role fits.",
-    "Use Privileged Identity Management for just-in-time Owner/User Access Administrator where licensed."
+    "Assign at the highest level that is still right: many small assignments on single resources are hard to check.",
+    "Give roles to groups, not people: add or remove a person from the group instead of changing roles.",
+    "Pick a job role, not Contributor: use roles such as Virtual Machine Contributor or Network Contributor. Make a custom role only when no built-in role fits.",
+    "Make powerful roles temporary: with Privileged Identity Management (PIM), people turn on Owner or User Access Administrator only when they need it."
   ],
   "docs": [
     {

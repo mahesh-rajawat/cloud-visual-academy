@@ -8,7 +8,7 @@
     "AZ104-2.3.7"
   ],
   "estimatedMinutes": 45,
-  "learningObjective": "Configure blob versioning, blob and container soft delete, file share snapshots and share soft delete, and choose the right recovery path for overwrites and deletions.",
+  "learningObjective": "Set up blob versioning, blob and container soft delete, file share snapshots and share soft delete. Pick the right way to recover from an overwrite or a delete.",
   "prerequisites": [
     {
       "text": "Containers and file shares",
@@ -27,12 +27,16 @@
     "For Azure Files, share snapshots are read-only point-in-time copies of a whole share, and share soft delete lets you undelete a deleted share."
   ],
   "engineer": [
-    "Blob versioning: each write or delete creates a version with a version ID (timestamp). The current version is the base blob. To restore, copy a previous version over the base blob. Each version is billed for its unique data, so combine versioning with lifecycle rules that delete old versions.",
-    "Blob soft delete (1–365 days) retains deleted blobs, snapshots and versions. With versioning on, a delete makes the current version a previous version (recover by promoting it). Without versioning, soft delete marks a deleted blob as soft-deleted, and an overwrite keeps the previous state as a soft-deleted snapshot; recover both with Undelete Blob. Microsoft recommends enabling versioning and soft delete together.",
-    "Container soft delete (1–365 days) restores a deleted container with its contents. Blob soft delete alone does not protect against container deletion.",
-    "Point-in-time restore for block blobs (requires versioning, change feed and blob soft delete) restores containers to an earlier state. Immutable storage (WORM: time-based retention, legal hold) prevents modification and deletion for compliance.",
-    "Azure Files share snapshots: read-only, incremental, captured at share level, up to 200 per share. Restore individual files from the portal or from Windows 'Previous versions'. Azure Backup for Azure Files orchestrates snapshots on a schedule.",
-    "Azure Files soft delete applies to whole shares (1–365 days; on by default for new accounts with 7 days). It does not protect individual files; use snapshots for that. Deleting a share deletes its snapshots, so share soft delete protects both."
+    "Blob versioning: every write or delete saves the old content as a version, with a version ID (a timestamp). The current content is the base blob. To restore, copy an older version over the base blob.",
+    "Versioning cost: you pay for each version's unique data. Add lifecycle rules that delete old versions.",
+    "Blob soft delete: keeps deleted blobs, snapshots and versions for 1 to 365 days.",
+    "Soft delete with versioning on: a delete turns the current content into an older version. Recover by making that version current again.",
+    "Soft delete without versioning: a deleted blob is marked soft-deleted, and an overwrite keeps the old content as a soft-deleted snapshot. Recover both with Undelete Blob. Microsoft recommends turning on versioning and soft delete together.",
+    "Container soft delete: brings back a deleted container with everything in it (1 to 365 days). Blob soft delete alone does not protect you if the whole container is deleted.",
+    "Point-in-time restore: puts block blob containers back to how they were at an earlier time. Needs versioning, change feed and blob soft delete.",
+    "Immutable storage (WORM, write once read many): nobody can change or delete the data. Use time-based retention or a legal hold, for compliance.",
+    "File share snapshots: read-only copies of the whole share, saving only changes (incremental). Up to 200 per share. Restore single files from the portal or from Windows 'Previous versions'. Azure Backup can take them on a schedule.",
+    "File share soft delete: protects whole shares, not single files (1 to 365 days; on by default for new accounts, with 7 days). Deleting a share also deletes its snapshots, so share soft delete protects both. For single files, use snapshots."
   ],
   "animation": {
     "id": "storage-data-sim",
@@ -95,24 +99,24 @@
     ]
   },
   "example": {
-    "title": "Ransomware and fat-finger protection",
+    "title": "Protection from ransomware and mistakes",
     "body": [
-      "The data team enables versioning, blob soft delete (14 days) and container soft delete (14 days), plus a lifecycle rule that deletes versions older than 90 days to control cost.",
-      "When a script overwrote 2,000 reports with empty files, they restored previous versions. When someone deleted a whole container, container soft delete brought it back. The HR file share takes snapshots every 6 hours through Azure Backup."
+      "The data team turns on versioning, blob soft delete (14 days) and container soft delete (14 days). A lifecycle rule deletes versions older than 90 days to keep cost down.",
+      "A script overwrote 2,000 reports with empty files: they restored the older versions. Someone deleted a whole container: container soft delete brought it back. The HR file share gets snapshots every 6 hours through Azure Backup."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "GPv2 account (versioning is not available on every account configuration; check feature support for hierarchical namespace accounts)"
+      "A GPv2 account (versioning doesn't work on every account setup; check support for hierarchical namespace accounts)"
     ],
     "permissions": [
-      "Storage Account Contributor to configure data protection",
-      "Storage Blob Data Contributor to restore versions or undelete blobs"
+      "Storage Account Contributor, to set up data protection",
+      "Storage Blob Data Contributor, to restore versions or undelete blobs"
     ],
     "limits": [
-      "Soft delete retention 1–365 days",
+      "Soft delete keeps items 1 to 365 days",
       "Up to 200 snapshots per file share",
-      "Versions are billed"
+      "You pay for versions"
     ],
     "portal": [
       "Storage account > Data management > Data protection: enable soft delete for blobs (days), soft delete for containers (days), versioning for blobs, point-in-time restore, change feed.",
@@ -169,54 +173,54 @@
   },
   "troubleshooting": [
     {
-      "symptom": "An overwritten blob cannot be recovered.",
-      "cause": "Neither versioning nor blob soft delete was enabled when it was overwritten (or the retention period expired).",
-      "fix": "Enable versioning and soft delete; restore a previous version or undelete the soft-deleted snapshot."
+      "symptom": "An overwritten blob can't be recovered.",
+      "cause": "Versioning and soft delete were both off when it was overwritten, or the retention days had passed.",
+      "fix": "Turn on versioning and soft delete. Then restore an older version or undelete the soft-deleted snapshot."
     },
     {
-      "symptom": "Storage cost grew after enabling versioning.",
-      "cause": "Every version is billed.",
-      "fix": "Add lifecycle rules that tier or delete old versions."
+      "symptom": "Storage cost went up after turning on versioning.",
+      "cause": "You pay for every version.",
+      "fix": "Add lifecycle rules that move or delete old versions."
     },
     {
-      "symptom": "Cannot find a deleted container.",
-      "cause": "Container soft delete was not enabled.",
-      "fix": "Enable it for the future; recovery is not possible now."
+      "symptom": "A deleted container can't be found.",
+      "cause": "Container soft delete was off.",
+      "fix": "Turn it on for next time. This container can't be recovered."
     },
     {
-      "symptom": "Share snapshot limit reached.",
-      "cause": "200 snapshots per share.",
-      "fix": "Delete old snapshots or let Azure Backup manage retention."
+      "symptom": "The share snapshot limit is reached.",
+      "cause": "A share can have 200 snapshots.",
+      "fix": "Delete old snapshots, or let Azure Backup manage retention."
     }
   ],
   "comparisons": [
     {
       "service": "Azure Backup for blobs / files",
-      "difference": "Adds policy-driven backups, longer retention, and for vaulted backup a copy outside the account; built on snapshots, versions and soft delete."
+      "difference": "Adds backup schedules, longer retention and, with vaulted backup, a copy outside the account. It's built on snapshots, versions and soft delete."
     },
     {
       "service": "Amazon S3 versioning",
-      "difference": "Comparable; S3 delete markers resemble Azure's behaviour where a delete leaves previous versions."
+      "difference": "Very similar. In S3 a delete adds a 'delete marker' and older versions stay, much like Azure."
     }
   ],
   "misconceptions": [
     {
-      "myth": "GRS protects against accidental deletion.",
-      "reality": "Deletes replicate to the secondary as well."
+      "myth": "GRS protects against accidental deletes.",
+      "reality": "No. Deletes are copied to the second region too."
     },
     {
-      "myth": "Share soft delete restores individual files.",
-      "reality": "It protects whole shares; use snapshots for files."
+      "myth": "Share soft delete restores single files.",
+      "reality": "No. It protects whole shares. Use snapshots for single files."
     },
     {
       "myth": "Snapshots are full copies.",
-      "reality": "Share snapshots are incremental."
+      "reality": "No. Share snapshots only save what changed."
     }
   ],
   "architectureDecisions": [
-    "Enable versioning plus blob and container soft delete on all production accounts.",
-    "Control cost with lifecycle rules for previous versions.",
-    "Use Azure Backup for scheduled file share snapshots and centralised retention."
+    "Turn on three things on every production account: versioning, blob soft delete and container soft delete.",
+    "Keep cost down: use lifecycle rules to delete old versions.",
+    "Use Azure Backup for file shares: scheduled snapshots, with retention managed in one place."
   ],
   "docs": [
     {

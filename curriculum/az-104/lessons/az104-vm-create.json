@@ -8,7 +8,7 @@
     "AZ104-3.2.4"
   ],
   "estimatedMinutes": 60,
-  "learningObjective": "Create VMs that pass quota, SKU, credential and network checks, resize them correctly, and move them across resource groups, subscriptions or regions with the right tool.",
+  "learningObjective": "Create VMs that pass the quota, size, password and network checks. Resize them the right way. Move them to another resource group, subscription or region with the right tool.",
   "prerequisites": [
     {
       "text": "Resources required for virtual machines (AZ-900)",
@@ -27,12 +27,14 @@
     "Moving a VM to another resource group keeps it in the same region; moving it to another region needs a different tool."
   ],
   "engineer": [
-    "Creation checks: regional and per-family vCPU quotas (az vm list-usage), SKU availability per region and zone (az vm list-skus), image and generation (Gen2 with Trusted Launch is the default for supported images), admin credentials (reserved usernames such as 'admin' are rejected; Windows passwords must be 12–123 characters and meet complexity), and networking (VNet/subnet, optional public IP, NIC-level or subnet NSG).",
-    "Management options at creation: boot diagnostics, auto-shutdown, backup, extensions (for example the Azure Monitor agent), and Spot pricing for interruptible workloads.",
-    "VM sizes are grouped into families: B (burstable), D (general purpose), E (memory optimised), F (compute optimised), L (storage optimised), N (GPU). Each size limits vCPU, memory, data disks, NICs and throughput.",
-    "Resizing restarts the VM. If the target size is not available on the current hardware cluster, deallocate first; for VMs in an availability set, all VMs in the set must be deallocated. az vm list-vm-resize-options shows the sizes available without deallocation.",
-    "Moving: within or across subscriptions in the same tenant with resource move (move the VM with its disks, NICs, public IPs and other dependencies; the region stays the same, the resource ID changes). Across regions with Azure Resource Mover or by replicating with Azure Site Recovery. Moving into an availability zone requires recreating the VM or using the zone-move capability.",
-    "Deallocated VMs stop compute billing but keep disk billing; 'Stopped' from inside the OS keeps compute allocated and billed."
+    "Checks when you create a VM: vCPU quota, per region and per VM family (az vm list-usage); the size (SKU) is offered in that region and zone (az vm list-skus); the image and generation (Gen2 with Trusted Launch is the default where supported); the admin name and password; the network (VNet and subnet, an optional public IP, an NSG on the network card (NIC) or subnet).",
+    "Admin name and password rules: names such as 'admin' are blocked. Windows passwords must be 12 to 123 characters and complex.",
+    "Extra options at creation: boot diagnostics; auto-shutdown; backup; extensions (for example the Azure Monitor agent); Spot pricing, cheap but Azure can take the VM back.",
+    "Size families: B, burstable (cheap, for low average CPU); D, general purpose; E, lots of memory; F, lots of CPU; L, fast local storage; N, GPU. Each size limits vCPU, memory, data disks, network cards and speed.",
+    "Resizing: it restarts the VM. az vm list-vm-resize-options shows the sizes you can pick without stopping it. If the size you want isn't there, deallocate the VM first. In an availability set, you must deallocate every VM in the set.",
+    "Moving to another resource group or subscription (same tenant): use resource move, and move the VM with its disks, network cards (NICs) and public IPs. The region stays the same; the resource ID changes.",
+    "Moving to another region: use Azure Resource Mover, or copy it with Azure Site Recovery. Moving into an availability zone means recreating the VM, or using the zone-move feature.",
+    "Stopped vs deallocated: deallocated (Stop in the portal) stops paying for compute, but you still pay for disks. Shutting down from inside the OS leaves it 'Stopped', and you still pay for compute."
   ],
   "animation": {
     "id": "vm-sim",
@@ -96,24 +98,24 @@
     ]
   },
   "example": {
-    "title": "Right-sizing a reporting server",
+    "title": "Giving a reporting server the right size",
     "body": [
-      "A reporting VM on Standard_D2s_v5 hits 95% memory every month-end. The admin lists resize options, sees Standard_E4s_v5 is not available on the current cluster, deallocates the VM in a maintenance window, resizes and starts it again.",
-      "Later the team moves the VM, its disks and NIC to a new resource group with resource move, and uses Azure Resource Mover to create a copy in North Europe."
+      "A reporting VM on Standard_D2s_v5 hits 95% memory at every month-end. The admin lists the resize options. Standard_E4s_v5 isn't on the list, so in a maintenance window the admin deallocates the VM, resizes it, and starts it again.",
+      "Later the team moves the VM, its disks and its network card to a new resource group with resource move. They use Azure Resource Mover to make a copy in North Europe."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "VNet and subnet",
-      "vCPU quota for the family in the region",
-      "SSH key or compliant password"
+      "A VNet and subnet",
+      "vCPU quota for that family in that region",
+      "An SSH key or a password that meets the rules"
     ],
     "permissions": [
-      "Virtual Machine Contributor (VM) plus Network Contributor or join permissions on the subnet",
-      "Microsoft.Resources/subscriptions/resourceGroups/moveResources/action for moves"
+      "Virtual Machine Contributor for the VM, plus Network Contributor or join permission on the subnet",
+      "Microsoft.Resources/subscriptions/resourceGroups/moveResources/action, for moves"
     ],
     "limits": [
-      "Quotas per region and VM family",
+      "Quotas per region and per VM family",
       "Resizing restarts the VM",
       "Resource move keeps the region"
     ],
@@ -173,53 +175,53 @@
   "troubleshooting": [
     {
       "symptom": "OperationNotAllowed: exceeds approved Total Regional Cores quota.",
-      "cause": "Quota exhausted.",
-      "fix": "Request an increase in Usage + quotas or choose a smaller size."
+      "cause": "You've used all your vCPU quota.",
+      "fix": "Ask for more in Usage + quotas, or pick a smaller size."
     },
     {
       "symptom": "SkuNotAvailable.",
-      "cause": "Size not offered in the region/zone or restricted for the subscription.",
-      "fix": "az vm list-skus to find alternatives."
+      "cause": "That size isn't offered in the region or zone, or is blocked for your subscription.",
+      "fix": "Run az vm list-skus to find another size."
     },
     {
-      "symptom": "Resize option is missing for the running VM.",
-      "cause": "Size not on the current cluster.",
-      "fix": "Deallocate (all VMs in the availability set) and resize."
+      "symptom": "The size you want isn't in the resize list for a running VM.",
+      "cause": "That size isn't on the hardware the VM is on now.",
+      "fix": "Deallocate the VM (all VMs in an availability set) and resize."
     },
     {
       "symptom": "Move validation fails for the VM.",
-      "cause": "Dependent disks/NICs not included, or the VM has unsupported configurations.",
-      "fix": "Include all dependencies; check the VM move limitations page."
+      "cause": "Its disks or network cards weren't included, or the VM has a setup that can't move.",
+      "fix": "Include everything it depends on, and check the VM move limits page."
     }
   ],
   "comparisons": [
     {
       "service": "Amazon EC2",
-      "difference": "Comparable IaaS; EC2 instance types correspond to Azure VM sizes; stopping an EBS-backed instance is similar to deallocating."
+      "difference": "The same idea. EC2 instance types are like Azure VM sizes. Stopping an EBS-backed instance is like deallocating."
     },
     {
       "service": "Azure App Service / Container Apps",
-      "difference": "PaaS options without OS management."
+      "difference": "PaaS: run apps without managing an operating system. VMs are IaaS."
     }
   ],
   "misconceptions": [
     {
       "myth": "Shutting down from inside Windows stops billing.",
-      "reality": "Only deallocating (Stop in the portal) releases compute billing."
+      "reality": "No. Only deallocating (Stop in the portal) stops compute billing."
     },
     {
       "myth": "Moving a VM to another resource group changes its region.",
-      "reality": "Region is unchanged."
+      "reality": "No. The region stays the same."
     },
     {
       "myth": "You can always resize a running VM to any size.",
-      "reality": "Only sizes available on its current hardware cluster."
+      "reality": "No. Only to sizes available on the hardware it's running on now."
     }
   ],
   "architectureDecisions": [
-    "Use Bastion instead of public IPs for admin access.",
-    "Pick sizes by measured CPU/memory; use Advisor for right-sizing.",
-    "Automate creation with Bicep and image definitions (Compute Gallery)."
+    "No public IPs for admin access: use Bastion instead.",
+    "Size by real numbers: pick sizes from measured CPU and memory, and use Advisor to right-size.",
+    "Build VMs from code: use Bicep and images in Azure Compute Gallery."
   ],
   "docs": [
     {

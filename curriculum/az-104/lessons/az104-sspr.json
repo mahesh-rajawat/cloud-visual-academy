@@ -6,7 +6,7 @@
     "AZ104-1.1.5"
   ],
   "estimatedMinutes": 30,
-  "learningObjective": "Configure SSPR scope, authentication methods, registration and writeback, and explain why a given user can or cannot reset their password.",
+  "learningObjective": "Set up self-service password reset (SSPR): who can use it, which methods they need, how they register, and writeback to on-premises. Explain why a user can or can't reset their password.",
   "prerequisites": [
     {
       "text": "Authentication methods and MFA (AZ-900)",
@@ -25,13 +25,15 @@
     "Administrators are always covered by a stricter built-in policy, whatever you choose for users."
   ],
   "engineer": [
-    "Scope: None, Selected (a group, ideal for a pilot) or All. Licensing: SSPR for cloud users requires Microsoft Entra ID P1 or an eligible Microsoft 365 business plan. Password writeback for synced users requires P1 and Microsoft Entra Connect or Cloud Sync with writeback enabled.",
-    "Methods: Microsoft Authenticator notification or code, mobile phone (SMS or voice), office phone, email, and security questions. Number of methods required: 1 or 2. Security questions are the weakest method and are never allowed for administrators.",
-    "The administrator reset policy is enabled for all Azure administrator roles regardless of the user setting. It requires two methods (two-gate) and does not allow security questions.",
-    "Registration: 'Require users to register when signing in' and the number of days before users are asked to reconfirm (default 180). The combined security information registration experience registers SSPR and MFA methods together.",
-    "Notifications: notify users on password resets, and notify all admins when other admins reset their password. Customisation: a help-desk link or email shown on the reset page.",
-    "Synced (hybrid) users: without writeback the cloud reset cannot change the on-premises password, so SSPR fails for them. With writeback, on-premises password policy (complexity, history) also applies.",
-    "Since 30 September 2025 the authentication methods available for MFA and SSPR are managed in one place: the Authentication methods policy (Protection > Authentication methods > Policies). The legacy MFA and SSPR method settings no longer control which methods users can use."
+    "Who can use SSPR: None; Selected, meaning one group (good for a pilot); All.",
+    "Licences: SSPR for cloud users needs Entra ID P1 or a Microsoft 365 business plan that includes it. Password writeback for synced users also needs P1.",
+    "Methods users can pick from: Microsoft Authenticator (notification or code); mobile phone (SMS or voice call); office phone; email; security questions. You choose whether users need 1 or 2 methods.",
+    "Security questions: they are the weakest method. Admins can never use them.",
+    "Admins always get a stricter policy: it is on for every Azure admin role, whatever you set for users. Admins need two methods, and security questions aren't allowed.",
+    "Registration: turn on 'Require users to register when signing in'. Users are asked to confirm their details again every 180 days by default (you can change this). Combined registration lets users set up SSPR and MFA methods in one go.",
+    "Notifications: tell users when their password is reset. Tell all admins when another admin resets theirs. You can also add a help-desk link or email to the reset page.",
+    "Synced (hybrid) users: SSPR needs password writeback for them. Without it, the cloud can't change their on-premises password, so the reset fails. With writeback, the on-premises password rules (complexity, history) apply too. Turn it on in Entra Connect or Cloud Sync.",
+    "One place for methods: since 30 September 2025, the methods allowed for both MFA and SSPR are set in the Authentication methods policy (Protection > Authentication methods > Policies). The old MFA and SSPR method settings no longer decide which methods users can use."
   ],
   "animation": {
     "id": "identity-sim",
@@ -97,25 +99,25 @@
     ]
   },
   "example": {
-    "title": "Pilot then roll out",
+    "title": "Try it with a group first, then everyone",
     "body": [
-      "Contoso enables SSPR for the group 'SSPR pilot' with two required methods (Authenticator app and mobile phone), requires registration at sign-in, and enables password writeback because most users are synced from AD.",
-      "After two weeks with fewer issues they switch the scope to All. Security questions stay disabled because the security team considers them too weak."
+      "Contoso turns on SSPR for the group 'SSPR pilot'. Users need two methods: the Authenticator app and a mobile phone. Users must register when they sign in. Password writeback is on, because most users are synced from AD.",
+      "After two quiet weeks, Contoso changes the scope to All. Security questions stay off, because the security team says they are too weak."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "Microsoft Entra ID P1 (or eligible Microsoft 365 plan)",
-      "For hybrid users: Entra Connect or Cloud Sync with password writeback"
+      "Entra ID P1, or a Microsoft 365 plan that includes it",
+      "For synced users: Entra Connect or Cloud Sync with password writeback"
     ],
     "permissions": [
-      "Authentication Policy Administrator or Global Administrator to configure password reset",
-      "Hybrid Identity Administrator to configure Connect/Cloud Sync writeback"
+      "Authentication Policy Administrator or Global Administrator, to set up password reset",
+      "Hybrid Identity Administrator, to set up writeback in Entra Connect or Cloud Sync"
     ],
     "limits": [
-      "Methods required: 1 or 2",
-      "Security questions not available for administrators",
-      "Admin policy always enforced"
+      "Users need 1 or 2 methods",
+      "Admins can't use security questions",
+      "The admin policy always applies"
     ],
     "portal": [
       "Microsoft Entra admin center > Protection > Password reset > Properties: Self service password reset enabled = None / Selected / All (choose the group for Selected).",
@@ -168,54 +170,54 @@
   },
   "troubleshooting": [
     {
-      "symptom": "User sees 'Your account is not enabled for password reset'.",
-      "cause": "SSPR is None, or Selected and the user is not in the group.",
-      "fix": "Add the user to the selected group or change the scope."
+      "symptom": "The user sees 'Your account is not enabled for password reset'.",
+      "cause": "SSPR is set to None, or to Selected and the user isn't in that group.",
+      "fix": "Add the user to the group, or change the scope."
     },
     {
-      "symptom": "Reset succeeds in the cloud, but the old password still works on-premises.",
-      "cause": "Password writeback is disabled or failing.",
-      "fix": "Enable writeback in Connect/Cloud Sync and in Password reset > On-premises integration."
+      "symptom": "The reset works in the cloud, but the old password still works on-premises.",
+      "cause": "Password writeback is off or failing.",
+      "fix": "Turn on writeback in Entra Connect or Cloud Sync, and in Password reset > On-premises integration."
     },
     {
-      "symptom": "An admin cannot use security questions.",
+      "symptom": "An admin can't use security questions.",
       "cause": "The admin policy never allows them.",
-      "fix": "Register two strong methods (app, phone, email)."
+      "fix": "Register two strong methods (app, phone or email)."
     },
     {
-      "symptom": "A user is prompted to register again.",
-      "cause": "The reconfirmation period elapsed.",
-      "fix": "Expected behaviour; adjust 'Number of days before users are asked to re-confirm'."
+      "symptom": "A user is asked to register again.",
+      "cause": "The confirm-again period has passed.",
+      "fix": "This is normal. Change 'Number of days before users are asked to re-confirm' if you want."
     }
   ],
   "comparisons": [
     {
       "service": "Self-service password change",
-      "difference": "Changing a known password is available to all cloud users; reset (forgotten password) is SSPR."
+      "difference": "Changing a password you know works for every cloud user. Resetting a password you forgot is SSPR."
     },
     {
       "service": "AWS IAM Identity Center",
-      "difference": "Supports user-initiated password reset for its own directory; Entra SSPR adds method policies and on-premises writeback."
+      "difference": "Users can reset their own password for its directory. Entra SSPR adds method rules and writeback to on-premises AD."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Disabling SSPR for users disables it for admins.",
-      "reality": "Administrators always have SSPR with the two-gate policy."
+      "myth": "Turning SSPR off for users also turns it off for admins.",
+      "reality": "No. Admins always have SSPR, with the two-method policy."
     },
     {
-      "myth": "SSPR works for synced users out of the box.",
-      "reality": "Password writeback is needed."
+      "myth": "SSPR works for synced users straight away.",
+      "reality": "No. Synced users need password writeback."
     },
     {
-      "myth": "Selected scope means selected users.",
-      "reality": "It is scoped by group membership."
+      "myth": "'Selected' scope means you pick individual users.",
+      "reality": "No. You pick one group, and its members can use SSPR."
     }
   ],
   "architectureDecisions": [
-    "Pilot with a group, then enable for All.",
-    "Require two methods and prefer Authenticator over SMS; avoid security questions.",
-    "Use combined registration so MFA and SSPR methods are registered once."
+    "Start with a pilot group: test SSPR on one group, then turn it on for All.",
+    "Ask for two strong methods: prefer the Authenticator app over text messages, and leave security questions off.",
+    "Use combined registration: users set up MFA and SSPR methods once, in one place."
   ],
   "docs": [
     {

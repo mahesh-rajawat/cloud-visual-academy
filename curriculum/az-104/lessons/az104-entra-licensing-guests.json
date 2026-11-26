@@ -7,7 +7,7 @@
     "AZ104-1.1.4"
   ],
   "estimatedMinutes": 45,
-  "learningObjective": "Assign licences directly and through groups, resolve licence assignment errors, and invite and govern B2B guest users with external collaboration settings.",
+  "learningObjective": "Give licences to users directly or through groups. Fix licence errors. Invite guest users from other companies and control what they can do.",
   "prerequisites": [
     {
       "text": "Users and groups",
@@ -25,13 +25,16 @@
     "External users (B2B guests) are people from other organisations whom you invite to use your apps. They sign in with their own work or personal account, and you control who can invite them and which domains are allowed."
   ],
   "engineer": [
-    "Group-based licensing assigns licences to every direct member of a group. Members of nested groups do not receive the licence. Removing a user from the group removes the licence. Group-based licensing requires a licence that includes it, such as Microsoft Entra ID P1 or Microsoft 365 E3.",
-    "Users without a usage location inherit the directory's location when licences come from a group; direct assignment requires the property to be set first.",
-    "Licence errors on a group are visible under the group's Licenses blade: not enough licences (CountViolation), conflicting service plans (MutuallyExclusiveViolation), dependency problems, and usage location not allowed. Fix the cause, then use Reprocess. Disabling individual service plans is possible per assignment.",
-    "A user can hold the same licence both directly and inherited; it consumes one licence. Removing the direct assignment keeps the inherited one.",
-    "B2B collaboration: invite with the portal (New user > Invite external user), Microsoft Graph (POST /invitations), or bulk invite from CSV. Guests have userType Guest and a UPN such as lee_fabrikam.com#EXT#@contoso.onmicrosoft.com. Until they redeem the invitation, their state is PendingAcceptance.",
-    "External collaboration settings control guest user access (same as members, limited, or most restrictive), guest invite settings (anyone including guests, member users and users with specific admin roles, only admins and the Guest Inviter role, or no one), and collaboration restrictions (allow any domain, deny listed domains, allow only listed domains). Cross-tenant access settings add per-organisation inbound and outbound rules.",
-    "Guests can be granted Azure RBAC roles like any other principal. Review guest access regularly with access reviews (Microsoft Entra ID P2 / ID Governance)."
+    "Group-based licensing: give a licence to a group, and every direct member gets it. Members of a group inside the group do not get it. Remove someone from the group and they lose the licence. You need a plan that includes this feature, such as Entra ID P1 or Microsoft 365 E3.",
+    "Usage location: a direct licence needs the user's usageLocation set first. A licence from a group works without it, because the user takes the tenant's country.",
+    "Licence errors on a group: open the group's Licenses page to see them. Common ones: not enough licences (CountViolation); two plans that clash (MutuallyExclusiveViolation); a plan that needs another plan first; a usage location where the service isn't allowed. Fix the cause, then click Reprocess.",
+    "Turning off parts of a licence: you can switch off single service plans (for example Exchange) in each assignment.",
+    "Direct plus group: a user can get the same licence directly and from a group. It still uses only one licence. Remove the direct one and the group one stays.",
+    "Inviting guests (B2B collaboration): the portal (New user > Invite external user); Microsoft Graph (POST /invitations); bulk invite from a CSV file.",
+    "What a guest looks like: userType is Guest. The sign-in name (UPN) looks like lee_fabrikam.com#EXT#@contoso.onmicrosoft.com. Until they accept the invitation, their state is PendingAcceptance.",
+    "External collaboration settings: guest user access, which can be the same as members, limited, or most restricted; who can invite, which can be anyone including guests, members and some admins, only admins and the Guest Inviter role, or no one; which domains are allowed, which can be any domain, all except a block list, or only an allow list.",
+    "Cross-tenant access settings: add inbound and outbound rules for one specific partner organisation.",
+    "Guests and Azure: you can give a guest an Azure (RBAC) role like anyone else. Check guest access regularly with access reviews, which need Entra ID P2 or ID Governance."
   ],
   "animation": {
     "id": "identity-sim",
@@ -97,27 +100,27 @@
     ]
   },
   "example": {
-    "title": "Partner access with tight controls",
+    "title": "Letting a partner in, safely",
     "body": [
-      "Contoso works with Fabrikam on a project. Collaboration restrictions allow only fabrikam.com, guest invites are limited to members, and guest access is set to limited.",
-      "Invited Fabrikam engineers get Reader on the project's resource group through a group, and a quarterly access review removes guests who no longer need access."
+      "Contoso works with Fabrikam on a project. Contoso allows only the fabrikam.com domain, lets only members send invites, and sets guest access to limited.",
+      "Fabrikam engineers are added to a group that has Reader on the project's resource group. Every three months an access review removes guests who no longer need access."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "Purchased licences (Billing > Licenses)",
-      "A usage location for users receiving direct licences",
-      "External collaboration settings reviewed before inviting"
+      "Licences you have bought (Billing > Licenses)",
+      "A usage location on users who get a licence directly",
+      "External collaboration settings checked before you invite anyone"
     ],
     "permissions": [
-      "License Administrator or User Administrator to assign licences",
-      "Guest Inviter, User Administrator, or members (depending on settings) to invite guests",
-      "Global Administrator or Security Administrator to change external collaboration settings"
+      "License Administrator or User Administrator, to give licences",
+      "Guest Inviter, User Administrator, or members if the settings allow it, to invite guests",
+      "Global Administrator or Security Administrator, to change external collaboration settings"
     ],
     "limits": [
-      "No licence inheritance through nested groups",
-      "Licences are limited by purchased quantity",
-      "B2B guest usage is billed on monthly active users beyond the free tier"
+      "Licences don't pass through to groups inside groups",
+      "You can only assign as many licences as you bought",
+      "Guests are billed by monthly active users after the free amount"
     ],
     "portal": [
       "Microsoft Entra admin center > Billing > Licenses > All products: select the product > Assign to users or groups.",
@@ -174,53 +177,53 @@
   "troubleshooting": [
     {
       "symptom": "'License cannot be assigned. Usage location is not set.'",
-      "cause": "Direct assignment to a user without usageLocation.",
-      "fix": "Set the usage location, or assign through a group (which uses the tenant location)."
+      "cause": "You gave a licence directly to a user with no usage location.",
+      "fix": "Set the usage location, or give the licence through a group (it uses the tenant's country)."
     },
     {
-      "symptom": "Group shows licence errors for some members.",
-      "cause": "Not enough licences, or conflicting service plans.",
-      "fix": "Buy or free up licences, or remove the conflicting direct licence, then Reprocess."
+      "symptom": "A group shows licence errors for some members.",
+      "cause": "There aren't enough licences, or two plans clash.",
+      "fix": "Buy or free up licences, or remove the clashing direct licence. Then click Reprocess."
     },
     {
-      "symptom": "Members of a nested group did not get licences.",
-      "cause": "Group-based licensing does not apply through nesting.",
-      "fix": "Assign the licence to the nested group or add users directly."
+      "symptom": "Members of a group inside the licensed group got no licence.",
+      "cause": "Group-based licensing doesn't pass through to groups inside groups.",
+      "fix": "License the inner group too, or add those users directly."
     },
     {
-      "symptom": "Invitation fails with a policy error.",
-      "cause": "Collaboration restrictions block the domain, or the inviter is not allowed to invite.",
-      "fix": "Update the allow/deny list or ask a Guest Inviter or admin."
+      "symptom": "An invitation fails with a policy error.",
+      "cause": "The domain is blocked, or the person inviting isn't allowed to invite.",
+      "fix": "Update the allow or block list, or ask a Guest Inviter or an admin to invite."
     }
   ],
   "comparisons": [
     {
       "service": "Microsoft Entra B2B direct connect",
-      "difference": "Mutual trust for Teams shared channels without creating guest objects; B2B collaboration creates guest users in your directory."
+      "difference": "Two organisations trust each other for Teams shared channels, and no guest records are created. B2B collaboration does create guest users in your directory."
     },
     {
       "service": "Microsoft Entra External ID for customers",
-      "difference": "Customer identity (CIAM) in a separate external tenant, not partner collaboration in your workforce tenant."
+      "difference": "For customers signing in to your apps (CIAM), kept in a separate external tenant. B2B collaboration is for partners working inside your own tenant."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Licensing a group licenses members of its nested groups.",
-      "reality": "Only direct members are licensed."
+      "myth": "Licensing a group also licenses the groups inside it.",
+      "reality": "No. Only direct members get the licence."
     },
     {
-      "myth": "Guests need an account created in your tenant with a password.",
-      "reality": "Guests authenticate with their home identity provider; your tenant holds a guest object."
+      "myth": "A guest needs an account and password created in your tenant.",
+      "reality": "No. Guests sign in with their own company or personal account. Your tenant only holds a guest record for them."
     },
     {
-      "myth": "A user with direct and group licences for the same product uses two licences.",
-      "reality": "Only one licence is consumed."
+      "myth": "A user with the same licence directly and from a group uses two licences.",
+      "reality": "No. It uses one."
     }
   ],
   "architectureDecisions": [
-    "Prefer group-based licensing driven by dynamic groups over direct assignment.",
-    "Restrict invitations to known partner domains and review guest access periodically.",
-    "Grant guests access through groups so it is easy to review and remove."
+    "Give licences through groups: use dynamic groups instead of licensing people one by one, so new starters get licences automatically.",
+    "Only invite known partners: allow only partner domains, and review guest access on a schedule.",
+    "Give guests access through groups: one group per partner makes access easy to check and easy to remove."
   ],
   "docs": [
     {

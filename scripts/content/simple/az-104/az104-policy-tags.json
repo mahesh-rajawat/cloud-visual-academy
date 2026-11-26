@@ -1,0 +1,115 @@
+{
+  "learningObjective": "Assign built-in policies at the right level. Predict what happens to new requests and to resources that already exist. Use exclusions, exemptions and enforcement mode. Apply and control tags across many resources.",
+  "engineer": [
+    "The building blocks: a definition, the rule itself (a JSON policyRule with if/then, plus parameters); an initiative, a bundle of definitions; an assignment, which puts a definition or initiative on a scope, with parameters, excluded scopes (notScopes) and an enforcement mode; an exemption, which lets one scope skip an assignment, marked Waiver or Mitigated, with an optional end date.",
+    "Order of effects on a create or update: Disabled is checked first; then Append and Modify, which can change the request; then Deny; then Audit. After the resource is created, AuditIfNotExists and DeployIfNotExists check related resources.",
+    "Why the order matters: Modify runs before Deny. So an 'inherit the tag from the resource group' policy can add the tag before a 'require a tag' policy checks it, in the same request.",
+    "All effects: Append, Audit, AuditIfNotExists, Deny, DenyAction, DeployIfNotExists, Disabled, Manual and Modify. Many built-in definitions let you pick the effect as a parameter, so the same rule can Audit in dev and Deny in prod.",
+    "Testing a Deny safely: set enforcementMode to DoNotEnforce (in the portal: Policy enforcement Disabled). Nothing is blocked or changed, but compliance is still checked and reported. You see what would break before you switch it on.",
+    "Existing resources: they are checked in compliance scans. A scan runs soon after you assign a policy, then every 24 hours. You can start one yourself with az policy state trigger-scan.",
+    "Fixing existing resources: Modify and DeployIfNotExists only fix existing resources through a remediation task. The task uses the assignment's managed identity, and that identity needs the roles listed in the definition (roleDefinitionIds).",
+    "What Policy checks: Resource Manager requests to create or update resources. Deny doesn't check deletes; use DenyAction to block deletes. Deny also doesn't check actions such as starting or stopping a VM.",
+    "Tag limits: up to 50 tags on each resource, resource group and subscription. A tag name can be 512 characters (128 on storage accounts); a value can be 256. Not every resource type supports tags.",
+    "Tag rules to remember: resources don't inherit tags from their resource group. Tags are plain text, so never put secrets in them. The Tag Contributor role can change tags without any other access to the resource.",
+    "Who can assign policy: anyone with Microsoft.Authorization/policyAssignments/write, such as Owner or Resource Policy Contributor. Contributor can't, because Microsoft.Authorization writes are removed from it."
+  ],
+  "example": {
+    "title": "Rules for location, tags and cost on a new subscription",
+    "body": [
+      "Contoso assigns 'Allowed locations' (West Europe, North Europe) on the Contoso management group, so every subscription gets it. One sandbox resource group needs another region. Instead of removing the assignment, Contoso gives that group an exemption (Waiver) that ends in 90 days.",
+      "Finance needs a costCenter tag on every resource. The platform team assigns two policies. 'Require a tag on resource groups' makes every resource group carry costCenter. 'Inherit a tag from the resource group if missing' (Modify, with a managed identity) copies it onto resources. New resources get the tag automatically, and a remediation task adds it to existing ones.",
+      "Before switching on a new Deny in production, they assign it with DoNotEnforce for a week. The compliance report shows which pipelines would break."
+    ]
+  },
+  "architectureDecisions": [
+    "Assign rules on management groups: new subscriptions follow them from day one.",
+    "Bundle related rules into initiatives: for example one tagging initiative, managed as one assignment.",
+    "Use exemptions with an end date for one-off exceptions: better than a permanent exclusion that everyone forgets.",
+    "Test every new Deny with DoNotEnforce first: read the compliance report, then switch it on."
+  ],
+  "misconceptions": [
+    {
+      "myth": "A Deny policy deletes existing resources that break the rule.",
+      "reality": "No. Existing resources are only marked non-compliant. Nothing is deleted."
+    },
+    {
+      "myth": "Tags on a resource group apply to the resources inside it.",
+      "reality": "No. Tags aren't inherited. Use a Modify policy to copy them."
+    },
+    {
+      "myth": "DoNotEnforce turns off compliance reports.",
+      "reality": "No. It stops blocking and changing, but still checks and reports."
+    },
+    {
+      "myth": "An exclusion and an exemption are the same.",
+      "reality": "No. An exclusion (notScopes) is part of the assignment. An exemption is a separate object with a reason (category), an optional end date and its own history."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure RBAC",
+      "difference": "RBAC decides who can do something. Policy decides whether the resource they create is allowed. A request must pass both."
+    },
+    {
+      "service": "Resource locks",
+      "difference": "A lock stops everyone deleting or changing one scope. Policy checks the settings of what is being created or updated."
+    },
+    {
+      "service": "AWS Organizations SCPs and AWS Config rules",
+      "difference": "SCPs limit which API calls accounts can make. Config rules check resources after the fact. Azure Policy does both jobs: blocking (Deny) and checking (Audit)."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "A deployment fails with RequestDisallowedByPolicy.",
+      "cause": "A Deny policy on this scope or a parent matched the request.",
+      "fix": "Read policyAssignmentId and policyDefinitionId in the error. Fix the template, or ask for an exemption if the exception is justified."
+    },
+    {
+      "symptom": "A new policy shows 'Not started' or no results.",
+      "cause": "The compliance check hasn't run yet.",
+      "fix": "Wait, or start a scan with az policy state trigger-scan or Start-AzPolicyComplianceScan."
+    },
+    {
+      "symptom": "Existing resources stay non-compliant under a Modify policy.",
+      "cause": "Modify only changes new create and update requests.",
+      "fix": "Create a remediation task, and check that the assignment's managed identity has the roles it needs."
+    },
+    {
+      "symptom": "A Contributor can't assign a policy.",
+      "cause": "Contributor isn't allowed policyAssignments/write.",
+      "fix": "Use Resource Policy Contributor or Owner at that scope."
+    },
+    {
+      "symptom": "Resources in a tagged resource group show no tags in cost analysis.",
+      "cause": "Resources don't inherit resource group tags.",
+      "fix": "Use an 'Inherit a tag from the resource group' Modify policy with remediation, or turn on tag inheritance in Cost Management."
+    }
+  ],
+  "configuration.limits": [
+    "Up to 200 policy or initiative assignments per scope",
+    "50 tags per resource, resource group or subscription; tag name up to 512 characters (128 for storage accounts), value up to 256",
+    "Tags aren't inherited by default"
+  ],
+  "configuration.permissions": [
+    "Microsoft.Authorization/policyAssignments/write (Owner or Resource Policy Contributor)",
+    "Microsoft.Authorization/policyDefinitions/write, to create your own definitions",
+    "To change tags: write access on the resource, or Tag Contributor"
+  ],
+  "configuration.prerequisites": [
+    "The scope ID (management group, subscription or resource group)",
+    "For Modify or DeployIfNotExists: a managed identity on the assignment, and a location for it"
+  ],
+  "from": {
+    "learningObjective": "0918d6c247e6",
+    "engineer": "9b97fa6a054e",
+    "example": "f2ad414cd1f0",
+    "architectureDecisions": "ea10923e3c41",
+    "misconceptions": "8f25d65a1550",
+    "comparisons": "90e63da1cb4c",
+    "troubleshooting": "223997f4c74a",
+    "configuration.limits": "eef0cd5e344a",
+    "configuration.permissions": "942c2ae67e61",
+    "configuration.prerequisites": "2be368a999e7"
+  }
+}

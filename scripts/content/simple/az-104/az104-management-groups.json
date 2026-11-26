@@ -1,0 +1,96 @@
+{
+  "learningObjective": "Plan and build a management group tree. Move subscriptions safely. Predict which Policy and RBAC rules apply after a move.",
+  "engineer": [
+    "Tree rules: one root management group per tenant (its ID is the tenant ID); up to six levels below the root (the root and subscriptions don't count); up to 10,000 management groups per directory; every management group and subscription has exactly one parent.",
+    "What passes down: Policy and RBAC assignments on a management group apply to everything below it: child management groups, subscriptions, resource groups and resources. You can also create budgets on a management group.",
+    "Where new subscriptions go: into the root, unless you set a default management group in Hierarchy settings.",
+    "Who can create management groups: by default, any user in the tenant. Turn on 'Require write permissions for creating new management groups' to stop that.",
+    "Moving a subscription needs: Owner on the subscription; management group write (Owner, Contributor or Management Group Contributor) on the new parent; the same on the current parent, unless the current parent is the root.",
+    "What can't change: the root can't be moved or deleted. A management group can only be deleted when it's empty. Its ID can't change, but its display name can.",
+    "Global Administrators: they have no Azure access to the root by default. They can elevate (User Access Administrator at /), give the right roles, then turn elevation off."
+  ],
+  "example": {
+    "title": "Moving an app from sandbox to production",
+    "body": [
+      "sub-app1 starts under Sandbox. There, developers have Contributor and a budget caps spending. When the app goes live, the platform team moves sub-app1 under Landing zones → Prod.",
+      "At once, the Sandbox Contributor role stops applying, and the Prod rules 'Require costCenter tag' and 'Deny public IPs' start applying. Existing public IPs aren't deleted; they show as non-compliant. That's why the team checks compliance before the move."
+    ]
+  },
+  "architectureDecisions": [
+    "Keep the tree shallow: 3 or 4 levels, built around rules (platform, landing zones, sandbox), not the company org chart.",
+    "Broad rules high, specific rules low: put company-wide rules near the top and team-specific ones further down.",
+    "Control new subscriptions: set a default management group that has rules, and require permission to create management groups."
+  ],
+  "misconceptions": [
+    {
+      "myth": "A subscription can be in several management groups.",
+      "reality": "No. Each subscription has exactly one parent."
+    },
+    {
+      "myth": "Management groups hold resources directly.",
+      "reality": "No. They hold only management groups and subscriptions."
+    },
+    {
+      "myth": "Moving a subscription causes downtime.",
+      "reality": "No. Resources keep running. Only the inherited rules and roles change."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS Organizations OUs",
+      "difference": "A similar tree of accounts. AWS SCPs limit permissions; Azure management groups carry RBAC and Policy assignments that pass down."
+    },
+    {
+      "service": "Resource groups",
+      "difference": "Resource groups hold resources in one subscription and can't nest. Management groups hold subscriptions and can nest six levels deep."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "AuthorizationFailed when moving a subscription.",
+      "cause": "You're missing Owner on the subscription, or management group write on the old or new parent.",
+      "fix": "Check Access control (IAM) on all three. Management Group Contributor gives management group write."
+    },
+    {
+      "symptom": "You can't delete a management group.",
+      "cause": "It still has management groups or subscriptions inside.",
+      "fix": "Move or delete them first."
+    },
+    {
+      "symptom": "A Global Administrator can't see management groups.",
+      "cause": "Entra roles don't give Azure access.",
+      "fix": "Elevate for a short time, give an Azure role on the root management group, then turn elevation off."
+    },
+    {
+      "symptom": "New subscriptions skip your rules.",
+      "cause": "They land in the root, or in a default management group with no policies.",
+      "fix": "In Hierarchy settings, set the default management group to one with rules (for example Sandbox)."
+    }
+  ],
+  "configuration.limits": [
+    "Six levels below the root",
+    "10,000 management groups per directory",
+    "One parent per management group or subscription"
+  ],
+  "configuration.permissions": [
+    "Microsoft.Management/managementGroups/write (Owner, Contributor or Management Group Contributor) on the parent management groups",
+    "Owner on a subscription, to move it",
+    "Write access on the root management group, to change Hierarchy settings"
+  ],
+  "configuration.prerequisites": [
+    "A planned tree (often based on Cloud Adoption Framework landing zones)",
+    "Access at the root or the management groups involved"
+  ],
+  "from": {
+    "learningObjective": "4687aa5eae81",
+    "engineer": "3136174b62f7",
+    "example": "f5aa92321063",
+    "architectureDecisions": "da2d0f2a3efa",
+    "misconceptions": "3cd42ff14f8b",
+    "comparisons": "57a9e26c80cf",
+    "troubleshooting": "9596b666ba25",
+    "configuration.limits": "c466094abb3f",
+    "configuration.permissions": "d3556f0794c8",
+    "configuration.prerequisites": "d45ecabfb01e"
+  }
+}

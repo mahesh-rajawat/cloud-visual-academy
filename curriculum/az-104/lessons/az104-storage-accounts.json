@@ -7,7 +7,7 @@
     "AZ104-2.2.4"
   ],
   "estimatedMinutes": 50,
-  "learningObjective": "Choose the right account type, performance and redundancy, set secure defaults, and configure encryption with Microsoft-managed keys, customer-managed keys, encryption scopes and infrastructure encryption.",
+  "learningObjective": "Pick the right account type, performance and redundancy. Turn on safe defaults. Set up encryption: Microsoft-managed keys, your own keys, encryption scopes and double encryption.",
   "prerequisites": [
     {
       "text": "Storage account options and storage types (AZ-900)",
@@ -25,12 +25,16 @@
     "All data is encrypted at rest automatically. You decide who manages the encryption key: Microsoft (default) or you, in Azure Key Vault."
   ],
   "engineer": [
-    "Names: 3–24 characters, lowercase letters and numbers only, globally unique. Name and performance are chosen at creation, and so is hierarchical namespace in most cases (an existing account can be upgraded one way to Data Lake Storage Gen2). Redundancy can be changed later (see the redundancy lesson for the limits).",
-    "Types: Standard GPv2 (all services, all redundancy options), Premium block blobs (LRS/ZRS; low latency, high transaction rates), Premium file shares (LRS/ZRS; SMB and NFS), and Premium page blobs (unmanaged disks / page blobs). Legacy GPv1 and BlobStorage accounts should be upgraded to GPv2.",
-    "Secure defaults: secure transfer required (HTTPS / SMB 3 encryption), minimum TLS 1.2, blob anonymous access disabled, Shared Key access disabled where possible, and default network access restricted.",
-    "Encryption at rest (SSE) uses 256-bit AES, is always on and cannot be disabled. Microsoft-managed keys are the default. Customer-managed keys (CMK) live in Azure Key Vault or Managed HSM: the vault needs soft delete and purge protection, and the account's managed identity needs get, wrapKey and unwrapKey on the key (Key Vault Crypto Service Encryption User). Enable automatic key version updates to pick up rotated keys. If the key is disabled or access is revoked, data becomes inaccessible.",
-    "Infrastructure encryption adds a second AES-256 layer with a different key at the infrastructure level. It can be enabled only when the account is created. Encryption scopes let you apply different keys (Microsoft- or customer-managed) to individual containers or blobs.",
-    "Encryption in transit is controlled by secure transfer and the minimum TLS version. Client-side encryption is done by your application with the SDK."
+    "Names: 3 to 24 characters, lowercase letters and numbers only, unique across all of Azure.",
+    "Fixed at creation: the name and the performance (Standard or Premium). Usually also hierarchical namespace, though an existing account can be upgraded once to Data Lake Storage Gen2. Redundancy can be changed later (see the redundancy lesson).",
+    "Account types: Standard GPv2, for all services and every redundancy option; Premium block blobs, LRS or ZRS, for fast blobs with lots of transactions; Premium file shares, LRS or ZRS, for SMB and NFS; Premium page blobs, for page blobs and unmanaged disks. Old GPv1 and BlobStorage accounts should be upgraded to GPv2.",
+    "Safe defaults: require secure transfer (HTTPS, and SMB 3 encryption); minimum TLS 1.2; no anonymous blob access; turn off Shared Key access where you can; limit network access.",
+    "Encryption at rest (storage service encryption, SSE): always on, 256-bit AES, and can't be turned off. Microsoft-managed keys are the default.",
+    "Your own keys (customer-managed keys, CMK): keep the key in Key Vault or Managed HSM. The vault needs soft delete and purge protection. The account's managed identity needs get, wrapKey and unwrapKey on the key (the Key Vault Crypto Service Encryption User role). Turn on automatic key version updates so rotated keys are picked up.",
+    "The CMK risk: if the key is disabled, deleted, or the identity loses access, the data can't be read.",
+    "Double encryption (infrastructure encryption): adds a second AES-256 layer with a different key. You can only turn it on when you create the account.",
+    "Encryption scopes: use a different key (Microsoft-managed or your own) for one container or blob.",
+    "Encryption in transit: set by secure transfer and minimum TLS version. Client-side encryption is done by your own app with the SDK."
   ],
   "animation": {
     "id": "storage-account-sim",
@@ -85,25 +89,25 @@
     ]
   },
   "example": {
-    "title": "A compliant data account",
+    "title": "A storage account that passes an audit",
     "body": [
-      "Regulations require customer control of keys. The team creates stfinprod01 (Standard GPv2, ZRS, minimum TLS 1.2, no anonymous access, infrastructure encryption on) with a system-assigned identity.",
-      "In a Key Vault with purge protection they create key 'st-cmk', grant the identity Key Vault Crypto Service Encryption User, and switch the account to customer-managed keys with automatic key rotation."
+      "The rules say the company must control the keys. The team creates stfinprod01: Standard GPv2, ZRS, minimum TLS 1.2, no anonymous access, double encryption on, and a system-assigned identity.",
+      "In a Key Vault with purge protection, they create the key 'st-cmk'. They give the account's identity the Key Vault Crypto Service Encryption User role. Then they switch the account to customer-managed keys, with automatic key rotation."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "Resource group and region",
-      "For CMK: Key Vault with soft delete and purge protection, a managed identity"
+      "A resource group and a region",
+      "For your own keys: a Key Vault with soft delete and purge protection, and a managed identity"
     ],
     "permissions": [
-      "Storage Account Contributor to create and configure accounts",
-      "Key Vault Crypto Officer (or equivalent) to create keys; role assignment rights to grant the identity access"
+      "Storage Account Contributor, to create and set up accounts",
+      "Key Vault Crypto Officer (or similar) to create keys, and the right to give the identity a role"
     ],
     "limits": [
-      "Name 3–24 lowercase letters and numbers",
-      "Infrastructure encryption only at creation",
-      "Premium accounts: LRS/ZRS only"
+      "Name: 3 to 24 lowercase letters and numbers",
+      "Double encryption only at creation",
+      "Premium accounts: LRS or ZRS only"
     ],
     "portal": [
       "Storage accounts > Create > Basics: subscription, resource group, name, region, performance (Standard/Premium and premium account type), redundancy.",
@@ -159,53 +163,53 @@
   "troubleshooting": [
     {
       "symptom": "'The storage account name is already taken.'",
-      "cause": "Names are global.",
-      "fix": "Add a unique suffix; check with az storage account check-name."
+      "cause": "Names must be unique across all of Azure.",
+      "fix": "Add a unique ending. Check first with az storage account check-name."
     },
     {
-      "symptom": "Data becomes inaccessible (403 KeyVaultEncryptionKeyNotFound or similar).",
-      "cause": "The CMK was disabled or deleted, or identity access was removed.",
-      "fix": "Restore or re-enable the key (soft delete) and the identity's access."
+      "symptom": "Data can't be read (403 KeyVaultEncryptionKeyNotFound or similar).",
+      "cause": "The customer-managed key was disabled or deleted, or the identity lost access.",
+      "fix": "Restore or re-enable the key (soft delete helps here), and give the identity its access back."
     },
     {
-      "symptom": "Cannot enable infrastructure encryption on an existing account.",
-      "cause": "Creation-time-only setting.",
-      "fix": "Create a new account and migrate data (AzCopy, object replication)."
+      "symptom": "You can't turn on double encryption on an existing account.",
+      "cause": "It can only be set when the account is created.",
+      "fix": "Create a new account and move the data (AzCopy or object replication)."
     },
     {
-      "symptom": "Clients fail after setting minimum TLS 1.2.",
-      "cause": "Legacy clients use TLS 1.0/1.1.",
-      "fix": "Update clients; check storage logs for the TLS version used."
+      "symptom": "Some apps fail after setting minimum TLS 1.2.",
+      "cause": "Those apps still use TLS 1.0 or 1.1.",
+      "fix": "Update the apps. Storage logs show which TLS version each request used."
     }
   ],
   "comparisons": [
     {
       "service": "Amazon S3 SSE-S3 / SSE-KMS",
-      "difference": "Comparable to Microsoft-managed vs customer-managed keys; S3 configures encryption per bucket, Azure per account (or per encryption scope)."
+      "difference": "Like Microsoft-managed keys versus your own keys. S3 sets encryption per bucket; Azure sets it per account (or per encryption scope)."
     },
     {
       "service": "Azure Disk Encryption",
-      "difference": "Encrypts the OS/data volumes inside the VM with BitLocker/DM-Crypt; storage service encryption protects the storage platform layer."
+      "difference": "Encrypts the disks from inside the VM, with BitLocker or DM-Crypt. Storage encryption protects the data in Azure's storage layer."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Encryption at rest must be enabled.",
-      "reality": "It is always on and cannot be disabled."
+      "myth": "You must turn on encryption at rest.",
+      "reality": "No. It's always on and can't be turned off."
     },
     {
-      "myth": "CMK protects data from Microsoft operators in transit.",
-      "reality": "CMK controls the at-rest key; TLS protects data in transit."
+      "myth": "Customer-managed keys protect data while it travels over the network.",
+      "reality": "No. CMK only controls the key for stored data. TLS protects data in transit."
     },
     {
       "myth": "You can switch a GPv2 account to Premium later.",
-      "reality": "Performance and account kind are fixed; create a new account and copy data."
+      "reality": "No. Performance and account type are fixed. Create a new account and copy the data."
     }
   ],
   "architectureDecisions": [
-    "Standard GPv2 by default; Premium only for latency-sensitive block blob or file workloads.",
-    "Use CMK when regulations require key control, and plan key availability carefully.",
-    "Enforce secure settings (TLS 1.2, no anonymous access, no Shared Key) with Azure Policy."
+    "Standard GPv2 by default: choose Premium only when blobs or files need very low latency.",
+    "Your own keys only when rules require it: and plan carefully, because if the key is lost, the data is lost.",
+    "Make safe settings required: use Azure Policy to require TLS 1.2, no anonymous access and no Shared Key."
   ],
   "docs": [
     {

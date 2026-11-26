@@ -6,7 +6,7 @@
     "AZ104-1.3.7"
   ],
   "estimatedMinutes": 35,
-  "learningObjective": "Design and configure a management group hierarchy, move subscriptions safely, and predict how Policy and RBAC inheritance change.",
+  "learningObjective": "Plan and build a management group tree. Move subscriptions safely. Predict which Policy and RBAC rules apply after a move.",
   "prerequisites": [
     {
       "text": "Management groups and the scope hierarchy (AZ-900)",
@@ -29,12 +29,13 @@
     "Moving a subscription from one folder to another changes which rules apply to it straight away."
   ],
   "engineer": [
-    "Hierarchy rules: one root management group per tenant, whose ID is the tenant ID. Up to six levels of depth below the root (not counting the root or subscription levels), up to 10,000 management groups per directory, and each management group or subscription has exactly one parent.",
-    "Azure Policy and Azure RBAC assignments at a management group are inherited by all child management groups, subscriptions, resource groups and resources. Budgets can also be created at management group scope.",
-    "New subscriptions land in the root management group unless you configure a default management group in Hierarchy settings. 'Require write permissions for creating new management groups' stops any user from creating management groups (by default any user in the tenant can create one).",
-    "Moving a subscription needs Owner on the subscription (write and role-assignment write), plus management group write (Owner, Contributor or Management Group Contributor) on the target parent and on the current parent. When the current parent is the root, no check is needed on it.",
-    "The root management group cannot be moved or deleted. A management group can be deleted only when it has no children. Management group IDs cannot be changed; display names can.",
-    "A Global Administrator has no Azure access to the root by default. They can elevate access (User Access Administrator at root scope /), grant the right roles, and then remove the elevation."
+    "Tree rules: one root management group per tenant (its ID is the tenant ID); up to six levels below the root (the root and subscriptions don't count); up to 10,000 management groups per directory; every management group and subscription has exactly one parent.",
+    "What passes down: Policy and RBAC assignments on a management group apply to everything below it: child management groups, subscriptions, resource groups and resources. You can also create budgets on a management group.",
+    "Where new subscriptions go: into the root, unless you set a default management group in Hierarchy settings.",
+    "Who can create management groups: by default, any user in the tenant. Turn on 'Require write permissions for creating new management groups' to stop that.",
+    "Moving a subscription needs: Owner on the subscription; management group write (Owner, Contributor or Management Group Contributor) on the new parent; the same on the current parent, unless the current parent is the root.",
+    "What can't change: the root can't be moved or deleted. A management group can only be deleted when it's empty. Its ID can't change, but its display name can.",
+    "Global Administrators: they have no Azure access to the root by default. They can elevate (User Access Administrator at /), give the right roles, then turn elevation off."
   ],
   "animation": {
     "id": "hierarchy-sim",
@@ -110,24 +111,24 @@
     ]
   },
   "example": {
-    "title": "Promoting an app from sandbox to production",
+    "title": "Moving an app from sandbox to production",
     "body": [
-      "sub-app1 starts under Sandbox, where developers have Contributor and spending is capped by a budget. When the app goes live, the platform team moves sub-app1 under Landing zones → Prod.",
-      "Immediately the Sandbox Contributor assignment no longer applies, while 'Require costCenter tag' and 'Deny public IPs' do. Existing public IPs are not deleted; they show as non-compliant. That is why the team runs a compliance review before the move."
+      "sub-app1 starts under Sandbox. There, developers have Contributor and a budget caps spending. When the app goes live, the platform team moves sub-app1 under Landing zones → Prod.",
+      "At once, the Sandbox Contributor role stops applying, and the Prod rules 'Require costCenter tag' and 'Deny public IPs' start applying. Existing public IPs aren't deleted; they show as non-compliant. That's why the team checks compliance before the move."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "A planned hierarchy (often aligned with Cloud Adoption Framework landing zones)",
-      "Access at the root or relevant management groups"
+      "A planned tree (often based on Cloud Adoption Framework landing zones)",
+      "Access at the root or the management groups involved"
     ],
     "permissions": [
-      "Microsoft.Management/managementGroups/write (Owner, Contributor or Management Group Contributor) on parent management groups",
-      "Owner on a subscription to move it",
-      "Hierarchy settings require write access on the root management group"
+      "Microsoft.Management/managementGroups/write (Owner, Contributor or Management Group Contributor) on the parent management groups",
+      "Owner on a subscription, to move it",
+      "Write access on the root management group, to change Hierarchy settings"
     ],
     "limits": [
-      "Six levels of depth below the root",
+      "Six levels below the root",
       "10,000 management groups per directory",
       "One parent per management group or subscription"
     ],
@@ -179,53 +180,53 @@
   "troubleshooting": [
     {
       "symptom": "AuthorizationFailed when moving a subscription.",
-      "cause": "Missing Owner on the subscription or management group write on the source or target parent.",
-      "fix": "Check IAM at all three scopes; the Management Group Contributor role covers management group write."
+      "cause": "You're missing Owner on the subscription, or management group write on the old or new parent.",
+      "fix": "Check Access control (IAM) on all three. Management Group Contributor gives management group write."
     },
     {
-      "symptom": "Cannot delete a management group.",
-      "cause": "It still has child management groups or subscriptions.",
-      "fix": "Move or delete the children first."
+      "symptom": "You can't delete a management group.",
+      "cause": "It still has management groups or subscriptions inside.",
+      "fix": "Move or delete them first."
     },
     {
-      "symptom": "A Global Administrator cannot see management groups.",
-      "cause": "Entra roles do not grant Azure RBAC.",
-      "fix": "Elevate access temporarily, assign an Azure role at the root management group, then remove the elevation."
+      "symptom": "A Global Administrator can't see management groups.",
+      "cause": "Entra roles don't give Azure access.",
+      "fix": "Elevate for a short time, give an Azure role on the root management group, then turn elevation off."
     },
     {
-      "symptom": "New subscriptions bypass guardrails.",
-      "cause": "They land in the root, or in a default management group without policies.",
-      "fix": "Set the default management group in Hierarchy settings to a governed group (for example Sandbox)."
+      "symptom": "New subscriptions skip your rules.",
+      "cause": "They land in the root, or in a default management group with no policies.",
+      "fix": "In Hierarchy settings, set the default management group to one with rules (for example Sandbox)."
     }
   ],
   "comparisons": [
     {
       "service": "AWS Organizations OUs",
-      "difference": "Comparable hierarchy of accounts; SCPs restrict permissions, whereas Azure management groups carry RBAC and Policy assignments that inherit."
+      "difference": "A similar tree of accounts. AWS SCPs limit permissions; Azure management groups carry RBAC and Policy assignments that pass down."
     },
     {
       "service": "Resource groups",
-      "difference": "Resource groups contain resources within one subscription and cannot nest; management groups contain subscriptions and can nest six levels deep."
+      "difference": "Resource groups hold resources in one subscription and can't nest. Management groups hold subscriptions and can nest six levels deep."
     }
   ],
   "misconceptions": [
     {
-      "myth": "A subscription can belong to several management groups.",
-      "reality": "Each subscription has exactly one parent management group."
+      "myth": "A subscription can be in several management groups.",
+      "reality": "No. Each subscription has exactly one parent."
     },
     {
-      "myth": "Management groups contain resources directly.",
-      "reality": "They contain management groups and subscriptions only."
+      "myth": "Management groups hold resources directly.",
+      "reality": "No. They hold only management groups and subscriptions."
     },
     {
-      "myth": "Moving a subscription requires downtime.",
-      "reality": "Resources keep running; only the governance inherited from management groups changes."
+      "myth": "Moving a subscription causes downtime.",
+      "reality": "No. Resources keep running. Only the inherited rules and roles change."
     }
   ],
   "architectureDecisions": [
-    "Keep the hierarchy shallow (3–4 levels) and organised by governance needs (platform, landing zones, sandbox), not by org chart.",
-    "Assign broad guardrails at higher levels and specific ones lower down.",
-    "Set a governed default management group for new subscriptions and require write permission to create management groups."
+    "Keep the tree shallow: 3 or 4 levels, built around rules (platform, landing zones, sandbox), not the company org chart.",
+    "Broad rules high, specific rules low: put company-wide rules near the top and team-specific ones further down.",
+    "Control new subscriptions: set a default management group that has rules, and require permission to create management groups."
   ],
   "docs": [
     {

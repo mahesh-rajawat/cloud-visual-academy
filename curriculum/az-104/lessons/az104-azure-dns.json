@@ -6,7 +6,7 @@
     "AZ104-4.3.1"
   ],
   "estimatedMinutes": 40,
-  "learningObjective": "Host public DNS zones in Azure DNS, delegate domains, manage record sets including alias records, and configure private DNS zones with virtual network links and autoregistration.",
+  "learningObjective": "Host public DNS zones in Azure DNS, hand a domain over to Azure (delegation), manage record sets including alias records, and set up private DNS zones with VNet links and autoregistration.",
   "prerequisites": [
     {
       "text": "Virtual networks and subnets",
@@ -19,11 +19,17 @@
     "Public zones answer internet queries. Private DNS zones answer only for VNets you link to them."
   ],
   "engineer": [
-    "Delegation: buying a domain stays with your registrar; after creating the zone in Azure, update the domain's NS records at the registrar to the four Azure name servers shown on the zone (ns1-0x.azure-dns.com/.net/.org/.info). Child zones are delegated with NS records in the parent zone.",
-    "Record sets: A, AAAA, CNAME, MX, NS, PTR, SOA, SRV, TXT, CAA. A CNAME can't be at the zone apex (@) and can't share a name with other records. Alias records (A/AAAA/CNAME) point to Azure resources (public IP, Traffic Manager, Front Door, another record set) and can be used at the apex; they update automatically when the resource's IP changes.",
-    "TTL (seconds) controls how long resolvers cache answers; lower it before planned changes. Azure DNS doesn't sell domain names: buy them from a registrar (or App Service domains).",
-    "Private DNS zones: link to VNets with virtual network links. Autoregistration on a link creates A records for VMs in that VNet; a VNet can have autoregistration with only one private zone but can be linked (resolution) to many. Resolution needs Azure-provided DNS (168.63.129.16) or custom DNS servers that forward to it.",
-    "Azure DNS Private Resolver provides inbound/outbound endpoints for hybrid name resolution without DNS VMs."
+    "Delegating a domain: you still buy the domain from a registrar. Create the zone in Azure, then change the domain's NS records at the registrar to the four Azure name servers shown on the zone (ns1-0x.azure-dns.com, .net, .org, .info).",
+    "Child zones: to hand a subdomain to another zone, add NS records for it in the parent zone.",
+    "Record types: A; AAAA; CNAME; MX; NS; PTR; SOA; SRV; TXT; CAA.",
+    "CNAME rules: a CNAME can't be at the root of the zone (@), and can't share its name with any other record.",
+    "Alias records (A, AAAA or CNAME): point straight at an Azure resource (a public IP, Traffic Manager, Front Door, or another record set). They can be used at the root, and update by themselves when the resource's IP changes.",
+    "TTL: how many seconds other DNS servers keep (cache) an answer. Lower it before a planned change.",
+    "Buying domains: Azure DNS doesn't sell domain names. Buy them from a registrar (or App Service domains).",
+    "Private DNS zones: connect a zone to VNets with virtual network links.",
+    "Autoregistration: turn it on in a link, and VMs in that VNet get A records automatically. A VNet can autoregister in only one private zone, but can be linked (to look up names) to many.",
+    "Private zones need Azure DNS: VMs must use Azure-provided DNS (168.63.129.16), or your own DNS servers must forward to it.",
+    "Azure DNS Private Resolver: inbound and outbound endpoints, so on-premises and Azure can look up each other's names without running DNS VMs."
   ],
   "animation": {
     "id": "dns-lb-sim",
@@ -87,7 +93,7 @@
   "example": {
     "title": "Moving contoso.com to Azure DNS",
     "body": [
-      "The team creates the zone, recreates all records, lowers TTLs, then switches NS records at the registrar. The apex points to the web load balancer's public IP with an alias A record, so it follows IP changes automatically."
+      "The team creates the zone, copies all the records, lowers the TTLs, then changes the NS records at the registrar. The root name points to the web load balancer's public IP with an alias A record, so it follows IP changes by itself."
     ]
   },
   "configuration": {
@@ -95,7 +101,7 @@
       "An Azure subscription and a resource group (rg-net)"
     ],
     "permissions": [
-      "DNS Zone Contributor for public zones; Private DNS Zone Contributor for private zones (plus Network Contributor on the VNet to link)"
+      "DNS Zone Contributor for public zones; Private DNS Zone Contributor for private zones (plus Network Contributor on the VNet to link it)"
     ],
     "limits": [
       "Autoregistration: one private zone per VNet",
@@ -154,45 +160,45 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Records exist in Azure but the internet sees old values.",
-      "cause": "Domain not delegated, or old TTL still cached.",
-      "fix": "Update NS at the registrar; wait for TTL."
+      "symptom": "The records are right in Azure, but the internet still sees old values.",
+      "cause": "The domain isn't delegated yet, or old answers are still cached (TTL).",
+      "fix": "Update NS records at the registrar, and wait for the TTL."
     },
     {
-      "symptom": "Cannot create a CNAME at @.",
-      "cause": "DNS standard forbids it.",
+      "symptom": "You can't create a CNAME at @.",
+      "cause": "DNS rules don't allow it.",
       "fix": "Use an alias record."
     },
     {
-      "symptom": "VMs can't resolve private zone names.",
-      "cause": "No virtual network link, or custom DNS not forwarding to 168.63.129.16.",
-      "fix": "Link the VNet; configure forwarding."
+      "symptom": "VMs can't resolve names in a private zone.",
+      "cause": "No VNet link, or your own DNS server doesn't forward to 168.63.129.16.",
+      "fix": "Link the VNet, and set up forwarding."
     }
   ],
   "comparisons": [
     {
       "service": "Amazon Route 53",
-      "difference": "AWS DNS with public and private hosted zones; alias records are similar."
+      "difference": "AWS DNS, with public and private hosted zones. Its alias records are similar."
     },
     {
       "service": "Azure-provided DNS",
-      "difference": "Resolves VM names within one VNet only; private zones span VNets with custom names."
+      "difference": "Only resolves VM names inside one VNet. Private zones work across VNets, with your own names."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Azure DNS makes you the domain's registrar.",
-      "reality": "You still buy the domain from a registrar (or App Service Domains)."
+      "myth": "Azure DNS makes Azure your domain registrar.",
+      "reality": "No. You still buy the domain from a registrar (or App Service domains)."
     },
     {
-      "myth": "Autoregistration can be enabled in many zones for one VNet.",
-      "reality": "Only one autoregistration zone per VNet."
+      "myth": "One VNet can autoregister in many private zones.",
+      "reality": "No. Only one autoregistration zone per VNet."
     }
   ],
   "architectureDecisions": [
-    "Use alias records for apex records pointing to Azure resources.",
-    "Centralise private DNS zones and link spokes.",
-    "Use DNS Private Resolver for hybrid resolution."
+    "Root names that point at Azure resources: use alias records.",
+    "Private zones in one place: keep them in the hub and link the spokes.",
+    "Office and Azure name lookups: use DNS Private Resolver."
   ],
   "docs": [
     {

@@ -6,7 +6,7 @@
     "AZ104-4.1.5"
   ],
   "estimatedMinutes": 35,
-  "learningObjective": "Diagnose connectivity problems between Azure resources using effective routes and security rules and Network Watcher tools.",
+  "learningObjective": "Find why two Azure resources can't connect, using effective routes, effective security rules and Network Watcher tools.",
   "prerequisites": [
     {
       "text": "NSGs and ASGs",
@@ -24,12 +24,15 @@
     "Network Watcher is Azure's built-in toolkit for this. It's enabled automatically per region."
   ],
   "engineer": [
-    "IP flow verify: tests a 5-tuple against the NIC's NSGs and returns Allow/Deny plus the rule name.",
-    "NSG diagnostics: like IP flow verify, but evaluates NSGs at the subnet and NIC levels for a flow and shows each.",
-    "Next hop: returns the next hop type, IP and route table for a destination from a VM.",
-    "Effective security rules / effective routes (on the NIC): the merged view Azure actually applies.",
-    "Connection troubleshoot: an end-to-end TCP/ICMP test from a VM (or Bastion/App Gateway) to a destination, reporting hops, latency and the failing component, including when the destination doesn't respond (for example a stopped service).",
-    "Packet capture records traffic on a VM; VNet flow logs record IP flows for analysis (NSG flow logs are being retired: new ones can't be created after 30 June 2025). Connection troubleshoot and packet capture need the Network Watcher agent VM extension."
+    "IP flow verify: tests one 5-tuple against the VM's NSGs (subnet and network card, NIC). Answers Allow or Deny, and names the rule.",
+    "NSG diagnostics: like IP flow verify, but shows the result at the subnet level and the network card level separately.",
+    "Next hop: for a destination, shows where a VM sends the traffic: the next hop type, its IP, and which route table decided.",
+    "Effective security rules and effective routes (on the network card): what Azure really applies, with everything merged.",
+    "Connection troubleshoot: a real TCP or ICMP test from a VM (or Bastion, or Application Gateway) to a destination. It shows each hop, the delay, and what failed, including when the destination simply doesn't answer (for example a stopped service).",
+    "Packet capture: records the traffic on a VM.",
+    "VNet flow logs: record IP flows for later analysis. NSG flow logs are being retired: you can't create new ones after 30 June 2025.",
+    "Agent needed: Connection troubleshoot and packet capture need the Network Watcher agent extension on the VM.",
+    "Check in this order: NSG outbound; route; NSG inbound; the OS firewall; the app."
   ],
   "animation": {
     "id": "network-routing-sim",
@@ -112,7 +115,7 @@
   "example": {
     "title": "An app can't reach its database",
     "body": [
-      "IP flow verify reports Allow. Next hop shows VnetLocal. Connection troubleshoot reports the destination port is not reachable: the SQL Server service had stopped after patching."
+      "IP flow verify says Allow. Next hop says VnetLocal, so routing is fine. Connection troubleshoot says the destination port isn't reachable. The cause: the SQL Server service had stopped after patching."
     ]
   },
   "configuration": {
@@ -120,7 +123,7 @@
       "An Azure subscription and a resource group (rg-net)"
     ],
     "permissions": [
-      "Network Contributor, or a custom role with Network Watcher permissions plus read on the VMs"
+      "Network Contributor, or a custom role with Network Watcher permissions plus read access to the VMs"
     ],
     "limits": [
       "See Azure networking limits in the subscription service limits page"
@@ -171,39 +174,39 @@
   },
   "troubleshooting": [
     {
-      "symptom": "IP flow verify says Allow but the connection fails.",
-      "cause": "Problem is routing, guest firewall or the app.",
+      "symptom": "IP flow verify says Allow, but the connection fails.",
+      "cause": "The problem is routing, the OS firewall or the app.",
       "fix": "Use Next hop and Connection troubleshoot."
     },
     {
-      "symptom": "Connection troubleshoot fails to start.",
-      "cause": "Network Watcher agent extension missing.",
-      "fix": "Install the extension (it installs automatically when possible)."
+      "symptom": "Connection troubleshoot won't start.",
+      "cause": "The Network Watcher agent extension is missing.",
+      "fix": "Install the extension (Azure installs it automatically when it can)."
     }
   ],
   "comparisons": [
     {
       "service": "AWS Reachability Analyzer and VPC Flow Logs",
-      "difference": "AWS equivalents for path analysis and flow logging."
+      "difference": "AWS's tools for path checks and flow logs."
     },
     {
       "service": "ping/tcping inside the VM",
-      "difference": "Tests from the guest, but doesn't show which Azure rule blocks traffic."
+      "difference": "Tests from inside the VM, but doesn't tell you which Azure rule blocks the traffic."
     }
   ],
   "misconceptions": [
     {
       "myth": "If NSGs allow it, the app must be reachable.",
-      "reality": "Routes, guest firewalls and the application can still block it."
+      "reality": "No. Routes, the OS firewall and the app itself can still block it."
     },
     {
-      "myth": "Network Watcher must be bought separately.",
-      "reality": "It's enabled automatically; some features (flow logs, Connection Monitor) incur charges."
+      "myth": "You have to buy Network Watcher separately.",
+      "reality": "No. It's turned on automatically. Some features (flow logs, Connection Monitor) cost money."
     }
   ],
   "architectureDecisions": [
-    "Troubleshoot hop by hop: NSG out, route, NSG in, guest, app.",
-    "Enable VNet flow logs on critical networks before incidents happen."
+    "Check one hop at a time: NSG out, route, NSG in, OS, app.",
+    "Turn on VNet flow logs early: on important networks, before anything goes wrong."
   ],
   "docs": [
     {

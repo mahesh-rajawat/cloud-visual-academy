@@ -7,7 +7,7 @@
     "AZ104-4.3.3"
   ],
   "estimatedMinutes": 50,
-  "learningObjective": "Configure a public or internal Standard load balancer with frontends, backend pools, health probes and rules, and troubleshoot load balancing failures.",
+  "learningObjective": "Set up a public or internal Standard load balancer with a frontend, backend pool, health probe and rules, and fix load balancing problems.",
   "prerequisites": [
     {
       "text": "NSGs and ASGs",
@@ -25,11 +25,14 @@
     "Public load balancer: internet traffic to a public frontend IP. Internal load balancer: traffic inside the VNet (or from peered/on-premises networks) to a private frontend IP."
   ],
   "engineer": [
-    "Components: frontend IP configuration, backend pool (NICs or IP addresses in one VNet), health probe (TCP, HTTP or HTTPS, interval and threshold), load-balancing rule (frontend port → backend port, protocol, probe, session persistence: None (5-tuple), Client IP, or Client IP and protocol), inbound NAT rules (port-forward to one VM), and outbound rules.",
-    "SKU: Standard (Basic was retired on 30 September 2025). Standard is zone-redundant or zonal, secure by default (backend NSG must allow traffic), supports HA ports on internal load balancers and gives multi-dimensional metrics.",
-    "Health probes come from 168.63.129.16 (service tag AzureLoadBalancer). The default NSG rule AllowAzureLoadBalancerInBound allows them; a custom deny rule with higher priority breaks probing. Instances failing the probe stop receiving new flows.",
-    "Troubleshooting: Health Probe Status and Data Path Availability metrics, Load Balancer Insights, check that the app listens on the probe port/path (HTTP probe needs 200), guest firewall, NSGs, backend in the pool, and that clients aren't backend members calling their own internal frontend (not supported for the same VM).",
-    "Choose Application Gateway for layer 7 (paths, TLS, WAF), Front Door for global HTTP, Traffic Manager for DNS-based global routing."
+    "The parts: frontend IP, the address clients connect to; backend pool, the VMs' network cards (NICs) or IP addresses (all in one VNet); health probe, which checks each VM (TCP, HTTP or HTTPS, every few seconds); load-balancing rule, which sends a frontend port to a backend port; inbound NAT rule, which forwards one port to one VM; outbound rule, for outbound internet.",
+    "Session persistence (on the rule): None, the default, which spreads by 5-tuple; Client IP, so the same client always goes to the same VM; Client IP and protocol.",
+    "SKU: Standard only (Basic was retired on 30 September 2025). Standard can be zone-redundant or zonal, gives detailed metrics, and supports HA ports on internal load balancers.",
+    "Standard is closed by default: the backend VMs' NSGs must allow the client traffic.",
+    "Health probes come from 168.63.129.16 (service tag AzureLoadBalancer). The default NSG rule AllowAzureLoadBalancerInBound allows them. Your own deny rule with a lower number can block them. A VM that fails the probe gets no new connections.",
+    "Checking problems: the Health Probe Status and Data Path Availability metrics; Load Balancer Insights; the app listens on the probe port and path (an HTTP probe needs a 200 reply); the OS firewall; NSGs; the VM is in the backend pool.",
+    "A known limit: a backend VM can't call its own internal load balancer's frontend and land on itself.",
+    "Other load balancers: Application Gateway for layer 7 (URL paths, TLS, WAF); Front Door for global HTTP; Traffic Manager for global routing using DNS."
   ],
   "animation": {
     "id": "dns-lb-sim",
@@ -107,8 +110,8 @@
   "example": {
     "title": "Three web servers across zones",
     "body": [
-      "A zone-redundant public Standard load balancer fronts three VMs in zones 1–3 with an HTTP probe on /health. During patching, one VM fails the probe and is removed from rotation automatically; users don't notice.",
-      "An internal load balancer fronts the SQL tier with HA ports for an availability group listener."
+      "A zone-redundant public Standard load balancer sits in front of three VMs in zones 1, 2 and 3, with an HTTP probe on /health. During patching, one VM fails the probe and is taken out automatically. Users don't notice.",
+      "An internal load balancer with HA ports sits in front of the SQL tier, for the availability group listener."
     ]
   },
   "configuration": {
@@ -181,50 +184,50 @@
   },
   "troubleshooting": [
     {
-      "symptom": "All backends unhealthy.",
-      "cause": "Probe port/path wrong, app down, or NSG/guest firewall blocks 168.63.129.16.",
-      "fix": "Fix the probe, allow AzureLoadBalancer, check the app returns 200."
+      "symptom": "All backends are unhealthy.",
+      "cause": "Wrong probe port or path, the app is down, or an NSG or OS firewall blocks 168.63.129.16.",
+      "fix": "Fix the probe, allow AzureLoadBalancer, and check the app returns 200."
     },
     {
-      "symptom": "Clients time out on a public Standard LB.",
-      "cause": "Backend NSG doesn't allow the client traffic.",
+      "symptom": "Clients time out on a public Standard load balancer.",
+      "cause": "The backend NSG doesn't allow the client traffic.",
       "fix": "Add an inbound allow rule."
     },
     {
       "symptom": "Traffic always goes to one VM.",
-      "cause": "Session persistence Client IP with few clients, or others unhealthy.",
-      "fix": "Check probe status and distribution mode."
+      "cause": "Session persistence is Client IP and there are few clients, or the other VMs are unhealthy.",
+      "fix": "Check probe status and the persistence setting."
     },
     {
-      "symptom": "A backend VM can't reach the internal LB frontend.",
-      "cause": "Backend calling its own frontend isn't supported.",
-      "fix": "Call the service directly or use a separate client."
+      "symptom": "A backend VM can't reach the internal load balancer's frontend.",
+      "cause": "A backend VM calling its own frontend isn't supported.",
+      "fix": "Call the service directly, or test from a separate client VM."
     }
   ],
   "comparisons": [
     {
       "service": "Application Gateway",
-      "difference": "Layer 7 regional with path routing, TLS and WAF."
+      "difference": "Layer 7, in one region, with URL path routing, TLS and a web application firewall."
     },
     {
       "service": "AWS Network Load Balancer",
-      "difference": "AWS layer 4 equivalent; Application Load Balancer is layer 7."
+      "difference": "AWS's layer 4 load balancer. The AWS Application Load Balancer is layer 7."
     }
   ],
   "misconceptions": [
     {
       "myth": "Load Balancer can route by URL path.",
-      "reality": "It's layer 4; use Application Gateway."
+      "reality": "No. It works at layer 4 (IP and port). Use Application Gateway for paths."
     },
     {
-      "myth": "Standard LB allows traffic without NSGs.",
-      "reality": "Standard is secure by default; NSGs must allow traffic."
+      "myth": "A Standard load balancer lets traffic in without NSGs.",
+      "reality": "No. Standard is closed by default. NSGs must allow the traffic."
     }
   ],
   "architectureDecisions": [
-    "Use zone-redundant Standard load balancers for production.",
-    "Use HTTP probes on a health endpoint that checks dependencies lightly.",
-    "Use NAT gateway or outbound rules for predictable outbound."
+    "Production: zone-redundant Standard load balancers.",
+    "Probe a health page: an HTTP probe on an endpoint that lightly checks the app's dependencies.",
+    "Predictable outbound: use a NAT gateway or outbound rules."
   ],
   "docs": [
     {

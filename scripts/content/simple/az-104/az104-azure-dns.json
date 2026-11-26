@@ -1,0 +1,82 @@
+{
+  "learningObjective": "Host public DNS zones in Azure DNS, hand a domain over to Azure (delegation), manage record sets including alias records, and set up private DNS zones with VNet links and autoregistration.",
+  "engineer": [
+    "Delegating a domain: you still buy the domain from a registrar. Create the zone in Azure, then change the domain's NS records at the registrar to the four Azure name servers shown on the zone (ns1-0x.azure-dns.com, .net, .org, .info).",
+    "Child zones: to hand a subdomain to another zone, add NS records for it in the parent zone.",
+    "Record types: A; AAAA; CNAME; MX; NS; PTR; SOA; SRV; TXT; CAA.",
+    "CNAME rules: a CNAME can't be at the root of the zone (@), and can't share its name with any other record.",
+    "Alias records (A, AAAA or CNAME): point straight at an Azure resource (a public IP, Traffic Manager, Front Door, or another record set). They can be used at the root, and update by themselves when the resource's IP changes.",
+    "TTL: how many seconds other DNS servers keep (cache) an answer. Lower it before a planned change.",
+    "Buying domains: Azure DNS doesn't sell domain names. Buy them from a registrar (or App Service domains).",
+    "Private DNS zones: connect a zone to VNets with virtual network links.",
+    "Autoregistration: turn it on in a link, and VMs in that VNet get A records automatically. A VNet can autoregister in only one private zone, but can be linked (to look up names) to many.",
+    "Private zones need Azure DNS: VMs must use Azure-provided DNS (168.63.129.16), or your own DNS servers must forward to it.",
+    "Azure DNS Private Resolver: inbound and outbound endpoints, so on-premises and Azure can look up each other's names without running DNS VMs."
+  ],
+  "example": {
+    "title": "Moving contoso.com to Azure DNS",
+    "body": [
+      "The team creates the zone, copies all the records, lowers the TTLs, then changes the NS records at the registrar. The root name points to the web load balancer's public IP with an alias A record, so it follows IP changes by itself."
+    ]
+  },
+  "architectureDecisions": [
+    "Root names that point at Azure resources: use alias records.",
+    "Private zones in one place: keep them in the hub and link the spokes.",
+    "Office and Azure name lookups: use DNS Private Resolver."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Azure DNS makes Azure your domain registrar.",
+      "reality": "No. You still buy the domain from a registrar (or App Service domains)."
+    },
+    {
+      "myth": "One VNet can autoregister in many private zones.",
+      "reality": "No. Only one autoregistration zone per VNet."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon Route 53",
+      "difference": "AWS DNS, with public and private hosted zones. Its alias records are similar."
+    },
+    {
+      "service": "Azure-provided DNS",
+      "difference": "Only resolves VM names inside one VNet. Private zones work across VNets, with your own names."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "The records are right in Azure, but the internet still sees old values.",
+      "cause": "The domain isn't delegated yet, or old answers are still cached (TTL).",
+      "fix": "Update NS records at the registrar, and wait for the TTL."
+    },
+    {
+      "symptom": "You can't create a CNAME at @.",
+      "cause": "DNS rules don't allow it.",
+      "fix": "Use an alias record."
+    },
+    {
+      "symptom": "VMs can't resolve names in a private zone.",
+      "cause": "No VNet link, or your own DNS server doesn't forward to 168.63.129.16.",
+      "fix": "Link the VNet, and set up forwarding."
+    }
+  ],
+  "configuration.limits": [
+    "Autoregistration: one private zone per VNet",
+    "Record sets per zone: see Azure DNS limits"
+  ],
+  "configuration.permissions": [
+    "DNS Zone Contributor for public zones; Private DNS Zone Contributor for private zones (plus Network Contributor on the VNet to link it)"
+  ],
+  "from": {
+    "learningObjective": "55e87af20cab",
+    "engineer": "0a97549e029d",
+    "example": "b8899be656a7",
+    "architectureDecisions": "f661df02edbb",
+    "misconceptions": "4eae0a3e0d0d",
+    "comparisons": "2be47ba13967",
+    "troubleshooting": "a23102c4bfd0",
+    "configuration.limits": "17fe09d9d7c6",
+    "configuration.permissions": "920e39eea881"
+  }
+}

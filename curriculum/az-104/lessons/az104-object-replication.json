@@ -6,7 +6,7 @@
     "AZ104-2.2.3"
   ],
   "estimatedMinutes": 30,
-  "learningObjective": "Configure object replication between storage accounts, meet its prerequisites, and explain how it differs from geo-redundant storage.",
+  "learningObjective": "Set up object replication between storage accounts, meet what it needs first, and explain how it's different from geo-redundant storage.",
   "prerequisites": [
     {
       "text": "Blob versioning",
@@ -25,12 +25,13 @@
     "Copies happen in the background, a little after the original is written."
   ],
   "engineer": [
-    "Prerequisites: blob versioning on both source and destination accounts, and change feed on the source. Hierarchical namespace accounts are not supported. Only block blobs are replicated; blobs in the Archive tier are not.",
-    "A replication policy (created on the destination first, then the source when done through the API/CLI) contains rules: source container → destination container, optional prefix filters, and whether to copy existing blobs or only new ones (a minimum creation time).",
-    "Replication is asynchronous, with no SLA on time. Replication status is shown per blob on the source (Complete/Failed).",
-    "While a policy is in place, replicated blobs in the destination container are read-only; writes fail.",
-    "Cross-tenant replication is disallowed by default on new accounts (AllowCrossTenantReplication = false).",
-    "Use cases: reduce read latency for users in another region, process data in a different region (compute near data), distribute data to several accounts, and optimise cost by replicating to an account with a different tier."
+    "What it needs first: blob versioning on both accounts; change feed on the source account; no hierarchical namespace (Data Lake accounts don't work).",
+    "What it copies: block blobs only. Blobs in the Archive tier are not copied.",
+    "The replication policy: it holds rules. Each rule says: from this source container, to this destination container, optionally only blobs starting with a prefix, and whether to copy existing blobs too or only new ones. With the API or CLI, create the policy on the destination first, then on the source.",
+    "Timing: copying happens in the background, with no guaranteed time (no SLA). Each blob on the source shows its replication status: Complete or Failed.",
+    "Destination is read-only: while the policy exists, you can't write to the copied blobs in the destination container.",
+    "Other tenants: copying to an account in another Entra tenant is blocked by default on new accounts (AllowCrossTenantReplication = false).",
+    "When to use it: faster reads for users in another region; processing data in another region, close to the compute; sending data to several accounts; saving money by copying to an account on a cheaper tier."
   ],
   "animation": {
     "id": "storage-data-sim",
@@ -75,8 +76,8 @@
   "example": {
     "title": "Analytics in another region",
     "body": [
-      "Sales uploads data to stweu (West Europe). The analytics cluster runs in North Europe, so object replication copies the reports container to stneu, where the cluster reads it locally.",
-      "Only blobs with the prefix 'final/' are replicated, so work-in-progress files stay local."
+      "Sales uploads data to stweu in West Europe. The analytics cluster runs in North Europe. Object replication copies the reports container to stneu, so the cluster reads it locally.",
+      "Only blobs starting with 'final/' are copied, so unfinished files stay where they are."
     ]
   },
   "configuration": {
@@ -86,11 +87,11 @@
       "No hierarchical namespace"
     ],
     "permissions": [
-      "Storage Account Contributor on both accounts (control plane)"
+      "Storage Account Contributor on both accounts"
     ],
     "limits": [
       "Block blobs only",
-      "Archive-tier blobs are not replicated",
+      "Archive-tier blobs aren't copied",
       "Destination blobs are read-only while the policy exists"
     ],
     "portal": [
@@ -137,53 +138,53 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Cannot create the replication rule.",
-      "cause": "Versioning or change feed is not enabled, or HNS is on.",
-      "fix": "Enable the prerequisites; use an account without hierarchical namespace."
+      "symptom": "You can't create the replication rule.",
+      "cause": "Versioning or change feed isn't on, or the account has hierarchical namespace.",
+      "fix": "Turn on what's needed, and use an account without hierarchical namespace."
     },
     {
       "symptom": "Some blobs show replication status Failed.",
-      "cause": "For example the blob is archived, or the destination container is missing or deleted.",
-      "fix": "Rehydrate or fix the destination; check status per blob."
+      "cause": "For example, the blob is archived, or the destination container is missing.",
+      "fix": "Rehydrate the blob or fix the destination. Check the status on each blob."
     },
     {
-      "symptom": "App writes to the destination container fail.",
-      "cause": "Replicated blobs are read-only.",
-      "fix": "Write to the source, or remove the policy."
+      "symptom": "The app can't write to the destination container.",
+      "cause": "Copied blobs are read-only.",
+      "fix": "Write to the source instead, or remove the policy."
     },
     {
-      "symptom": "Replication to a partner tenant fails.",
-      "cause": "Cross-tenant replication disallowed.",
-      "fix": "Allow cross-tenant replication on both accounts if policy permits."
+      "symptom": "Copying to a partner's tenant fails.",
+      "cause": "Cross-tenant replication is blocked.",
+      "fix": "Allow cross-tenant replication on both accounts, if your rules permit it."
     }
   ],
   "comparisons": [
     {
       "service": "GRS / GZRS",
-      "difference": "Whole account to the fixed paired region, secondary readable only with RA-; object replication is per container, to any account and region, and the destination is a normal readable account."
+      "difference": "GRS copies the whole account to the fixed paired region, and you can only read the copy with RA-. Object replication copies chosen containers to any account in any region, and the destination is a normal account you can read."
     },
     {
       "service": "Amazon S3 Replication (CRR/SRR)",
-      "difference": "Very similar: requires versioning and replicates per bucket and prefix."
+      "difference": "Very similar: it also needs versioning and copies by bucket and prefix."
     },
     {
       "service": "AzCopy",
-      "difference": "Manual or scheduled copies; object replication is continuous and service-managed."
+      "difference": "AzCopy copies when you run it or schedule it. Object replication copies all the time, and Azure runs it for you."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Object replication is a disaster-recovery failover feature like GRS.",
-      "reality": "There is no account failover; it is asynchronous container replication."
+      "myth": "Object replication is a disaster-recovery feature like GRS, with failover.",
+      "reality": "No. There is no failover. It just copies containers in the background."
     },
     {
-      "myth": "Any blob type replicates.",
-      "reality": "Block blobs only, and not from the Archive tier."
+      "myth": "Every blob type is copied.",
+      "reality": "No. Only block blobs, and not ones in the Archive tier."
     }
   ],
   "architectureDecisions": [
-    "Use object replication for data locality and distribution, and GRS/GZRS for account-level disaster recovery.",
-    "Filter by prefix to limit cost and replicate only finished data."
+    "Pick the right tool: object replication to put data near users or compute; GRS or GZRS to survive the loss of a region.",
+    "Filter by prefix: copy only finished data, so you pay for less."
   ],
   "docs": [
     {

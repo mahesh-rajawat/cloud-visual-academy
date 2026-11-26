@@ -6,7 +6,7 @@
     "AZ104-3.2.6"
   ],
   "estimatedMinutes": 35,
-  "learningObjective": "Deploy VMs into availability sets or zones, explain fault and update domains, and match each option to the failures it survives and its SLA.",
+  "learningObjective": "Put VMs in availability sets or zones. Explain fault domains and update domains. Match each option to the failures it survives and its SLA.",
   "prerequisites": [
     {
       "text": "Availability zones (AZ-900)",
@@ -25,11 +25,16 @@
     "You choose the set or zone when you create the VM."
   ],
   "engineer": [
-    "Availability set: up to 3 fault domains (shared power and network; 2 or 3 depending on region) and up to 20 update domains (default 5) that are rebooted one at a time during planned maintenance. Use the Aligned SKU for managed disks so disks follow fault domains. Compute SLA: 99.95% for two or more VMs in a set.",
-    "Availability zones: physically separate locations with independent power, cooling and networking. Place VMs in different zones (zones: ['1'], ['2'], ['3']) and use zone-redundant services (Standard Load Balancer, Standard public IP, ZRS disks where supported). SLA: 99.99% for two or more VMs across two or more zones.",
-    "Single VM SLA: 99.9% when all disks are Premium SSD, Premium SSD v2 or Ultra (lower for other disk types).",
-    "Constraints: a VM's availability set is set at creation (you cannot add an existing VM to a set; recreate it from its disks). A VM cannot be in both an availability set and a zone. Virtual Machine Scale Sets in Flexible mode can spread across zones and fault domains automatically.",
-    "Neither option protects against a region-wide outage; use Azure Site Recovery to a second region for that. Proximity placement groups reduce latency, at the cost of spreading."
+    "Availability set: spreads VMs across racks in one datacenter.",
+    "Fault domains: groups of racks that share power and network. Up to 3 (2 or 3, depending on the region). If one fails, VMs in the others keep running.",
+    "Update domains: groups that Azure restarts one at a time during planned maintenance. Up to 20 (default 5).",
+    "Availability set tips: use the Aligned SKU for managed disks, so disks follow the fault domains. SLA: 99.95% for two or more VMs in a set.",
+    "Availability zones: separate buildings in one region, each with its own power, cooling and network. Put VMs in different zones (zones: ['1'], ['2'], ['3']). Use services that also span zones: Standard Load Balancer, Standard public IP, and ZRS disks where supported. SLA: 99.99% for two or more VMs across two or more zones.",
+    "Single VM SLA: 99.9%, if all its disks are Premium SSD, Premium SSD v2 or Ultra (lower for other disk types).",
+    "Rules: you choose the availability set when you create the VM. You can't add an existing VM to a set; recreate it from its disks. A VM can't be in both a set and a zone.",
+    "Scale sets: a Flexible scale set spreads VMs across zones and fault domains for you.",
+    "Neither protects a whole region: for that, copy to a second region with Azure Site Recovery.",
+    "Proximity placement groups: put VMs physically close for low latency. The trade-off: they are less spread out."
   ],
   "animation": {
     "id": "vm-sim",
@@ -82,24 +87,24 @@
     ]
   },
   "example": {
-    "title": "Choosing for an intranet app",
+    "title": "Picking the right option for two apps",
     "body": [
-      "An intranet app with modest uptime needs runs on two VMs in an availability set (99.95%). A customer-facing checkout service runs three VMs across zones behind a zone-redundant Standard Load Balancer (99.99%).",
-      "Both teams also replicate to a paired region with Site Recovery, because neither option protects against regional disasters."
+      "An intranet app that can tolerate some downtime runs on two VMs in an availability set (99.95%). A customer checkout service runs three VMs across zones, behind a zone-redundant Standard Load Balancer (99.99%).",
+      "Both teams also copy their VMs to the paired region with Site Recovery, because neither option survives a whole region going down."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "Region with availability zones (for zones)",
-      "Load balancer to distribute traffic"
+      "A region with availability zones (for zones)",
+      "A load balancer to share traffic"
     ],
     "permissions": [
       "Virtual Machine Contributor"
     ],
     "limits": [
-      "Fault domains up to 3; update domains up to 20",
-      "Set or zone chosen at VM creation",
-      "Not both set and zone"
+      "Up to 3 fault domains and 20 update domains",
+      "Set or zone is chosen when the VM is created",
+      "A VM can't be in both a set and a zone"
     ],
     "portal": [
       "Create VM > Availability options: Availability zone (pick zones) or Availability set (create/select).",
@@ -145,45 +150,45 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Cannot add an existing VM to an availability set.",
-      "cause": "Set membership is defined at creation.",
-      "fix": "Recreate the VM from its disks in the set."
+      "symptom": "You can't add an existing VM to an availability set.",
+      "cause": "The set is chosen when the VM is created.",
+      "fix": "Recreate the VM in the set, from its disks."
     },
     {
       "symptom": "Allocation failure when adding VMs to a set.",
-      "cause": "Cluster capacity for that size.",
-      "fix": "Deallocate all VMs and start them together, or choose another size."
+      "cause": "The hardware cluster has no room for that size.",
+      "fix": "Deallocate all VMs and start them together, or pick another size."
     },
     {
-      "symptom": "Zone option missing.",
-      "cause": "Region or size has no zone support.",
-      "fix": "Choose a zone-enabled region/size."
+      "symptom": "There's no zone option.",
+      "cause": "The region or size doesn't support zones.",
+      "fix": "Pick a region and size that support zones."
     }
   ],
   "comparisons": [
     {
       "service": "AWS placement groups / multi-AZ",
-      "difference": "EC2 spread placement groups resemble availability sets; deploying across AZs resembles Azure zones."
+      "difference": "EC2 spread placement groups are like availability sets. Deploying across AZs is like Azure zones."
     },
     {
       "service": "VM Scale Sets (Flexible)",
-      "difference": "Automate spreading across zones and fault domains with autoscale."
+      "difference": "Spread VMs across zones and fault domains automatically, and add autoscale."
     }
   ],
   "misconceptions": [
     {
-      "myth": "An availability set protects against datacenter failure.",
-      "reality": "It spreads across racks in one datacenter."
+      "myth": "An availability set protects you if a datacenter fails.",
+      "reality": "No. It only spreads VMs across racks inside one datacenter."
     },
     {
-      "myth": "A single VM in a zone gets 99.99%.",
-      "reality": "99.99% needs two or more VMs across zones."
+      "myth": "One VM in a zone gets 99.99%.",
+      "reality": "No. 99.99% needs two or more VMs across zones."
     }
   ],
   "architectureDecisions": [
-    "Use zones for business-critical tiers when the region supports them.",
-    "Pair VM redundancy with zone-redundant load balancing and storage.",
-    "Add a second region for disaster recovery."
+    "Important apps use zones: when the region has them.",
+    "Spread everything, not just VMs: use zone-redundant load balancers and storage too.",
+    "Add a second region: for disaster recovery."
   ],
   "docs": [
     {

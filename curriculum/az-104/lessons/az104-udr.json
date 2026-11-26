@@ -6,7 +6,7 @@
     "AZ104-4.1.4"
   ],
   "estimatedMinutes": 40,
-  "learningObjective": "Create route tables and user-defined routes, associate them with subnets, and predict which route Azure selects.",
+  "learningObjective": "Create route tables and your own routes (UDRs), attach them to subnets, and predict which route Azure picks.",
   "prerequisites": [
     {
       "text": "Virtual network peering",
@@ -19,12 +19,13 @@
     "A user-defined route (UDR) overrides that, for example to send all traffic through a firewall."
   ],
   "engineer": [
-    "Route table: a resource with routes (address prefix → next hop type), associated with one or more subnets (in the same region and subscription). A subnet has at most one route table.",
-    "Next hop types: Virtual appliance (an IP address of an NVA or Azure Firewall), Virtual network gateway, Virtual network, Internet, None (drop).",
-    "Selection: longest prefix match first; if prefixes are equal, user-defined routes win over BGP routes, which win over system routes.",
-    "An NVA must have IP forwarding enabled on its NIC (and forwarding in its OS) to pass traffic for other destinations.",
-    "Propagate gateway routes: disable it on a route table to stop BGP routes from on-premises being added to a subnet (for example to force everything through the firewall).",
-    "Service tags can be used as the address prefix of a route (for example Storage)."
+    "Route table: a list of routes. Each route says: traffic to this address range, send it to this next hop. You attach the table to one or more subnets (same region and subscription). A subnet can have only one route table.",
+    "Next hop types: Virtual appliance, the IP of a firewall or NVA (for example Azure Firewall); Virtual network gateway, the VPN or ExpressRoute gateway; Virtual network, stay inside the VNet; Internet; None, which drops the traffic.",
+    "How Azure picks a route, rule 1: the longest (most specific) prefix wins. A /24 beats a /16, which beats 0.0.0.0/0.",
+    "How Azure picks a route, rule 2: if prefixes are the same length, your own routes (UDRs) win, then BGP routes, then Azure's system routes.",
+    "NVAs must forward: turn on IP forwarding on the NVA's network card in Azure, and turn on forwarding inside its OS. Otherwise it drops traffic meant for other addresses.",
+    "Propagate gateway routes: turn this off on a route table to stop routes learned from on-premises (BGP) reaching the subnet. For example, to force all traffic through the firewall.",
+    "Service tags as destinations: a route's address can be a service tag, for example Storage."
   ],
   "animation": {
     "id": "network-routing-sim",
@@ -89,9 +90,9 @@
     ]
   },
   "example": {
-    "title": "Forced tunnelling through Azure Firewall",
+    "title": "Sending all internet traffic through Azure Firewall",
     "body": [
-      "Route table rt-spokes with 0.0.0.0/0 → Virtual appliance 10.0.1.4 (Azure Firewall private IP) is associated with every spoke subnet. Internet traffic is inspected and logged before leaving."
+      "Route table rt-spokes has one route: 0.0.0.0/0 → Virtual appliance 10.0.1.4 (Azure Firewall's private IP). It's attached to every spoke subnet. Now all internet traffic is checked and logged by the firewall before it leaves."
     ]
   },
   "configuration": {
@@ -157,44 +158,44 @@
   "troubleshooting": [
     {
       "symptom": "Traffic doesn't go through the firewall.",
-      "cause": "Route table not associated, or a more specific system/BGP route wins.",
-      "fix": "Check Effective routes on the NIC."
+      "cause": "The route table isn't attached to the subnet, or a more specific system or BGP route wins.",
+      "fix": "Check Effective routes on the VM's network card (NIC)."
     },
     {
       "symptom": "Traffic reaches the NVA but goes no further.",
-      "cause": "IP forwarding disabled on the NIC or in the OS.",
-      "fix": "Enable both."
+      "cause": "IP forwarding is off on the network card or inside the OS.",
+      "fix": "Turn on both."
     },
     {
-      "symptom": "Asymmetric routing breaks connections.",
-      "cause": "Return traffic bypasses the stateful firewall.",
-      "fix": "Add matching UDRs on the return path."
+      "symptom": "Connections break because replies take a different path (asymmetric routing).",
+      "cause": "Return traffic skips the firewall, which tracks connections.",
+      "fix": "Add matching routes on the way back too."
     }
   ],
   "comparisons": [
     {
       "service": "AWS route tables",
-      "difference": "Also associated with subnets; next hops are gateways, NAT, ENIs or Transit Gateway."
+      "difference": "Also attached to subnets. Next hops are gateways, NAT, network interfaces (ENIs) or Transit Gateway."
     },
     {
       "service": "Azure Route Server",
-      "difference": "Exchanges BGP routes with NVAs dynamically instead of static UDRs."
+      "difference": "Swaps routes with NVAs automatically using BGP, instead of you writing static routes."
     }
   ],
   "misconceptions": [
     {
-      "myth": "A UDR always beats a system route.",
-      "reality": "Only for equal prefixes; a longer prefix always wins."
+      "myth": "Your own route (UDR) always beats a system route.",
+      "reality": "No. Only when the prefixes are the same length. A longer prefix always wins first."
     },
     {
-      "myth": "Route tables apply to NICs.",
-      "reality": "They apply to subnets."
+      "myth": "Route tables are attached to network cards.",
+      "reality": "No. They're attached to subnets."
     }
   ],
   "architectureDecisions": [
-    "Use Azure Firewall with 0.0.0.0/0 UDRs for centralised egress.",
-    "Keep route tables few and shared where possible.",
-    "Verify with Effective routes and Next hop after each change."
+    "One exit to the internet: send 0.0.0.0/0 to Azure Firewall from every spoke.",
+    "Few route tables: share one table across similar subnets where you can.",
+    "Check after every change: look at Effective routes and run Next hop."
   ],
   "docs": [
     {

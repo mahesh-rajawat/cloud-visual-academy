@@ -1,0 +1,108 @@
+{
+  "learningObjective": "Create, organise, move and delete resources across resource groups and subscriptions safely. Manage subscription settings: resource providers, quotas, directory and billing owner.",
+  "engineer": [
+    "Resource group location: it only says where the group's own details (metadata) are stored. If that region goes down, you can't update the group, but resources in other regions keep running.",
+    "No renaming: you can't rename a resource group. Create a new one and move the resources into it.",
+    "Before you move resources: validate first (the portal does this for you); move things that depend on each other together, such as a VM with its disks and network card (NIC); check the move-support table, because some types can't move (for example AKS clusters).",
+    "During and after a move: both resource groups are locked for changes while the move runs. Roles given directly on a moved resource don't move with it. Resource IDs change. The region stays the same; moving to another region is a different job (Azure Resource Mover or redeploying).",
+    "Moving to another subscription: both subscriptions must be in the same Entra tenant, and the target must have the needed resource providers registered.",
+    "Deleting a resource group: everything inside is deleted, in the right order. A lock on anything inside stops the delete. az group delete --no-wait returns at once, but the delete can take minutes.",
+    "Subscription jobs: register resource providers (such as Microsoft.ContainerInstance or Microsoft.Insights) before you use a service; check and raise quotas (for example vCPUs per VM family per region) under Usage + quotas; rename the subscription; add tags, budgets, policies and roles (RBAC) at subscription level.",
+    "Moving a subscription to another Entra tenant (change directory): all its Azure role assignments are deleted for good, managed identities break, and Key Vaults need their tenant updated.",
+    "Changing who pays (billing ownership transfer): a separate job. It doesn't change the directory.",
+    "Cancelling a subscription: billing stops and the subscription is disabled, so resources can't be reached. You can reactivate it for up to 90 days, then it and its data are deleted."
+  ],
+  "example": {
+    "title": "Splitting a shared resource group",
+    "body": [
+      "rg-shared holds a web app and a shared storage account. They have different owners and different lifecycles. The team creates rg-web and moves the App Service plan and web app together, because they depend on each other. Then they give roles on the new resource group.",
+      "Two roles had been given directly on the web app. They didn't move, so the team creates them again. Scripts that used the old resource ID are updated."
+    ]
+  },
+  "architectureDecisions": [
+    "Group by lifecycle and owner: put things that are created, changed and deleted together in one resource group, not all VMs in one and all storage in another.",
+    "Use subscriptions for strong separation: separate bills, separate quotas, and a problem in one doesn't spread. Use resource groups for each application.",
+    "Give roles on the resource group: not on single resources, so moves and redeployments don't leave roles behind."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Resources must be in the same region as their resource group.",
+      "reality": "No. The group's location only stores its details. Resources can be in any region."
+    },
+    {
+      "myth": "Moving a resource to another resource group moves it to another region.",
+      "reality": "No. The region stays the same. The resource ID changes."
+    },
+    {
+      "myth": "You can rename a resource group.",
+      "reality": "No. Create a new one and move the resources."
+    },
+    {
+      "myth": "Moving a subscription to another directory keeps its roles.",
+      "reality": "No. All role assignments are deleted."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Management groups",
+      "difference": "Management groups hold subscriptions, for rules and access. Resource groups hold resources inside one subscription."
+    },
+    {
+      "service": "AWS accounts and tags / resource groups",
+      "difference": "An AWS account is like an Azure subscription. AWS Resource Groups are just saved tag searches; they don't own resources."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "Move validation fails with 'resources not in the same resource group' or missing-dependency errors.",
+      "cause": "Something the resource depends on wasn't included, or the resources come from several groups.",
+      "fix": "Include everything it depends on, and move from one source group at a time."
+    },
+    {
+      "symptom": "MissingSubscriptionRegistration when deploying.",
+      "cause": "The resource provider isn't registered in the subscription.",
+      "fix": "Run az provider register --namespace <provider>."
+    },
+    {
+      "symptom": "A deployment fails with a QuotaExceeded or OperationNotAllowed vCPU error.",
+      "cause": "You've used all your vCPU quota for that VM family in that region.",
+      "fix": "Ask for more in Usage + quotas, or pick another size or region."
+    },
+    {
+      "symptom": "Users lost access after the subscription moved to another tenant.",
+      "cause": "Changing the directory deletes all role assignments.",
+      "fix": "Give roles again to people in the new tenant."
+    },
+    {
+      "symptom": "Deleting a resource group fails.",
+      "cause": "Something inside is locked, or a resource in another group depends on something inside.",
+      "fix": "Remove the lock or the dependency first."
+    }
+  ],
+  "configuration.limits": [
+    "Resource groups can't be renamed or put inside each other",
+    "Resources keep their region when moved",
+    "Quotas are per subscription (and often per region)"
+  ],
+  "configuration.permissions": [
+    "Microsoft.Resources/subscriptions/resourceGroups/moveResources/action on the source resource group",
+    "Microsoft.Resources/subscriptions/resourceGroups/write on the target resource group",
+    "Owner on the subscription, to change its directory"
+  ],
+  "configuration.prerequisites": [
+    "Write access on both the source and target resource groups",
+    "For moves between subscriptions: same tenant, and providers registered in the target"
+  ],
+  "from": {
+    "learningObjective": "7f6f7aab8bf3",
+    "engineer": "079de7098b75",
+    "example": "37c3bf25684f",
+    "architectureDecisions": "b1bf74b1552f",
+    "misconceptions": "8816adb2e331",
+    "comparisons": "3403b13b53ba",
+    "troubleshooting": "587f2f834fff",
+    "configuration.limits": "60c37cdb5e2b",
+    "configuration.permissions": "bb40453a18df",
+    "configuration.prerequisites": "84a268079934"
+  }
+}

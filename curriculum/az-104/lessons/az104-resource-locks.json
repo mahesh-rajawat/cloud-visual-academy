@@ -6,7 +6,7 @@
     "AZ104-1.3.2"
   ],
   "estimatedMinutes": 40,
-  "learningObjective": "Apply the right lock at the right scope, predict which operations it blocks (including side effects of ReadOnly), and remove or work around locks safely.",
+  "learningObjective": "Put the right lock at the right level. Predict what it blocks, including the surprises ReadOnly causes. Remove or work around locks safely.",
   "prerequisites": [
     {
       "text": "Scope hierarchy and RBAC",
@@ -25,13 +25,13 @@
     "To change or delete a locked resource, someone with permission must remove the lock first. That extra step is the point."
   ],
   "engineer": [
-    "Locks are enforced by Azure Resource Manager on control-plane requests sent to management.azure.com. CanNotDelete blocks DELETE. ReadOnly blocks PUT, PATCH, DELETE and POST, so it behaves like the Reader role for everyone.",
-    "Locks apply to every user and role, including Owner. Creating or deleting locks requires Microsoft.Authorization/locks/* (for example Owner or User Access Administrator). Contributor cannot manage locks.",
-    "Locks are inherited: a lock on a subscription or resource group applies to all resources below it, and the most restrictive lock in effect wins. Locks cannot be applied at management group scope.",
-    "Deleting a resource group or subscription fails if any resource inside it is locked, because ARM would have to delete the locked resource.",
-    "ReadOnly has side effects on POST actions. On a storage account it prevents listing the account keys, so the portal cannot fall back to key-based data access. On a resource group containing a VM it prevents starting or restarting the VM. On an App Service it stops Visual Studio Server Explorer from showing the app's files, because that interaction needs write access.",
-    "Data-plane operations are not affected: CanNotDelete on a storage account does not stop someone deleting blobs or files with data-plane permissions, and it does not stop a SQL user dropping tables. Use soft delete, versioning or immutability for data.",
-    "A CanNotDelete lock on a resource group can stop services from cleaning up their own resources, for example Azure Backup deleting restore point collections. Lock the specific resource instead when that matters."
+    "What locks block: locks are checked by Azure Resource Manager (ARM) on management requests (to management.azure.com). CanNotDelete blocks DELETE. ReadOnly blocks PUT, PATCH, DELETE and POST, so everyone acts as if they had only the Reader role.",
+    "Locks apply to everyone: even Owner. To create or remove a lock you need Microsoft.Authorization/locks/*, which Owner and User Access Administrator have. Contributor can't manage locks.",
+    "Locks pass down: a lock on a subscription or resource group covers everything inside it. If there are several, the strictest one wins. You can't lock a management group.",
+    "Deleting a group with a locked resource: deleting a resource group or subscription fails if anything inside it is locked.",
+    "ReadOnly surprises: it blocks POST actions too. On a storage account, nobody can list the keys, so the portal can't use keys to show data; on a resource group with a VM, nobody can start or restart the VM; on an App Service, Visual Studio Server Explorer can't show the app's files.",
+    "Locks don't protect data: CanNotDelete on a storage account doesn't stop someone deleting blobs or files if they have data permissions. It doesn't stop a SQL user dropping tables either. Protect data with soft delete, versioning or immutability.",
+    "Locks can stop Azure cleaning up: a CanNotDelete lock on a resource group can stop services removing their own leftovers, for example Azure Backup deleting old restore point collections. Lock the single resource instead when this matters."
   ],
   "animation": {
     "id": "governance-sim",
@@ -88,8 +88,8 @@
   "example": {
     "title": "Protecting shared networking",
     "body": [
-      "The hub VNet, VPN gateway and Azure Firewall live in rg-connectivity. The platform team applies CanNotDelete to rg-connectivity, so network engineers can still update routes and rules but nobody can delete the gateway by mistake.",
-      "They do not use ReadOnly on the resource group: it would block legitimate changes and POST operations such as resetting the gateway. A ReadOnly lock is reserved for a production storage account's configuration during an audit freeze, with clients using Entra ID authentication, because listing keys stops working."
+      "The hub VNet, VPN gateway and Azure Firewall are in rg-connectivity. The platform team puts CanNotDelete on rg-connectivity. Network engineers can still change routes and rules, but nobody can delete the gateway by mistake.",
+      "They don't put ReadOnly on the resource group. It would block normal changes and POST actions such as resetting the gateway. They only use ReadOnly on one production storage account during an audit freeze. Its apps sign in with Entra ID, because listing keys stops working under ReadOnly."
     ]
   },
   "configuration": {
@@ -100,9 +100,9 @@
       "Microsoft.Authorization/locks/* (Owner, User Access Administrator, or a custom role)"
     ],
     "limits": [
-      "Scopes: subscription, resource group or resource (not management group)",
-      "Two levels: CanNotDelete and ReadOnly",
-      "Affects control-plane operations only"
+      "Levels you can lock: subscription, resource group or resource (not management group)",
+      "Two lock types: CanNotDelete and ReadOnly",
+      "Only management actions are blocked, not data actions"
     ],
     "portal": [
       "Open the subscription, resource group or resource > Settings > Locks > Add.",
@@ -155,67 +155,67 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Owner gets ScopeLocked when deleting a resource.",
-      "cause": "A CanNotDelete or ReadOnly lock on the resource, its resource group or its subscription.",
-      "fix": "az lock list --resource-group <rg> (inherited locks show their scope); remove the lock if the change is approved."
+      "symptom": "An Owner gets ScopeLocked when deleting a resource.",
+      "cause": "There is a lock on the resource, its resource group or its subscription.",
+      "fix": "Run az lock list --resource-group <rg> (inherited locks show where they come from). Remove the lock if the change is approved."
     },
     {
-      "symptom": "Resource group deletion fails although the group itself has no lock.",
+      "symptom": "Deleting a resource group fails, but the group has no lock.",
       "cause": "A resource inside the group is locked.",
-      "fix": "Find and remove the lock on the child resource first."
+      "fix": "Find and remove the lock on that resource first."
     },
     {
-      "symptom": "Portal shows 'You do not have permissions to list the data using your user account' on a storage account.",
-      "cause": "A ReadOnly lock blocks the listKeys POST, so key-based access fails.",
-      "fix": "Use Entra ID authentication with a Storage Blob Data role, or replace ReadOnly with CanNotDelete."
+      "symptom": "The portal says 'You do not have permissions to list the data using your user account' on a storage account.",
+      "cause": "A ReadOnly lock blocks listing the keys, so key access fails.",
+      "fix": "Sign in with Entra ID and a Storage Blob Data role, or use CanNotDelete instead of ReadOnly."
     },
     {
-      "symptom": "Automation cannot start VMs in the morning.",
-      "cause": "ReadOnly lock on the resource group blocks POST start actions.",
-      "fix": "Use CanNotDelete instead, or lock individual resources."
+      "symptom": "Automation can't start the VMs in the morning.",
+      "cause": "A ReadOnly lock on the resource group blocks the start action.",
+      "fix": "Use CanNotDelete instead, or lock single resources."
     }
   ],
   "comparisons": [
     {
       "service": "Azure RBAC",
-      "difference": "RBAC grants permissions per principal; locks restrict operations for all principals regardless of role."
+      "difference": "RBAC gives permissions to specific people. A lock blocks an action for everyone, whatever their role."
     },
     {
       "service": "Azure Policy DenyAction",
-      "difference": "DenyAction can block delete actions based on resource properties across a scope (for example by tag), whereas a lock targets one specific scope."
+      "difference": "DenyAction can block deletes across a whole scope based on resource settings, such as a tag. A lock covers one specific scope."
     },
     {
       "service": "Deployment stacks deny settings",
-      "difference": "Deployment stacks can create deny assignments that stop changes to the resources the stack manages, with excluded principals; locks have no exclusions."
+      "difference": "A deployment stack can block changes to the resources it manages, and you can exclude some people. Locks have no exclusions."
     },
     {
       "service": "AWS termination protection",
-      "difference": "EC2 termination protection and CloudFormation stack termination protection are per-resource flags; Azure locks are separate inherited objects at subscription/RG/resource scope."
+      "difference": "In AWS it's a setting on each EC2 instance or CloudFormation stack. Azure locks are separate objects that pass down from subscription, resource group or resource."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Owners are not affected by locks.",
-      "reality": "Locks apply to everyone. An Owner can remove the lock, but must do so first."
+      "myth": "Owners aren't affected by locks.",
+      "reality": "No. Locks apply to everyone. An Owner can remove the lock, but has to do that first."
     },
     {
       "myth": "ReadOnly only blocks edits in the portal.",
-      "reality": "It blocks every write and POST on the control plane, including listing storage keys and starting VMs."
+      "reality": "No. It blocks every write and POST, including listing storage keys and starting VMs."
     },
     {
       "myth": "CanNotDelete on a storage account protects the data in it.",
-      "reality": "Locks do not apply to data-plane operations such as deleting blobs."
+      "reality": "No. Locks don't cover data actions such as deleting blobs."
     },
     {
       "myth": "You can lock a management group.",
-      "reality": "Locks apply at subscription, resource group or resource scope."
+      "reality": "No. Only a subscription, resource group or resource."
     }
   ],
   "architectureDecisions": [
-    "Use CanNotDelete on production and shared-infrastructure resource groups as a default safety net.",
-    "Reserve ReadOnly for short freezes or rarely changed resources, after checking POST-based side effects.",
-    "Manage locks as code (Bicep) alongside the resources they protect so they are not forgotten.",
-    "Combine locks with soft delete, backups and RBAC; locks do not protect data or configuration changes made by authorized users."
+    "Use CanNotDelete by default: put it on production and shared resource groups as a safety net.",
+    "Use ReadOnly rarely: only for short freezes or resources that almost never change, and check what POST actions it will block first.",
+    "Keep locks in code: define them in Bicep next to the resources they protect, so they aren't forgotten.",
+    "Locks are not enough on their own: add soft delete, backups and RBAC. Locks don't protect data or changes made by allowed users."
   ],
   "docs": [
     {

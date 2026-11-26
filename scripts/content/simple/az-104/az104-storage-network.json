@@ -1,0 +1,96 @@
+{
+  "learningObjective": "Limit a storage account to certain public IPs, subnets and private endpoints, and predict which clients can connect.",
+  "engineer": [
+    "Public network access has three settings: Enabled from all networks; Enabled from selected virtual networks and IP addresses, which blocks everything except your allow rules; Disabled, where only private endpoints work.",
+    "IP rules: public IPv4 addresses and ranges only, never private (RFC 1918) ranges such as 10.x. /31 and /32 ranges don't work, so type single addresses without a range. Up to 400 IP rules.",
+    "The same-region catch: IP rules do nothing for Azure services in the same region, because they reach storage on private Azure addresses. For those, use a VNet rule, a private endpoint, a resource instance rule or the trusted services exception.",
+    "VNet rules: allow one subnet. The subnet must have the Microsoft.Storage (or Microsoft.Storage.Global) service endpoint turned on. Traffic then travels on Azure's own network and storage knows which subnet it came from, but it still goes to the account's public address.",
+    "Private endpoints: give the account a private IP inside your VNet. You need one for each part you use: blob, file, dfs, queue, table or web. The firewall doesn't check private endpoint traffic.",
+    "Private endpoint DNS: <account>.blob.core.windows.net must resolve to the private IP. Normally you do this with the private DNS zone privatelink.blob.core.windows.net, linked to your VNet.",
+    "Exceptions: allow Azure services on the trusted services list (for example Azure Backup, Event Grid, Azure Monitor diagnostic logs); allow read access to logs and metrics; resource instance rules, which allow one specific resource by its resource ID.",
+    "Rules apply everywhere: to every protocol, including SMB for Azure Files and REST. They apply to the portal too: if your own IP is blocked, browsing the data fails, even if you're Owner."
+  ],
+  "example": {
+    "title": "Locking down a finance storage account",
+    "body": [
+      "The finance account only accepts the app subnet (service endpoint plus a VNet rule) and the head office's public IP range. Azure Backup still works, because 'Allow trusted Azure services' is on.",
+      "Later the security team turns public network access off completely. They add private endpoints for blob and file, with private DNS zones linked to the hub VNet. Office computers reach the account over ExpressRoute, using the private IPs."
+    ]
+  },
+  "architectureDecisions": [
+    "Sensitive data: use private endpoints and turn public access off.",
+    "Simple VNet-only access: use service endpoints when everything is in one region and you don't need private IPs or DNS changes.",
+    "Keep trusted services on: if you use Azure Backup, Monitor or Event Grid with the account."
+  ],
+  "misconceptions": [
+    {
+      "myth": "A valid account key gets past the firewall.",
+      "reality": "No. Network rules are checked first, whatever sign-in method is used."
+    },
+    {
+      "myth": "Service endpoints give the storage account a private IP.",
+      "reality": "No. Only private endpoints do. Service endpoints still use the public address."
+    },
+    {
+      "myth": "You can allow 10.0.0.0/8 in the IP firewall.",
+      "reality": "No. IP rules only accept public addresses."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Service endpoints vs private endpoints",
+      "difference": "A service endpoint keeps the public address but tells storage which subnet you're in. A private endpoint gives a private IP that peered VNets and on-premises networks can reach too."
+    },
+    {
+      "service": "Amazon S3 bucket policies with aws:SourceVpce",
+      "difference": "AWS allows a VPC endpoint inside the bucket's policy. Azure uses network rules on the whole account."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "The portal shows 'This request is not authorized to perform this operation', even for an Owner.",
+      "cause": "Your computer's IP is blocked by the storage firewall.",
+      "fix": "Add your IP, or work from a VM or private endpoint in an allowed network."
+    },
+    {
+      "symptom": "An App Service in the same region can't reach storage, even with an IP rule for its outbound IP.",
+      "cause": "IP rules don't apply to Azure traffic from the same region.",
+      "fix": "Use VNet integration with a service endpoint, or a private endpoint."
+    },
+    {
+      "symptom": "A VM gets the public IP even though a private endpoint exists.",
+      "cause": "The private DNS zone isn't linked to the VNet, or your own DNS server doesn't forward to it.",
+      "fix": "Link privatelink.blob.core.windows.net to the VNet, or set up conditional forwarding."
+    },
+    {
+      "symptom": "Azure Backup of a file share fails after turning on the firewall.",
+      "cause": "The trusted services exception is off.",
+      "fix": "Turn on 'Allow Azure services on the trusted services list'."
+    }
+  ],
+  "configuration.limits": [
+    "Up to 400 IP rules",
+    "IP rules accept public addresses only",
+    "IP rules don't apply to Azure traffic from the same region"
+  ],
+  "configuration.permissions": [
+    "Storage Account Contributor (or Microsoft.Storage/storageAccounts/write) to change network rules",
+    "Microsoft.Network/virtualNetworks/subnets/joinViaServiceEndpoint/action to add a VNet rule"
+  ],
+  "configuration.prerequisites": [
+    "The Microsoft.Storage service endpoint on the subnet, for VNet rules",
+    "A private DNS zone, for private endpoints"
+  ],
+  "from": {
+    "learningObjective": "d36552fe5e07",
+    "engineer": "721feac4d89f",
+    "example": "22ac230ccbe6",
+    "architectureDecisions": "d960d3229b8e",
+    "misconceptions": "8a687aad5209",
+    "comparisons": "ecd0582c1334",
+    "troubleshooting": "126e47d9b606",
+    "configuration.limits": "6861f88e5695",
+    "configuration.permissions": "ccccd7b79bd9",
+    "configuration.prerequisites": "75fa118fb9e1"
+  }
+}

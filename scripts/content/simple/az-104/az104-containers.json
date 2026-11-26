@@ -1,0 +1,102 @@
+{
+  "learningObjective": "Create and secure a container registry, build and push images, and run containers on ACI and Container Apps with the right sign-in, networking, restart and revision settings.",
+  "engineer": [
+    "Azure Container Registry (ACR) names: 5 to 50 letters and numbers, unique across Azure (<name>.azurecr.io).",
+    "ACR tiers (SKUs): Basic, Standard and Premium differ in storage and speed. Only Premium has geo-replication, private endpoints, content trust and dedicated agent pools.",
+    "Building images: in the cloud with az acr build (ACR Tasks, no Docker needed on your machine), or locally with docker push after az acr login.",
+    "Signing in to ACR: Entra identities with the AcrPull or AcrPush role (managed identities for Azure services, service principals for CI pipelines); repository-scoped tokens; the admin user, which is off by default, is one shared password, and isn't recommended. Anonymous pull is an option on Standard and Premium.",
+    "Azure Container Instances (ACI), the container group: the unit you deploy. Its containers run on the same host and share network, lifecycle and volumes. Groups with several containers are Linux only.",
+    "ACI settings: CPU and memory per container; OS type; ports; a public IP with an optional DNS name (<label>.<region>.azurecontainer.io), or a private IP in a VNet subnet; environment variables, with secure values for secrets; Azure Files volumes.",
+    "ACI restart policy: Always, the default, restarts the container every time it stops; OnFailure restarts only if it fails; Never doesn't restart. For jobs that should finish and stop, use OnFailure or Never.",
+    "ACI and a private registry: it needs registry credentials or a managed identity with AcrPull.",
+    "Container Apps, the environment: apps run in a Container Apps environment, which shares a VNet and logging.",
+    "Container Apps ingress: external (internet) or internal (VNet only), with a target port, and HTTPS automatically.",
+    "Container Apps revisions: a revision is a saved, unchangeable version of the app. Changing the image, containers or scale rules creates a new one. Single revision mode replaces the old revision. Multiple revision mode lets you split traffic between revisions (blue/green, canary).",
+    "Container Apps extras: secrets; managed identities; Dapr; jobs.",
+    "Which one to pick: ACI for a simple single container or a batch job; Container Apps for web APIs, microservices and event-driven apps that need scaling and revisions; AKS when you need full control of Kubernetes."
+  ],
+  "example": {
+    "title": "A nightly job and a public API",
+    "body": [
+      "A nightly clean-up container runs on ACI with restart policy OnFailure. It stops when it's done, so you only pay while it runs. It pulls its image from ACR using a user-assigned managed identity that has AcrPull.",
+      "The public API runs on Container Apps with external ingress. Version 2 is deployed as a new revision and gets 20% of the traffic. After checking it works, the team moves traffic to 100%."
+    ]
+  },
+  "architectureDecisions": [
+    "Build in the cloud with ACR Tasks: build agents don't need Docker installed.",
+    "Pull with managed identities: keep the admin user off.",
+    "Several regions: use Premium ACR with geo-replication."
+  ],
+  "misconceptions": [
+    {
+      "myth": "ACI scales automatically.",
+      "reality": "No. ACI has no autoscale. Use Container Apps or AKS."
+    },
+    {
+      "myth": "The ACR admin user is the recommended way to pull images.",
+      "reality": "No. Use Entra identities with AcrPull."
+    },
+    {
+      "myth": "Every change to a container app creates a new revision.",
+      "reality": "No. Only revision-scope changes do (image, containers, scale rules)."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AKS",
+      "difference": "Full Kubernetes: you manage node pools and the cluster. Container Apps hides Kubernetes from you."
+    },
+    {
+      "service": "AWS ECR / ECS on Fargate / App Runner",
+      "difference": "ECR is like ACR. Fargate tasks are like ACI. App Runner and ECS services are like Container Apps."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "ACI is stuck pulling the image: unauthorized.",
+      "cause": "No credentials or identity for the private registry.",
+      "fix": "Give the managed identity AcrPull and pass --acr-identity, or give registry credentials."
+    },
+    {
+      "symptom": "An ACI batch job keeps running again and again.",
+      "cause": "Restart policy is Always (the default).",
+      "fix": "Use OnFailure or Never."
+    },
+    {
+      "symptom": "A container app can't be reached from the internet.",
+      "cause": "Ingress is internal or off, or the target port is wrong.",
+      "fix": "Turn on external ingress with the port the container listens on."
+    },
+    {
+      "symptom": "A new revision gets no traffic.",
+      "cause": "Multiple revision mode, with traffic fixed on the old revision.",
+      "fix": "Change the traffic weights, or send traffic to the latest revision."
+    }
+  ],
+  "configuration.limits": [
+    "ACR name: 5 to 50 letters and numbers",
+    "Geo-replication: Premium only",
+    "ACI resources are fixed per container group (redeploy to change them)"
+  ],
+  "configuration.permissions": [
+    "Contributor, to create registries and apps",
+    "AcrPush for CI pipelines, AcrPull for apps that run images",
+    "User Access Administrator or Owner, to give AcrPull"
+  ],
+  "configuration.prerequisites": [
+    "A resource group, and a Dockerfile or an image",
+    "For VNet deployment: a delegated subnet (ACI) or an environment VNet (Container Apps)"
+  ],
+  "from": {
+    "learningObjective": "2336f47cc50c",
+    "engineer": "78edcc1d1047",
+    "example": "ba542f4a6bd4",
+    "architectureDecisions": "e05cd243b783",
+    "misconceptions": "8281fa5e977a",
+    "comparisons": "4472291cd646",
+    "troubleshooting": "1d5930c666e4",
+    "configuration.limits": "f3491c903345",
+    "configuration.permissions": "728d25f1378b",
+    "configuration.prerequisites": "ccca119f56ff"
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "learningObjective": "Choose and change a storage account's redundancy, based on what failure you must survive, whether you need to read during an outage, how much data you can lose, and feature limits. Know what happens in each failure.",
+  "engineer": [
+    "Writes in the main region: a write only counts as done when all three copies are saved at the same time. LRS keeps the three copies in one datacenter. ZRS spreads them across three zones.",
+    "How durable each option is (per year): LRS at least 11 nines; ZRS at least 12 nines; GRS, RA-GRS, GZRS and RA-GZRS at least 16 nines.",
+    "Copying to the second region: this happens in the background (asynchronously) to the paired region. It's usually less than 15 minutes behind, but there's no guarantee (no SLA). That gap is your RPO: the data you could lose.",
+    "Last Sync Time: the property geoReplicationStats.lastSyncTime tells you up to when the second region is complete. Anything written after it could be lost in a disaster.",
+    "The second region is always LRS: after an unplanned failover that you start, the account is LRS in the new main region. You must turn geo-redundancy on again, which copies everything again and costs data transfer.",
+    "RA- means you can read the second copy: RA-GRS and RA-GZRS give a read-only address, <account>-secondary.blob.core.windows.net. Your app must be built to use it, for example by retrying reads there.",
+    "Feature limits: premium block blob and premium file share accounts only support LRS and ZRS (no second region); the archive tier only works on LRS, GRS and RA-GRS, not on ZRS, GZRS or RA-GZRS.",
+    "Changing redundancy: switching between LRS, GRS and RA-GRS, or between ZRS, GZRS and RA-GZRS, is a simple setting change. Adding or removing zones (for example LRS to ZRS) needs a conversion, requested on the Redundancy page, or a manual move. Zone options only exist in regions that have availability zones."
+  ],
+  "example": {
+    "title": "Choosing redundancy for three kinds of data",
+    "body": [
+      "Build files you can make again: LRS. It's the cheapest, and losing them is annoying, not a disaster.",
+      "Order documents for an app running across zones in West Europe: ZRS. If one zone fails, the data can still be read and written, just like the app keeps running.",
+      "A legal archive that must survive a whole region going down, and be readable during it: RA-GZRS if you don't need the archive tier. If you need the archive tier, RA-GRS, because archive doesn't work on zone-redundant accounts."
+    ]
+  },
+  "architectureDecisions": [
+    "Match storage to compute: if your app runs across zones, use ZRS or GZRS. Otherwise a zone failure takes out your storage even though the app survives.",
+    "Watch Last Sync Time: if data loss matters, it shows your real risk, not the usual 15 minutes.",
+    "Only pay for RA- if your app reads the second copy: otherwise you pay for something you never use."
+  ],
+  "misconceptions": [
+    {
+      "myth": "With GRS, no data is lost if the region fails.",
+      "reality": "No. Copying is in the background, so writes after the Last Sync Time can be lost."
+    },
+    {
+      "myth": "With GRS you can read the second copy any time.",
+      "reality": "No. Only RA-GRS and RA-GZRS let you read it without a failover."
+    },
+    {
+      "myth": "ZRS protects you if a whole region goes down.",
+      "reality": "No. All ZRS copies are in one region."
+    },
+    {
+      "myth": "Redundancy protects against accidental deletes.",
+      "reality": "No. Deletes are copied too. Use soft delete, versioning, point-in-time restore or backups."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Backup / blob soft delete / versioning",
+      "difference": "Redundancy protects against broken hardware or a lost site. It doesn't protect against deletes or corruption, because those are copied everywhere. Soft delete, versioning and backups do."
+    },
+    {
+      "service": "Object replication",
+      "difference": "Copies block blobs between containers in accounts you choose, in any region. Geo-redundancy copies the whole account to its fixed paired region."
+    },
+    {
+      "service": "Amazon S3 storage classes",
+      "difference": "S3 Standard keeps data in at least three zones by default. Copying to another region needs S3 Replication rules, not an account setting."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "You can't pick ZRS or GZRS when creating an account.",
+      "cause": "The region has no availability zones, or the account type doesn't support zones.",
+      "fix": "Pick a region with zones, or an account type that supports ZRS."
+    },
+    {
+      "symptom": "Setting a blob to Archive fails on a GZRS account.",
+      "cause": "Archive doesn't work with ZRS, GZRS or RA-GZRS.",
+      "fix": "Use Cool or Cold, or keep archive data in an LRS, GRS or RA-GRS account."
+    },
+    {
+      "symptom": "Reads from <account>-secondary fail with 'not found'.",
+      "cause": "The account is GRS or GZRS without RA-, or the blob hasn't been copied yet (written after Last Sync Time).",
+      "fix": "Switch to RA-, and check Last Sync Time."
+    },
+    {
+      "symptom": "After a failover, the account shows LRS.",
+      "cause": "This is normal: after an unplanned failover the new main region is LRS.",
+      "fix": "Turn GRS or GZRS back on after the incident. Plan for the time and cost of copying everything again."
+    }
+  ],
+  "configuration.limits": [
+    "Premium block blob and file share accounts: LRS or ZRS only",
+    "Archive tier: LRS, GRS and RA-GRS only",
+    "No guarantee on geo-copy delay; usually under 15 minutes"
+  ],
+  "configuration.permissions": [
+    "Microsoft.Storage/storageAccounts/write (Storage Account Contributor or Contributor) to change redundancy (the account SKU)",
+    "Microsoft.Storage/storageAccounts/failover/action to start a failover"
+  ],
+  "configuration.prerequisites": [
+    "A region with availability zones, for ZRS, GZRS and RA-GZRS",
+    "A general-purpose v2 account, for the geo-zone options"
+  ],
+  "from": {
+    "learningObjective": "e62d55eeaa69",
+    "engineer": "52953d6efe65",
+    "example": "06cbeaa6adf9",
+    "architectureDecisions": "eb51e5ec9961",
+    "misconceptions": "12e542737e8d",
+    "comparisons": "40e9417d3340",
+    "troubleshooting": "812efb4983e1",
+    "configuration.limits": "69f5e2a572e6",
+    "configuration.permissions": "36952a640350",
+    "configuration.prerequisites": "e77cd6b74cc6"
+  }
+}

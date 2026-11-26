@@ -6,7 +6,7 @@
     "AZ104-5.1.3"
   ],
   "estimatedMinutes": 40,
-  "learningObjective": "Write and run Kusto Query Language (KQL) queries in Log Analytics to filter, summarise and visualise monitoring data.",
+  "learningObjective": "Write and run KQL (Kusto Query Language) queries in Log Analytics to filter, summarise and chart monitoring data.",
   "prerequisites": [
     {
       "text": "Metrics and log settings",
@@ -19,10 +19,13 @@
     "A KQL query starts with a table and pipes (|) the rows through operators, like a production line."
   ],
   "engineer": [
-    "Core operators: where (filter), project (choose columns), extend (add calculated columns), summarize (aggregate with count(), avg(), max(), percentile() by columns or bin(TimeGenerated, 1h)), order by / sort, take / limit, top, join, render (timechart, barchart).",
-    "Time: queries use the time range picker or where TimeGenerated > ago(1h). Use bin() to group by time for charts.",
-    "Useful queries: Heartbeat | summarize LastSeen = max(TimeGenerated) by Computer | where LastSeen < ago(5m) (missing agents); AzureActivity | where OperationNameValue endswith 'DELETE'; Perf | where CounterName == '% Processor Time' | summarize avg(CounterValue) by bin(TimeGenerated, 5m), Computer | render timechart.",
-    "Scope: workspace, or resource context (only that resource's data). Save queries, pin to dashboards or workbooks, and use them in log search alerts."
+    "How KQL reads: start with a table, then pipe (|) the rows through one step after another, top to bottom. For example: Perf | where … | summarize … | render timechart.",
+    "The main steps: where, keeps matching rows; project, keeps only the columns you list; extend, adds a calculated column; summarize, groups and counts (count(), avg(), max(), percentile()) by columns or by time with bin(TimeGenerated, 1h); order by or sort; take or limit, the first N rows; top; join; render, draws a chart (timechart, barchart).",
+    "Time: use the time range picker, or where TimeGenerated > ago(1h). Use bin() to group rows into time buckets for charts.",
+    "Query 1, which machines stopped reporting: Heartbeat | summarize LastSeen = max(TimeGenerated) by Computer | where LastSeen < ago(5m)",
+    "Query 2, who deleted things: AzureActivity | where OperationNameValue endswith 'DELETE'",
+    "Query 3, CPU over time: Perf | where CounterName == '% Processor Time' | summarize avg(CounterValue) by bin(TimeGenerated, 5m), Computer | render timechart",
+    "Scope: the whole workspace, or resource context (only one resource's data). Save queries, pin them to dashboards or workbooks, and use them in log search alerts."
   ],
   "animation": {
     "id": "monitor-sim",
@@ -88,7 +91,7 @@
   "example": {
     "title": "Finding the busiest VMs",
     "body": [
-      "Perf | where CounterName == \"% Processor Time\" | summarize AvgCPU = avg(CounterValue) by Computer | order by AvgCPU desc | take 5 shows vm-db1 at the top; a timechart by bin(TimeGenerated, 1h) shows it rising all morning."
+      "Perf | where CounterName == \"% Processor Time\" | summarize AvgCPU = avg(CounterValue) by Computer | order by AvgCPU desc | take 5 shows vm-db1 at the top. A timechart by bin(TimeGenerated, 1h) shows its CPU rising all morning."
     ]
   },
   "configuration": {
@@ -96,7 +99,7 @@
       "An Azure subscription with VMs to monitor or protect"
     ],
     "permissions": [
-      "Log Analytics Reader on the workspace (or resource-context read on the resources)"
+      "Log Analytics Reader on the workspace (or read access to the resources, in resource context)"
     ],
     "limits": [
       "See Azure Monitor / Azure Backup service limits"
@@ -150,25 +153,25 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Query returns no rows.",
-      "cause": "Time range too short or filters too strict, or data not collected.",
-      "fix": "Widen the range; check the table has data (… | take 10)."
+      "symptom": "The query returns no rows.",
+      "cause": "The time range is too short, the filters are too strict, or the data isn't collected.",
+      "fix": "Widen the time range. Check the table has data with … | take 10."
     },
     {
       "symptom": "Failed to resolve column.",
-      "cause": "Column doesn't exist in that table.",
-      "fix": "Check the schema pane."
+      "cause": "That column doesn't exist in that table.",
+      "fix": "Check the column list in the schema pane."
     },
     {
-      "symptom": "Query is slow.",
-      "cause": "Scanning large tables without a time filter.",
-      "fix": "Filter on TimeGenerated first and project only needed columns."
+      "symptom": "The query is slow.",
+      "cause": "It scans big tables without a time filter.",
+      "fix": "Filter on TimeGenerated first, and project only the columns you need."
     }
   ],
   "comparisons": [
     {
       "service": "SQL",
-      "difference": "KQL reads top-down with pipes: Perf | where … | summarize … instead of SELECT … FROM … GROUP BY."
+      "difference": "KQL reads top to bottom with pipes: Perf | where … | summarize …, instead of SELECT … FROM … GROUP BY."
     },
     {
       "service": "CloudWatch Logs Insights",
@@ -177,17 +180,17 @@
   ],
   "misconceptions": [
     {
-      "myth": "KQL can modify data.",
-      "reality": "It's read-only for queries."
+      "myth": "KQL can change data.",
+      "reality": "No. Queries only read data."
     },
     {
-      "myth": "summarize keeps all columns.",
-      "reality": "Only the aggregates and by-columns remain."
+      "myth": "summarize keeps all the columns.",
+      "reality": "No. Only the results and the 'by' columns are left."
     }
   ],
   "architectureDecisions": [
-    "Save common queries and share them in query packs.",
-    "Filter by time and table early for performance and cost."
+    "Save and share good queries: put them in query packs.",
+    "Filter early: filter by time and table first, so queries are faster and cheaper."
   ],
   "docs": [
     {

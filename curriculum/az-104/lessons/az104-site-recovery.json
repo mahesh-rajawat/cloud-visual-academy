@@ -7,7 +7,7 @@
     "AZ104-5.2.6"
   ],
   "estimatedMinutes": 45,
-  "learningObjective": "Configure Azure-to-Azure replication with Site Recovery, run test failovers, fail over to a secondary region, commit, re-protect and fail back.",
+  "learningObjective": "Set up Azure-to-Azure replication with Site Recovery, run test failovers, fail over to a second region, commit, re-protect and fail back.",
   "prerequisites": [
     {
       "text": "Recovery Services vaults",
@@ -20,11 +20,15 @@
     "A test failover proves it works without affecting production."
   ],
   "engineer": [
-    "Set up: create a Recovery Services vault in the target region (not the source); enable replication from the VM (Disaster recovery) or the vault: target region, resource group, VNet/subnet, availability options, cache storage account in the source region, replication policy (recovery point retention up to 15 days, app-consistent snapshot frequency). The Mobility service extension is installed on the VMs.",
-    "Network mapping maps source VNets to target VNets. Recovery plans group VMs into ordered groups with scripts/manual actions for multi-tier apps.",
-    "Test failover: choose a recovery point and an isolated VNet; validate; then Cleanup test failover.",
-    "Failover: choose a recovery point (Latest = lowest RPO, processes pending data; Latest processed = lowest RTO; Latest app-consistent; Custom). Then Commit (discards other recovery points), Re-protect (replicate from the secondary back to the primary), and later fail back the same way.",
-    "RPO: how much data you can lose; RTO: how long recovery takes. Site Recovery targets low RPO (continuous replication) for Azure VMs."
+    "Where the vault goes: create the Recovery Services vault in the target region, not the source region.",
+    "Turning on replication: from the VM (Disaster recovery) or from the vault. Choose the target region; the resource group; the VNet and subnet; availability options; a cache storage account in the source region; a replication policy. The Mobility service extension is installed on the VMs.",
+    "Replication policy: keeps recovery points for up to 15 days, and sets how often app-consistent snapshots are taken.",
+    "Network mapping: says which target VNet each source VNet fails over to.",
+    "Recovery plans: put VMs into ordered groups, with scripts or manual steps in between, for apps with several tiers.",
+    "Test failover: pick a recovery point and an isolated VNet. Check the app works. Then click Cleanup test failover. Production isn't touched.",
+    "Recovery point choices: Latest, the least data lost, but slower because it processes pending data first; Latest processed, the fastest recovery; Latest app-consistent; Custom.",
+    "After a real failover: Commit, which throws away the other recovery points; Re-protect, which starts copying from the second region back to the first; later, fail back the same way.",
+    "RPO and RTO: RPO is how much data you can afford to lose. RTO is how long recovery can take. Site Recovery copies continuously, so RPO for Azure VMs is low."
   ],
   "animation": {
     "id": "backup-dr-sim",
@@ -96,9 +100,10 @@
     ]
   },
   "example": {
-    "title": "Quarterly DR drill",
+    "title": "A disaster recovery drill every quarter",
     "body": [
-      "Every quarter, the team runs a test failover of the recovery plan 'erp' into vnet-dr-test in West US, runs smoke tests, then cleans up. During a real East US outage they failed over with Latest processed, committed, and re-protected once East US recovered, failing back a week later."
+      "Every quarter, the team runs a test failover of the recovery plan 'erp' into vnet-dr-test in West US. They run quick tests, then clean up.",
+      "During a real East US outage, they failed over with Latest processed and committed. When East US came back, they re-protected, and failed back a week later."
     ]
   },
   "configuration": {
@@ -106,11 +111,11 @@
       "An Azure subscription with VMs to monitor or protect"
     ],
     "permissions": [
-      "Site Recovery Contributor on the vault plus VM Contributor at source and target"
+      "Site Recovery Contributor on the vault, plus Virtual Machine Contributor in the source and target"
     ],
     "limits": [
-      "Recovery point retention up to 15 days",
-      "Vault must be in a region other than the source region"
+      "Recovery points kept up to 15 days",
+      "The vault must be in a different region from the source"
     ],
     "portal": [
       "VM > Disaster recovery: target region, advanced settings (resource group, VNet, cache storage, replication policy), Start replication.",
@@ -162,45 +167,45 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Can't select the source region's vault.",
-      "cause": "A2A vault must be in another region.",
+      "symptom": "You can't pick a vault in the source region.",
+      "cause": "For Azure-to-Azure, the vault must be in another region.",
       "fix": "Create the vault in the target region."
     },
     {
-      "symptom": "Re-protect unavailable.",
-      "cause": "Failover not committed.",
+      "symptom": "Re-protect isn't available.",
+      "cause": "The failover hasn't been committed.",
       "fix": "Commit first."
     },
     {
-      "symptom": "Failed-over VMs can't reach each other.",
-      "cause": "No network mapping or wrong subnet.",
-      "fix": "Configure network mapping and recovery plan order."
+      "symptom": "VMs can't reach each other after failover.",
+      "cause": "No network mapping, or the wrong subnet.",
+      "fix": "Set up network mapping, and check the recovery plan order."
     }
   ],
   "comparisons": [
     {
       "service": "Azure Backup Cross Region Restore",
-      "difference": "Restores from backups (higher RPO/RTO); Site Recovery replicates continuously."
+      "difference": "Restores from backups, so more data lost and slower recovery. Site Recovery copies all the time."
     },
     {
       "service": "AWS Elastic Disaster Recovery",
-      "difference": "AWS equivalent for continuous replication and failover."
+      "difference": "AWS's service for continuous copying and failover."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Test failover affects production.",
-      "reality": "It runs in an isolated network; production keeps running."
+      "myth": "A test failover affects production.",
+      "reality": "No. It runs in an isolated network, and production keeps running."
     },
     {
       "myth": "Site Recovery replaces backups.",
-      "reality": "It doesn't keep long-term history; use both."
+      "reality": "No. It doesn't keep long-term history. Use both."
     }
   ],
   "architectureDecisions": [
-    "Use recovery plans for multi-tier apps.",
-    "Run test failovers regularly and after major changes.",
-    "Choose 'Latest processed' for fastest RTO or 'Latest' for lowest data loss."
+    "Apps with several tiers: use recovery plans, so VMs start in the right order.",
+    "Test regularly: run test failovers every quarter and after big changes.",
+    "Pick the recovery point on purpose: Latest processed for the fastest recovery, Latest for the least data lost."
   ],
   "docs": [
     {

@@ -7,7 +7,7 @@
     "AZ104-5.1.6"
   ],
   "estimatedMinutes": 45,
-  "learningObjective": "Configure and interpret VM insights, Storage insights and Network insights, and use Network Watcher and Connection Monitor to monitor connectivity.",
+  "learningObjective": "Set up and read VM insights, Storage insights and Network insights, and use Network Watcher and Connection Monitor to keep an eye on connections.",
   "prerequisites": [
     {
       "text": "Metrics and log settings",
@@ -25,11 +25,14 @@
     "Network Watcher diagnoses and monitors network connectivity; Connection Monitor tests connections continuously."
   ],
   "engineer": [
-    "VM insights: enable on VMs/scale sets (installs Azure Monitor Agent and a DCR sending performance data to a workspace; the optional Map feature adds dependency data). Shows CPU, memory, disk and network trends, top N machines and processes/connections.",
-    "Storage insights: built from storage platform metrics, no setup: capacity, availability, transactions, end-to-end and server latency, failures by type across accounts.",
-    "Network insights: topology and health of network resources (gateways, load balancers, VNets), with links to resource-specific insights and Connection Monitor results.",
-    "Network Watcher tools: topology, IP flow verify, NSG diagnostics, next hop, effective security rules, connection troubleshoot, packet capture, VPN troubleshoot, VNet flow logs and Traffic analytics.",
-    "Connection Monitor: test groups of sources (Azure VMs with the Network Watcher agent extension, Arc-enabled or on-premises machines with Azure Monitor Agent) and destinations (IP, FQDN, Azure resources) using TCP, HTTP or ICMP test configurations with thresholds for checks failed % and round-trip time. Results go to Log Analytics and can trigger alerts."
+    "VM insights: turn it on for VMs or scale sets. It installs the Azure Monitor Agent and a DCR that sends performance data to a workspace. The optional Map feature also shows which machines talk to which. You see CPU, memory, disk and network trends, the busiest machines, and their processes and connections.",
+    "Storage insights: no setup, it uses storage platform metrics. Shows capacity, availability, transactions, end-to-end and server latency, and failures by type, across your accounts.",
+    "Network insights: a map and health view of network resources (gateways, load balancers, VNets), with links to each resource's insights and to Connection Monitor results.",
+    "Network Watcher tools: topology; IP flow verify; NSG diagnostics; next hop; effective security rules; connection troubleshoot; packet capture; VPN troubleshoot; VNet flow logs; Traffic analytics.",
+    "Connection Monitor, sources: Azure VMs with the Network Watcher agent extension, or Arc-enabled and on-premises machines with the Azure Monitor Agent.",
+    "Connection Monitor, destinations and tests: an IP, a domain name (FQDN) or an Azure resource, tested with TCP, HTTP or ICMP. Set thresholds for the % of failed checks and the round-trip time (RTT).",
+    "Connection Monitor, results: sent to Log Analytics, and can trigger alerts.",
+    "One-off vs continuous: IP flow verify and next hop check one moment. Connection Monitor checks all the time."
   ],
   "animation": {
     "id": "monitor-sim",
@@ -105,9 +108,9 @@
     ]
   },
   "example": {
-    "title": "Watching the on-premises link",
+    "title": "Watching the link to the office",
     "body": [
-      "Connection Monitor tests TCP 443 from three Azure VMs to an on-premises ERP server every 30 seconds with thresholds of 5% failed checks and 100 ms RTT. When the VPN degrades, the test state turns Fail and the ops action group is alerted; the topology view shows the failing hop."
+      "Connection Monitor tests TCP 443 from three Azure VMs to an on-premises ERP server every 30 seconds. Thresholds: 5% failed checks and 100 ms round trip. When the VPN gets worse, the test turns to Fail and the ops action group is alerted. The topology view shows which hop is failing."
     ]
   },
   "configuration": {
@@ -174,43 +177,43 @@
   "troubleshooting": [
     {
       "symptom": "VM insights shows no data.",
-      "cause": "No DCR association or agent not reporting.",
-      "fix": "Check the agent extension and Heartbeat table."
+      "cause": "No DCR linked, or the agent isn't reporting.",
+      "fix": "Check the agent extension, and the Heartbeat table."
     },
     {
-      "symptom": "Connection Monitor source shows unavailable.",
-      "cause": "Network Watcher agent missing or Network Watcher not enabled in the region.",
-      "fix": "Install the extension; enable Network Watcher."
+      "symptom": "A Connection Monitor source shows unavailable.",
+      "cause": "The Network Watcher agent is missing, or Network Watcher isn't on in that region.",
+      "fix": "Install the extension, and turn on Network Watcher."
     },
     {
       "symptom": "Storage insights shows high server latency.",
-      "cause": "Service-side processing (hot partitions, large operations).",
-      "fix": "Investigate request patterns; E2E vs server latency difference indicates client/network."
+      "cause": "Slow work on the storage side (busy partitions, big operations).",
+      "fix": "Look at the request patterns. If end-to-end latency is much higher than server latency, the client or network is the problem."
     }
   ],
   "comparisons": [
     {
       "service": "CloudWatch Container/Lambda Insights and VPC Reachability Analyzer",
-      "difference": "AWS equivalents."
+      "difference": "AWS's similar tools."
     },
     {
       "service": "Network Watcher one-off tools",
-      "difference": "Connection Monitor is continuous; IP flow verify/next hop are point-in-time."
+      "difference": "Connection Monitor checks all the time. IP flow verify and next hop check one moment."
     }
   ],
   "misconceptions": [
     {
       "myth": "Storage insights needs an agent.",
-      "reality": "It uses platform metrics."
+      "reality": "No. It uses platform metrics."
     },
     {
-      "myth": "Connection Monitor works without anything on the VM.",
-      "reality": "Azure VM sources need the Network Watcher agent extension."
+      "myth": "Connection Monitor works with nothing installed on the VM.",
+      "reality": "No. Azure VM sources need the Network Watcher agent extension."
     }
   ],
   "architectureDecisions": [
-    "Enable VM insights through Azure Policy for all production VMs.",
-    "Monitor critical hybrid paths with Connection Monitor and alert on thresholds."
+    "VM insights everywhere: turn it on for all production VMs with Azure Policy.",
+    "Watch important hybrid links: use Connection Monitor with alerts on its thresholds."
   ],
   "docs": [
     {

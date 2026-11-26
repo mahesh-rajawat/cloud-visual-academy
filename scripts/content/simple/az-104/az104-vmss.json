@@ -1,0 +1,95 @@
+{
+  "learningObjective": "Create a scale set with the right orchestration mode and upgrade policy. Write autoscale rules that add and remove VMs without bouncing up and down.",
+  "engineer": [
+    "Orchestration modes: Flexible, recommended, where instances are normal VMs, can mix sizes, can be managed with VM commands, and are spread across fault domains and zones; Uniform, where instances are identical copies of one model, managed with scale set (VMSS) commands, good for very large stateless fleets.",
+    "Upgrade policy (what happens when you change the model, for example a new image): Manual, where you upgrade instances yourself; Automatic, where all instances update in any order, maybe all at once; Rolling, where instances update in batches with pauses and health checks (Application Health extension or a load balancer probe).",
+    "Autoscale profile: a minimum, a maximum and a default number of instances.",
+    "Autoscale rule: which metric (for example CPU); how to average it; the condition and threshold (for example > 70%); how long to look back (for example 10 minutes); what to do (add or remove a number or percent); the cooldown, how long to wait before the next change (default 5 minutes).",
+    "Scheduled profiles: change the minimum and maximum for peaks you know about, such as a sale day.",
+    "How autoscale decides: it adds instances if any scale-out rule is true. It removes instances only when the scale-in rule is true.",
+    "Avoiding bouncing (flapping): before removing instances, autoscale estimates the new load. If that would trigger a scale-out straight away, it skips the scale-in. Keep a gap between thresholds, for example out above 70% and in below 30%.",
+    "Which VMs are removed (scale-in policy): Default, which keeps zones and fault domains balanced, then removes the highest instance ID; NewestVM; OldestVM.",
+    "Instance protection: stops specific instances from being removed or upgraded.",
+    "Setting up instances: use custom images from Azure Compute Gallery, and cloud-init or extensions for configuration.",
+    "Limits: up to 1,000 VMs in a scale set (sometimes fewer with custom images). Autoscale needs metric data; guest OS metrics need the Azure Monitor agent."
+  ],
+  "example": {
+    "title": "The web shop on Black Friday",
+    "body": [
+      "The shop's web tier is a Flexible scale set across three zones. Autoscale keeps 3 to 30 instances. It adds 2 when average CPU is above 70% for 10 minutes, and removes 1 when it's below 30% for 15 minutes. Cooldown is 5 minutes.",
+      "A scheduled profile raises the minimum to 10 on the sale day. Rolling upgrades with health probes roll out a patched image with no downtime."
+    ]
+  },
+  "architectureDecisions": [
+    "Flexible mode across zones: the default choice for new scale sets.",
+    "Metric rules plus schedules: schedules handle the peaks you know about, metrics handle the rest.",
+    "Rolling upgrades with health probes: a bad image stops after the first batch."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Autoscale reacts instantly.",
+      "reality": "No. It looks at the metric over the look-back window, and waits for the cooldown."
+    },
+    {
+      "myth": "You need Uniform mode for autoscale.",
+      "reality": "No. Both modes support autoscale. Flexible is recommended for new deployments."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS EC2 Auto Scaling groups",
+      "difference": "The same idea, with launch templates and scaling policies."
+    },
+    {
+      "service": "App Service autoscale",
+      "difference": "The same Azure Monitor autoscale engine, used for App Service plans."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "Instances are never removed.",
+      "cause": "The scale-in threshold is too low, or flapping protection blocks it.",
+      "fix": "Widen the gap between thresholds, and check the autoscale run history."
+    },
+    {
+      "symptom": "Autoscale does nothing.",
+      "cause": "The metric isn't available (for example guest metrics without the agent), or the profile is turned off.",
+      "fix": "Check the run history and whether the metric has data."
+    },
+    {
+      "symptom": "A model change didn't reach the instances.",
+      "cause": "The upgrade policy is Manual.",
+      "fix": "Upgrade the instances, or switch to Rolling."
+    },
+    {
+      "symptom": "New instances fail health checks during a rolling upgrade.",
+      "cause": "A bad image or app setting.",
+      "fix": "The rolling upgrade pauses. Fix the image and resume."
+    }
+  ],
+  "configuration.limits": [
+    "Up to 1,000 instances",
+    "Cooldown is 5 minutes by default",
+    "Autoscale needs metric data"
+  ],
+  "configuration.permissions": [
+    "Virtual Machine Contributor",
+    "Monitoring Contributor, to edit autoscale settings"
+  ],
+  "configuration.prerequisites": [
+    "A VNet and subnet, and a load balancer or Application Gateway",
+    "An image (from the Marketplace or Compute Gallery)"
+  ],
+  "from": {
+    "learningObjective": "4eb9e13a13c7",
+    "engineer": "061f94bc58bc",
+    "example": "86c7c8b76252",
+    "architectureDecisions": "0303cdfad53e",
+    "misconceptions": "5269ef234ca9",
+    "comparisons": "ffbbd940a239",
+    "troubleshooting": "dd93f351b9d8",
+    "configuration.limits": "a86ac1338506",
+    "configuration.permissions": "1e5951317776",
+    "configuration.prerequisites": "0099d0f10ad0"
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "learningObjective": "Give licences to users directly or through groups. Fix licence errors. Invite guest users from other companies and control what they can do.",
+  "engineer": [
+    "Group-based licensing: give a licence to a group, and every direct member gets it. Members of a group inside the group do not get it. Remove someone from the group and they lose the licence. You need a plan that includes this feature, such as Entra ID P1 or Microsoft 365 E3.",
+    "Usage location: a direct licence needs the user's usageLocation set first. A licence from a group works without it, because the user takes the tenant's country.",
+    "Licence errors on a group: open the group's Licenses page to see them. Common ones: not enough licences (CountViolation); two plans that clash (MutuallyExclusiveViolation); a plan that needs another plan first; a usage location where the service isn't allowed. Fix the cause, then click Reprocess.",
+    "Turning off parts of a licence: you can switch off single service plans (for example Exchange) in each assignment.",
+    "Direct plus group: a user can get the same licence directly and from a group. It still uses only one licence. Remove the direct one and the group one stays.",
+    "Inviting guests (B2B collaboration): the portal (New user > Invite external user); Microsoft Graph (POST /invitations); bulk invite from a CSV file.",
+    "What a guest looks like: userType is Guest. The sign-in name (UPN) looks like lee_fabrikam.com#EXT#@contoso.onmicrosoft.com. Until they accept the invitation, their state is PendingAcceptance.",
+    "External collaboration settings: guest user access, which can be the same as members, limited, or most restricted; who can invite, which can be anyone including guests, members and some admins, only admins and the Guest Inviter role, or no one; which domains are allowed, which can be any domain, all except a block list, or only an allow list.",
+    "Cross-tenant access settings: add inbound and outbound rules for one specific partner organisation.",
+    "Guests and Azure: you can give a guest an Azure (RBAC) role like anyone else. Check guest access regularly with access reviews, which need Entra ID P2 or ID Governance."
+  ],
+  "example": {
+    "title": "Letting a partner in, safely",
+    "body": [
+      "Contoso works with Fabrikam on a project. Contoso allows only the fabrikam.com domain, lets only members send invites, and sets guest access to limited.",
+      "Fabrikam engineers are added to a group that has Reader on the project's resource group. Every three months an access review removes guests who no longer need access."
+    ]
+  },
+  "architectureDecisions": [
+    "Give licences through groups: use dynamic groups instead of licensing people one by one, so new starters get licences automatically.",
+    "Only invite known partners: allow only partner domains, and review guest access on a schedule.",
+    "Give guests access through groups: one group per partner makes access easy to check and easy to remove."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Licensing a group also licenses the groups inside it.",
+      "reality": "No. Only direct members get the licence."
+    },
+    {
+      "myth": "A guest needs an account and password created in your tenant.",
+      "reality": "No. Guests sign in with their own company or personal account. Your tenant only holds a guest record for them."
+    },
+    {
+      "myth": "A user with the same licence directly and from a group uses two licences.",
+      "reality": "No. It uses one."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Microsoft Entra B2B direct connect",
+      "difference": "Two organisations trust each other for Teams shared channels, and no guest records are created. B2B collaboration does create guest users in your directory."
+    },
+    {
+      "service": "Microsoft Entra External ID for customers",
+      "difference": "For customers signing in to your apps (CIAM), kept in a separate external tenant. B2B collaboration is for partners working inside your own tenant."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "'License cannot be assigned. Usage location is not set.'",
+      "cause": "You gave a licence directly to a user with no usage location.",
+      "fix": "Set the usage location, or give the licence through a group (it uses the tenant's country)."
+    },
+    {
+      "symptom": "A group shows licence errors for some members.",
+      "cause": "There aren't enough licences, or two plans clash.",
+      "fix": "Buy or free up licences, or remove the clashing direct licence. Then click Reprocess."
+    },
+    {
+      "symptom": "Members of a group inside the licensed group got no licence.",
+      "cause": "Group-based licensing doesn't pass through to groups inside groups.",
+      "fix": "License the inner group too, or add those users directly."
+    },
+    {
+      "symptom": "An invitation fails with a policy error.",
+      "cause": "The domain is blocked, or the person inviting isn't allowed to invite.",
+      "fix": "Update the allow or block list, or ask a Guest Inviter or an admin to invite."
+    }
+  ],
+  "configuration.limits": [
+    "Licences don't pass through to groups inside groups",
+    "You can only assign as many licences as you bought",
+    "Guests are billed by monthly active users after the free amount"
+  ],
+  "configuration.permissions": [
+    "License Administrator or User Administrator, to give licences",
+    "Guest Inviter, User Administrator, or members if the settings allow it, to invite guests",
+    "Global Administrator or Security Administrator, to change external collaboration settings"
+  ],
+  "configuration.prerequisites": [
+    "Licences you have bought (Billing > Licenses)",
+    "A usage location on users who get a licence directly",
+    "External collaboration settings checked before you invite anyone"
+  ],
+  "from": {
+    "learningObjective": "70c10e3fab0b",
+    "engineer": "2b24ccd0c60f",
+    "example": "098b85f9ac0d",
+    "architectureDecisions": "44fd4d8a3f9c",
+    "misconceptions": "113ce4e8f65f",
+    "comparisons": "b7dafad77f25",
+    "troubleshooting": "101c9d7f5d5d",
+    "configuration.limits": "c2f7eee18ac3",
+    "configuration.permissions": "47fd90b9475f",
+    "configuration.prerequisites": "df3fa79ce065"
+  }
+}

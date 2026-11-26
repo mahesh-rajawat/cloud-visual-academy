@@ -1,0 +1,69 @@
+{
+  "learningObjective": "Find why two Azure resources can't connect, using effective routes, effective security rules and Network Watcher tools.",
+  "engineer": [
+    "IP flow verify: tests one 5-tuple against the VM's NSGs (subnet and network card, NIC). Answers Allow or Deny, and names the rule.",
+    "NSG diagnostics: like IP flow verify, but shows the result at the subnet level and the network card level separately.",
+    "Next hop: for a destination, shows where a VM sends the traffic: the next hop type, its IP, and which route table decided.",
+    "Effective security rules and effective routes (on the network card): what Azure really applies, with everything merged.",
+    "Connection troubleshoot: a real TCP or ICMP test from a VM (or Bastion, or Application Gateway) to a destination. It shows each hop, the delay, and what failed, including when the destination simply doesn't answer (for example a stopped service).",
+    "Packet capture: records the traffic on a VM.",
+    "VNet flow logs: record IP flows for later analysis. NSG flow logs are being retired: you can't create new ones after 30 June 2025.",
+    "Agent needed: Connection troubleshoot and packet capture need the Network Watcher agent extension on the VM.",
+    "Check in this order: NSG outbound; route; NSG inbound; the OS firewall; the app."
+  ],
+  "example": {
+    "title": "An app can't reach its database",
+    "body": [
+      "IP flow verify says Allow. Next hop says VnetLocal, so routing is fine. Connection troubleshoot says the destination port isn't reachable. The cause: the SQL Server service had stopped after patching."
+    ]
+  },
+  "architectureDecisions": [
+    "Check one hop at a time: NSG out, route, NSG in, OS, app.",
+    "Turn on VNet flow logs early: on important networks, before anything goes wrong."
+  ],
+  "misconceptions": [
+    {
+      "myth": "If NSGs allow it, the app must be reachable.",
+      "reality": "No. Routes, the OS firewall and the app itself can still block it."
+    },
+    {
+      "myth": "You have to buy Network Watcher separately.",
+      "reality": "No. It's turned on automatically. Some features (flow logs, Connection Monitor) cost money."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS Reachability Analyzer and VPC Flow Logs",
+      "difference": "AWS's tools for path checks and flow logs."
+    },
+    {
+      "service": "ping/tcping inside the VM",
+      "difference": "Tests from inside the VM, but doesn't tell you which Azure rule blocks the traffic."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "IP flow verify says Allow, but the connection fails.",
+      "cause": "The problem is routing, the OS firewall or the app.",
+      "fix": "Use Next hop and Connection troubleshoot."
+    },
+    {
+      "symptom": "Connection troubleshoot won't start.",
+      "cause": "The Network Watcher agent extension is missing.",
+      "fix": "Install the extension (Azure installs it automatically when it can)."
+    }
+  ],
+  "configuration.permissions": [
+    "Network Contributor, or a custom role with Network Watcher permissions plus read access to the VMs"
+  ],
+  "from": {
+    "learningObjective": "f0a7b88c9d8c",
+    "engineer": "3db05ac49a21",
+    "example": "23fa6d94600a",
+    "architectureDecisions": "6cd070266526",
+    "misconceptions": "6d37c3669bb7",
+    "comparisons": "5fc1fb8cf7bf",
+    "troubleshooting": "4a3ed246d661",
+    "configuration.permissions": "0a375676e445"
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "learningObjective": "Create and set up Recovery Services vaults and Backup vaults, and pick the right vault for each kind of data.",
+  "engineer": [
+    "Where to create the vault: in the same region as what it protects. (For Site Recovery, in the target region.)",
+    "Vault storage redundancy: GRS (default), LRS or ZRS. You can only change it before the first item is protected.",
+    "Cross Region Restore (CRR): lets you restore in the paired region. Needs GRS, and you must turn it on.",
+    "Vault security: soft delete, which keeps deleted backups 14 days by default and can be longer or always on; immutable vaults, where nobody can shorten retention or delete recovery points; multi-user authorization with Resource Guard, so critical actions need a second person; encryption with platform keys or your own keys; private endpoints.",
+    "Which vault for what: a Recovery Services vault for Azure VMs, SQL and SAP HANA in VMs, Azure Files, and Site Recovery; a Backup vault for Azure Blobs (operational and vaulted), Azure Disks (snapshots), Azure Database for PostgreSQL flexible server, AKS, and others in the support matrix.",
+    "One view of both: Business continuity center shows both vault types together.",
+    "Roles: Backup Contributor, manages everything; Backup Operator, backs up and restores but can't delete; Backup Reader, view only.",
+    "Backup vault identities: a Backup vault uses a managed identity, which needs roles on what it protects (for example Disk Backup Reader)."
+  ],
+  "example": {
+    "title": "One region, two vaults",
+    "body": [
+      "Contoso protects its VMs and file shares with rsv-prod-eus (GRS with Cross Region Restore). It protects its managed disks and blob containers with bv-prod-eus. Both use soft delete and immutability. Deleting backup data needs approval through Resource Guard."
+    ]
+  },
+  "architectureDecisions": [
+    "Production that must survive a region outage: use GRS and Cross Region Restore.",
+    "Protect against ransomware: turn on immutability and multi-user authorization.",
+    "Separate vaults: one per environment and region."
+  ],
+  "misconceptions": [
+    {
+      "myth": "One vault can protect resources in any region.",
+      "reality": "No. A vault protects resources in its own region."
+    },
+    {
+      "myth": "Soft delete can't be turned off.",
+      "reality": "It can, unless it's set to always on."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS Backup vaults",
+      "difference": "AWS has one kind of vault for every service. Azure has two vault types, split by workload."
+    },
+    {
+      "service": "Azure Site Recovery",
+      "difference": "Also uses Recovery Services vaults, but for copying and failing over VMs, not for backups."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "You can't change the vault's storage redundancy.",
+      "cause": "Items are already protected.",
+      "fix": "Stop protection and delete the data, or create a new vault."
+    },
+    {
+      "symptom": "A VM doesn't appear when you set up backup.",
+      "cause": "The vault is in a different region.",
+      "fix": "Create a vault in the VM's region."
+    },
+    {
+      "symptom": "Disk backup fails with a permissions error.",
+      "cause": "The Backup vault's identity is missing roles.",
+      "fix": "Give it Disk Backup Reader and Disk Snapshot Contributor."
+    }
+  ],
+  "configuration.limits": [
+    "Vault redundancy can't change once items are protected",
+    "The vault must be in the same region as what it protects (Azure Backup)"
+  ],
+  "configuration.permissions": [
+    "Backup Contributor to manage vaults and policies (Monitoring Contributor for alerts and diagnostic settings)"
+  ],
+  "from": {
+    "learningObjective": "936be596a524",
+    "engineer": "64a34f72c3f5",
+    "example": "7d0774abfc21",
+    "architectureDecisions": "abe04c4fef62",
+    "misconceptions": "1c375e0592ac",
+    "comparisons": "af4f74c74efa",
+    "troubleshooting": "4dc4dfa314b2",
+    "configuration.limits": "2778ed29e291",
+    "configuration.permissions": "c554cc2de377"
+  }
+}

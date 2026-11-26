@@ -1,0 +1,88 @@
+{
+  "learningObjective": "Put VMs in availability sets or zones. Explain fault domains and update domains. Match each option to the failures it survives and its SLA.",
+  "engineer": [
+    "Availability set: spreads VMs across racks in one datacenter.",
+    "Fault domains: groups of racks that share power and network. Up to 3 (2 or 3, depending on the region). If one fails, VMs in the others keep running.",
+    "Update domains: groups that Azure restarts one at a time during planned maintenance. Up to 20 (default 5).",
+    "Availability set tips: use the Aligned SKU for managed disks, so disks follow the fault domains. SLA: 99.95% for two or more VMs in a set.",
+    "Availability zones: separate buildings in one region, each with its own power, cooling and network. Put VMs in different zones (zones: ['1'], ['2'], ['3']). Use services that also span zones: Standard Load Balancer, Standard public IP, and ZRS disks where supported. SLA: 99.99% for two or more VMs across two or more zones.",
+    "Single VM SLA: 99.9%, if all its disks are Premium SSD, Premium SSD v2 or Ultra (lower for other disk types).",
+    "Rules: you choose the availability set when you create the VM. You can't add an existing VM to a set; recreate it from its disks. A VM can't be in both a set and a zone.",
+    "Scale sets: a Flexible scale set spreads VMs across zones and fault domains for you.",
+    "Neither protects a whole region: for that, copy to a second region with Azure Site Recovery.",
+    "Proximity placement groups: put VMs physically close for low latency. The trade-off: they are less spread out."
+  ],
+  "example": {
+    "title": "Picking the right option for two apps",
+    "body": [
+      "An intranet app that can tolerate some downtime runs on two VMs in an availability set (99.95%). A customer checkout service runs three VMs across zones, behind a zone-redundant Standard Load Balancer (99.99%).",
+      "Both teams also copy their VMs to the paired region with Site Recovery, because neither option survives a whole region going down."
+    ]
+  },
+  "architectureDecisions": [
+    "Important apps use zones: when the region has them.",
+    "Spread everything, not just VMs: use zone-redundant load balancers and storage too.",
+    "Add a second region: for disaster recovery."
+  ],
+  "misconceptions": [
+    {
+      "myth": "An availability set protects you if a datacenter fails.",
+      "reality": "No. It only spreads VMs across racks inside one datacenter."
+    },
+    {
+      "myth": "One VM in a zone gets 99.99%.",
+      "reality": "No. 99.99% needs two or more VMs across zones."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS placement groups / multi-AZ",
+      "difference": "EC2 spread placement groups are like availability sets. Deploying across AZs is like Azure zones."
+    },
+    {
+      "service": "VM Scale Sets (Flexible)",
+      "difference": "Spread VMs across zones and fault domains automatically, and add autoscale."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "You can't add an existing VM to an availability set.",
+      "cause": "The set is chosen when the VM is created.",
+      "fix": "Recreate the VM in the set, from its disks."
+    },
+    {
+      "symptom": "Allocation failure when adding VMs to a set.",
+      "cause": "The hardware cluster has no room for that size.",
+      "fix": "Deallocate all VMs and start them together, or pick another size."
+    },
+    {
+      "symptom": "There's no zone option.",
+      "cause": "The region or size doesn't support zones.",
+      "fix": "Pick a region and size that support zones."
+    }
+  ],
+  "configuration.limits": [
+    "Up to 3 fault domains and 20 update domains",
+    "Set or zone is chosen when the VM is created",
+    "A VM can't be in both a set and a zone"
+  ],
+  "configuration.permissions": [
+    "Virtual Machine Contributor"
+  ],
+  "configuration.prerequisites": [
+    "A region with availability zones (for zones)",
+    "A load balancer to share traffic"
+  ],
+  "from": {
+    "learningObjective": "3da8c174f91d",
+    "engineer": "cbf9746532fa",
+    "example": "277ab44a260a",
+    "architectureDecisions": "5fa8be93f0ff",
+    "misconceptions": "818b4319a384",
+    "comparisons": "fef88a84e1b4",
+    "troubleshooting": "88c05a5d8e40",
+    "configuration.limits": "bb06cb20b458",
+    "configuration.permissions": "0f2881efde8a",
+    "configuration.prerequisites": "ea96ba3ca559"
+  }
+}

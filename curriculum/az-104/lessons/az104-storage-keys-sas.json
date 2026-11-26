@@ -8,7 +8,7 @@
     "AZ104-2.1.4"
   ],
   "estimatedMinutes": 55,
-  "learningObjective": "Choose between account keys, account SAS, service SAS, user delegation SAS and Entra ID; create and revoke SAS safely with stored access policies; and rotate or disable keys without outages.",
+  "learningObjective": "Choose between account keys, the three kinds of SAS, and Entra ID. Create and cancel SAS safely with stored access policies. Rotate or turn off keys without breaking apps.",
   "prerequisites": [
     {
       "text": "Storage firewalls (network layer)",
@@ -28,12 +28,16 @@
     "The most secure option is to use Microsoft Entra ID with RBAC data roles, or a user delegation SAS that is signed with Entra credentials instead of a key."
   ],
   "engineer": [
-    "Account keys (key1, key2): regenerating a key immediately invalidates the key and every account SAS and service SAS signed with it. Rotate safely: switch apps to key2, regenerate key1, switch back, regenerate key2. Store keys in Key Vault, set a key expiration policy, and monitor with Azure Policy or Advisor.",
-    "allowSharedKeyAccess = false blocks Shared Key and every key-signed SAS (account and service). Entra ID and user delegation SAS keep working. Check that tools such as the portal, AzCopy and apps use Entra ID before disabling it.",
-    "SAS types: account SAS (one or more services, service-level operations), service SAS (one service; can reference a stored access policy), and user delegation SAS (Blob/Data Lake only; signed with a user delegation key obtained with Entra credentials; valid at most 7 days; needs generateUserDelegationKey permission, for example Storage Blob Delegator).",
-    "SAS parameters: sv (version), ss/srt (account SAS services and resource types), sp (permissions), st/se (start and expiry), sip (allowed IPs), spr (https only), si (stored access policy), sig (signature). Validation fails with 403 when the signature, time window, IP, protocol or permissions do not match.",
-    "Stored access policies: up to five per container, share, queue or table. A SAS referencing a policy can omit permissions and expiry. Deleting or renaming the policy revokes every SAS that uses it; changes can take up to 30 seconds to apply. Ad hoc SAS (no policy) can only be revoked by rotating the signing key, or for a user delegation SAS by revoking the user delegation keys.",
-    "Best practice: short expiry, least privilege, HTTPS only, sip where possible, a SAS expiration policy on the account, and Entra ID instead of keys whenever the client supports it."
+    "Account keys: every account has two, key1 and key2. They give full access to everything in the account.",
+    "Regenerating a key: the old key stops working at once, and so does every account SAS and service SAS signed with it.",
+    "Rotating keys without an outage: move apps to key2; regenerate key1; move apps back to key1; regenerate key2. Keep keys in Key Vault, set a key expiration policy, and watch for old keys with Azure Policy or Advisor.",
+    "Turning off Shared Key (allowSharedKeyAccess = false): blocks the account keys and every SAS signed with a key. Entra ID sign-in and user delegation SAS keep working. Check first that the portal, AzCopy and your apps use Entra ID.",
+    "The three SAS types: account SAS, for one or more services, signed with an account key; service SAS, for one service, signed with an account key, and the only kind that can use a stored access policy; user delegation SAS, for blobs and Data Lake only, signed with a key you get by signing in with Entra ID.",
+    "User delegation SAS rules: it lasts at most 7 days. Creating one needs the generateUserDelegationKey permission, for example from the Storage Blob Delegator role.",
+    "Reading a SAS URL: sv, the version; ss and srt, which services and resource types (account SAS); sp, the permissions (r read, w write, l list…); st and se, start and expiry time; sip, allowed IP addresses; spr, HTTPS only; si, the stored access policy; sig, the signature. If any of these don't match the request, you get 403.",
+    "Stored access policies: up to five per container, file share, queue or table. A service SAS can point to one and take its permissions and expiry from it.",
+    "Cancelling a SAS: if it uses a stored access policy, delete or rename the policy (it takes up to 30 seconds). If it doesn't, you must regenerate the key that signed it. For a user delegation SAS, revoke the user delegation keys.",
+    "Good habits: short expiry; only the permissions needed; HTTPS only; limit IPs with sip; set a SAS expiration policy on the account; use Entra ID instead of keys whenever the app supports it."
   ],
   "animation": {
     "id": "storage-access-sim",
@@ -115,10 +119,10 @@
     ]
   },
   "example": {
-    "title": "Revocable partner downloads",
+    "title": "Partner downloads you can cancel",
     "body": [
-      "A partner needs read and list access to the reports container for a month. The admin creates a stored access policy 'partner-read' (rl, 30 days) and issues a service SAS that references it.",
-      "When the contract ends early, deleting the policy revokes the partner's SAS within seconds, without rotating keys and breaking every other client. Internal apps already use managed identities with Storage Blob Data Reader, so Shared Key is disabled later."
+      "A partner needs to read and list the reports container for one month. The admin creates a stored access policy called 'partner-read' (read and list, 30 days). Then they give the partner a service SAS that uses this policy.",
+      "The contract ends early. The admin deletes the policy, and the partner's SAS stops working within seconds. No keys are rotated, so no other app breaks. Internal apps already use managed identities with Storage Blob Data Reader, so later Shared Key is turned off."
     ]
   },
   "configuration": {
@@ -126,13 +130,13 @@
       "For user delegation SAS: an Entra identity with generateUserDelegationKey and a data role"
     ],
     "permissions": [
-      "Microsoft.Storage/storageAccounts/listkeys/action to read keys (Storage Account Key Operator Service Role, Contributor)",
+      "Microsoft.Storage/storageAccounts/listkeys/action to read keys (Storage Account Key Operator Service Role, or Contributor)",
       "Microsoft.Storage/storageAccounts/regeneratekey/action to rotate keys",
       "Storage Blob Delegator (or a data role) for user delegation SAS"
     ],
     "limits": [
-      "Five stored access policies per container/share/queue/table",
-      "User delegation SAS: at most 7 days",
+      "Five stored access policies per container, share, queue or table",
+      "User delegation SAS: 7 days at most",
       "Policy changes take up to 30 seconds"
     ],
     "portal": [
@@ -192,54 +196,54 @@
   },
   "troubleshooting": [
     {
-      "symptom": "403 'Signature did not match' for a previously working SAS.",
-      "cause": "The signing key was rotated, or the URL was altered.",
-      "fix": "Issue a new SAS with the current key, or use a stored access policy / user delegation SAS."
+      "symptom": "403 'Signature did not match' for a SAS that used to work.",
+      "cause": "The key that signed it was regenerated, or the URL was changed.",
+      "fix": "Create a new SAS with the current key, or use a stored access policy or a user delegation SAS."
     },
     {
       "symptom": "403 'This request is not authorized to perform this operation using this permission'.",
-      "cause": "sp does not include the operation (for example list).",
-      "fix": "Generate a SAS with the needed permission letter."
+      "cause": "sp doesn't include that action (for example l for list).",
+      "fix": "Create a SAS with the permission letter you need."
     },
     {
-      "symptom": "SAS works on Wi-Fi but not on mobile data.",
-      "cause": "sip restricts the SAS to specific IPs.",
-      "fix": "Widen or remove the IP restriction."
+      "symptom": "The SAS works on office Wi-Fi but not on mobile data.",
+      "cause": "sip limits the SAS to certain IP addresses.",
+      "fix": "Widen or remove the IP limit."
     },
     {
-      "symptom": "Portal 'Switch to access key' fails after disabling Shared Key.",
-      "cause": "Key-based access is disallowed.",
-      "fix": "Use Microsoft Entra authentication with a data role."
+      "symptom": "The portal's 'Switch to access key' fails after turning off Shared Key.",
+      "cause": "Key access isn't allowed any more.",
+      "fix": "Use Entra ID sign-in with a data role."
     }
   ],
   "comparisons": [
     {
       "service": "Amazon S3 presigned URLs",
-      "difference": "Comparable to SAS, but signed with IAM credentials (closer to a user delegation SAS) and with no stored access policy equivalent."
+      "difference": "Like a SAS, but signed with IAM credentials (closer to a user delegation SAS). There is nothing like a stored access policy."
     },
     {
       "service": "Entra ID + RBAC data roles",
-      "difference": "No secrets to leak; access is per identity and auditable; preferred over keys and SAS."
+      "difference": "No secrets that can leak. Access is per identity and logged. Better than keys and SAS."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Deleting a SAS revokes it.",
-      "reality": "A SAS is just a URL; revoke it by deleting its stored access policy or rotating the signing key."
+      "myth": "You can delete a SAS to cancel it.",
+      "reality": "No. A SAS is just a URL. Cancel it by deleting its stored access policy, or by regenerating the key that signed it."
     },
     {
       "myth": "An account SAS can use a stored access policy.",
-      "reality": "Only a service SAS can reference a stored access policy."
+      "reality": "No. Only a service SAS can."
     },
     {
-      "myth": "Disabling Shared Key breaks all SAS tokens.",
-      "reality": "User delegation SAS keeps working."
+      "myth": "Turning off Shared Key breaks every SAS.",
+      "reality": "No. User delegation SAS keeps working, because it's signed with Entra ID."
     }
   ],
   "architectureDecisions": [
-    "Default to Entra ID with managed identities; use user delegation SAS for delegated access.",
-    "If you must use service SAS, always attach a stored access policy so it can be revoked.",
-    "Automate key rotation with Key Vault and alternate key1/key2."
+    "Use Entra ID first: apps sign in with managed identities. For links you hand out, use a user delegation SAS.",
+    "If you must use a service SAS, attach a stored access policy: then you can cancel it without rotating keys.",
+    "Rotate keys automatically: with Key Vault, switching between key1 and key2."
   ],
   "docs": [
     {

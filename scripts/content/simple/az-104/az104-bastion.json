@@ -1,0 +1,76 @@
+{
+  "learningObjective": "Deploy Azure Bastion with the right SKU and subnet, so admins can RDP and SSH to VMs that have no public IP.",
+  "engineer": [
+    "SKUs: Developer, free, shared, one connection at a time, no subnet needed, only in some regions; Basic; Standard, which adds native client support (your own RDP or SSH app), shareable links, more hosts, connecting by IP address and custom ports; Premium, which adds session recording and a private-only option.",
+    "What Basic, Standard and Premium need: a subnet named exactly AzureBastionSubnet, /26 or bigger, and a Standard public IP (Premium private-only doesn't need the IP).",
+    "Which VMs it reaches: VMs in its own VNet and in peered VNets.",
+    "NSG rules: the VMs' NSGs must allow RDP (3389) or SSH (22) from the AzureBastionSubnet range. An NSG on AzureBastionSubnet itself needs a specific set of required rules.",
+    "Native client: az network bastion rdp or az network bastion ssh. Needs Standard or Premium, with Native client support turned on.",
+    "Cost: per hour for each Bastion, plus outbound data. Extra scale units on Standard or Premium cost more per hour."
+  ],
+  "example": {
+    "title": "Removing public IPs used for admin",
+    "body": [
+      "Contoso deploys Standard Bastion in the hub VNet and removes every VM's public IP. Admins connect from the portal, or from their laptops with az network bastion ssh."
+    ]
+  },
+  "architectureDecisions": [
+    "One Bastion in the hub: it reaches the spokes through peering.",
+    "Pick the SKU by feature: Standard for native client and shareable links, Premium for session recording."
+  ],
+  "misconceptions": [
+    {
+      "myth": "VMs need public IPs to use Bastion.",
+      "reality": "No. Bastion reaches them on their private IPs."
+    },
+    {
+      "myth": "Any subnet name works.",
+      "reality": "No. It must be exactly AzureBastionSubnet."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Jump box VM",
+      "difference": "You patch and secure it yourself, and it's exposed to the internet."
+    },
+    {
+      "service": "AWS Systems Manager Session Manager",
+      "difference": "AWS's option for shell access without open ports, using an agent on the VM."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "Deploying Bastion fails.",
+      "cause": "The subnet isn't named AzureBastionSubnet, or it's smaller than /26.",
+      "fix": "Create the right subnet."
+    },
+    {
+      "symptom": "az network bastion ssh fails.",
+      "cause": "Basic SKU, or native client support is off.",
+      "fix": "Upgrade to Standard and turn on native client support."
+    },
+    {
+      "symptom": "The connection times out.",
+      "cause": "The VM's NSG blocks RDP or SSH from the Bastion subnet.",
+      "fix": "Allow 3389 or 22 from the AzureBastionSubnet range."
+    }
+  ],
+  "configuration.limits": [
+    "AzureBastionSubnet: /26 or bigger",
+    "Native client and shareable links: Standard or Premium"
+  ],
+  "configuration.permissions": [
+    "Network Contributor on the resource group"
+  ],
+  "from": {
+    "learningObjective": "19e21f8ce595",
+    "engineer": "1b1f2316d2d8",
+    "example": "3b75d8097fc2",
+    "architectureDecisions": "68c4116d02f5",
+    "misconceptions": "c17c744bb893",
+    "comparisons": "13c3b4ab6adb",
+    "troubleshooting": "19bddacf4592",
+    "configuration.limits": "02b559239592",
+    "configuration.permissions": "9e4728057e11"
+  }
+}

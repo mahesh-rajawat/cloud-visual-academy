@@ -1,0 +1,81 @@
+{
+  "learningObjective": "Set up Azure-to-Azure replication with Site Recovery, run test failovers, fail over to a second region, commit, re-protect and fail back.",
+  "engineer": [
+    "Where the vault goes: create the Recovery Services vault in the target region, not the source region.",
+    "Turning on replication: from the VM (Disaster recovery) or from the vault. Choose the target region; the resource group; the VNet and subnet; availability options; a cache storage account in the source region; a replication policy. The Mobility service extension is installed on the VMs.",
+    "Replication policy: keeps recovery points for up to 15 days, and sets how often app-consistent snapshots are taken.",
+    "Network mapping: says which target VNet each source VNet fails over to.",
+    "Recovery plans: put VMs into ordered groups, with scripts or manual steps in between, for apps with several tiers.",
+    "Test failover: pick a recovery point and an isolated VNet. Check the app works. Then click Cleanup test failover. Production isn't touched.",
+    "Recovery point choices: Latest, the least data lost, but slower because it processes pending data first; Latest processed, the fastest recovery; Latest app-consistent; Custom.",
+    "After a real failover: Commit, which throws away the other recovery points; Re-protect, which starts copying from the second region back to the first; later, fail back the same way.",
+    "RPO and RTO: RPO is how much data you can afford to lose. RTO is how long recovery can take. Site Recovery copies continuously, so RPO for Azure VMs is low."
+  ],
+  "example": {
+    "title": "A disaster recovery drill every quarter",
+    "body": [
+      "Every quarter, the team runs a test failover of the recovery plan 'erp' into vnet-dr-test in West US. They run quick tests, then clean up.",
+      "During a real East US outage, they failed over with Latest processed and committed. When East US came back, they re-protected, and failed back a week later."
+    ]
+  },
+  "architectureDecisions": [
+    "Apps with several tiers: use recovery plans, so VMs start in the right order.",
+    "Test regularly: run test failovers every quarter and after big changes.",
+    "Pick the recovery point on purpose: Latest processed for the fastest recovery, Latest for the least data lost."
+  ],
+  "misconceptions": [
+    {
+      "myth": "A test failover affects production.",
+      "reality": "No. It runs in an isolated network, and production keeps running."
+    },
+    {
+      "myth": "Site Recovery replaces backups.",
+      "reality": "No. It doesn't keep long-term history. Use both."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Backup Cross Region Restore",
+      "difference": "Restores from backups, so more data lost and slower recovery. Site Recovery copies all the time."
+    },
+    {
+      "service": "AWS Elastic Disaster Recovery",
+      "difference": "AWS's service for continuous copying and failover."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "You can't pick a vault in the source region.",
+      "cause": "For Azure-to-Azure, the vault must be in another region.",
+      "fix": "Create the vault in the target region."
+    },
+    {
+      "symptom": "Re-protect isn't available.",
+      "cause": "The failover hasn't been committed.",
+      "fix": "Commit first."
+    },
+    {
+      "symptom": "VMs can't reach each other after failover.",
+      "cause": "No network mapping, or the wrong subnet.",
+      "fix": "Set up network mapping, and check the recovery plan order."
+    }
+  ],
+  "configuration.limits": [
+    "Recovery points kept up to 15 days",
+    "The vault must be in a different region from the source"
+  ],
+  "configuration.permissions": [
+    "Site Recovery Contributor on the vault, plus Virtual Machine Contributor in the source and target"
+  ],
+  "from": {
+    "learningObjective": "6ed4a4b87f13",
+    "engineer": "d304c6237f7e",
+    "example": "8c84c7c8c5b7",
+    "architectureDecisions": "cc3a8ad740d4",
+    "misconceptions": "26183e222720",
+    "comparisons": "ad4191051736",
+    "troubleshooting": "aec14df6bcb8",
+    "configuration.limits": "89d5e440b656",
+    "configuration.permissions": "18539588dda1"
+  }
+}

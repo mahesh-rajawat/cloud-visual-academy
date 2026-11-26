@@ -7,7 +7,7 @@
     "AZ104-5.2.4"
   ],
   "estimatedMinutes": 50,
-  "learningObjective": "Create and configure backup policies (Standard and Enhanced), run on-demand backups, and choose and perform the right restore operation.",
+  "learningObjective": "Create and set up backup policies (Standard and Enhanced), run backups on demand, and pick and run the right kind of restore.",
   "prerequisites": [
     {
       "text": "Recovery Services vaults and Backup vaults",
@@ -20,11 +20,14 @@
     "Restores range from a single file to a whole VM, in place or as a new VM, or in another region."
   ],
   "engineer": [
-    "VM policies: Standard (one backup a day, instant restore snapshots kept 1–5 days, default 2) or Enhanced (a backup every 4, 6, 8, 12 or 24 hours, instant restore snapshots 1–30 days, default 7; needed for Trusted Launch VMs in the portal and for some disk types such as Premium SSD v2 and Ultra). Retention ranges: daily, weekly, monthly, yearly (daily 7–9999 days).",
-    "Backups use the VM agent and a snapshot (application-consistent with VSS on Windows / pre-post scripts on Linux when possible), stored first as instant restore snapshots then transferred to the vault.",
-    "Backup now creates an on-demand recovery point with its own retention.",
-    "Restore options: Create new VM, Restore disks (to a staging storage account and resource group; then attach or use the generated template), Replace existing (swap disks in place, VM must exist), Cross Region Restore (from GRS+CRR vaults), and File Recovery (mount a recovery point with a script and copy files).",
-    "Azure Files: snapshot-based or vaulted backup with share- or file-level restore. SQL in VM: log backups every 15 minutes for point-in-time restore."
+    "Standard policy: one backup a day. Instant restore snapshots kept 1 to 5 days (default 2).",
+    "Enhanced policy: a backup every 4, 6, 8, 12 or 24 hours. Instant restore snapshots kept 1 to 30 days (default 7). The portal requires it for Trusted Launch VMs, and it's needed for some disk types such as Premium SSD v2 and Ultra.",
+    "Retention: daily, weekly, monthly and yearly points. Daily points can be kept 7 to 9999 days.",
+    "How a VM backup works: the VM agent takes a snapshot. Where possible it's application-consistent (VSS on Windows, pre and post scripts on Linux). The snapshot is kept first as an instant restore snapshot, then copied to the vault.",
+    "Backup now: makes an extra recovery point straight away, with its own retention.",
+    "Restore options: Create new VM; Restore disks, to a staging storage account and resource group, then attach them or use the template Azure creates; Replace existing, which swaps the disks in place (the VM must still exist); Cross Region Restore, from a GRS vault with CRR turned on; File Recovery, which mounts a recovery point with a script so you can copy single files.",
+    "Azure Files backup: snapshot-based or vaulted, and restore a whole share or single files.",
+    "SQL Server in a VM: log backups every 15 minutes, so you can restore to a point in time."
   ],
   "animation": {
     "id": "backup-dr-sim",
@@ -84,9 +87,9 @@
     ]
   },
   "example": {
-    "title": "A tiered policy",
+    "title": "Different policies for different VMs",
     "body": [
-      "Production SQL VMs (Trusted Launch) use an Enhanced policy every 4 hours with 7-day snapshots, 30 daily, 12 monthly and 7 yearly points. When a developer deletes a config file, the admin uses File Recovery from this morning's point in minutes."
+      "Production SQL VMs (Trusted Launch) use an Enhanced policy: a backup every 4 hours, snapshots kept 7 days, and 30 daily, 12 monthly and 7 yearly points. A developer deletes a config file. In minutes, the admin gets it back with File Recovery from this morning's point."
     ]
   },
   "configuration": {
@@ -94,11 +97,11 @@
       "An Azure subscription with VMs to monitor or protect"
     ],
     "permissions": [
-      "Monitoring Contributor (alerts, diagnostic settings) or Backup Contributor (vaults, policies)"
+      "Backup Contributor to manage vaults and policies (Monitoring Contributor for alerts and diagnostic settings)"
     ],
     "limits": [
-      "Standard policy: 1 backup/day, instant restore 1–5 days",
-      "Enhanced policy: every 4, 6, 8, 12 or 24 hours, instant restore 1–30 days"
+      "Standard policy: 1 backup a day, instant restore 1 to 5 days",
+      "Enhanced policy: every 4, 6, 8, 12 or 24 hours, instant restore 1 to 30 days"
     ],
     "portal": [
       "Vault > Backup policies > + Add: Azure Virtual Machine, Standard or Enhanced, schedule and retention.",
@@ -158,44 +161,44 @@
   "troubleshooting": [
     {
       "symptom": "Backup fails: VM agent unresponsive.",
-      "cause": "Agent not running or blocked outbound.",
-      "fix": "Restart/update the agent; allow required endpoints."
+      "cause": "The agent isn't running, or its outbound traffic is blocked.",
+      "fix": "Restart or update the agent, and allow the endpoints it needs."
     },
     {
-      "symptom": "Can't choose Standard policy for a Trusted Launch VM.",
+      "symptom": "You can't pick a Standard policy for a Trusted Launch VM.",
       "cause": "The portal only offers Enhanced for Trusted Launch VMs.",
-      "fix": "Use an Enhanced policy (Standard is possible only through newer CLI, PowerShell or API versions)."
+      "fix": "Use an Enhanced policy (Standard only works through newer CLI, PowerShell or API versions)."
     },
     {
       "symptom": "Replace existing is greyed out.",
-      "cause": "Original VM deleted.",
-      "fix": "Create new VM or restore disks."
+      "cause": "The original VM was deleted.",
+      "fix": "Use Create new VM, or Restore disks."
     }
   ],
   "comparisons": [
     {
       "service": "Azure Site Recovery",
-      "difference": "Replicates continuously for fast failover (RPO in minutes); backup keeps long-term point-in-time copies."
+      "difference": "Copies VMs all the time for a fast failover (an RPO of minutes). Backup keeps older copies for a long time."
     },
     {
       "service": "Managed disk snapshots",
-      "difference": "Manual point-in-time copies without policy or vault retention."
+      "difference": "Copies you take by hand, with no policy and no vault retention."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Backups protect against regional outages by default.",
-      "reality": "Only with GRS + Cross Region Restore."
+      "myth": "Backups survive a region outage by default.",
+      "reality": "No. Only with a GRS vault and Cross Region Restore."
     },
     {
-      "myth": "File recovery restores the whole VM.",
-      "reality": "It mounts a recovery point so you copy specific files."
+      "myth": "File Recovery restores the whole VM.",
+      "reality": "No. It mounts a recovery point so you can copy the files you need."
     }
   ],
   "architectureDecisions": [
-    "Use Enhanced policies for critical VMs.",
-    "Keep instant restore days long enough for most restores to be fast.",
-    "Test restores regularly."
+    "Critical VMs: use Enhanced policies.",
+    "Fast restores: keep instant restore snapshots long enough that most restores come from them.",
+    "Test restores: on a regular schedule, not only when something breaks."
   ],
   "docs": [
     {

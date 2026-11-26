@@ -8,7 +8,7 @@
     "AZ104-3.4.3"
   ],
   "estimatedMinutes": 45,
-  "learningObjective": "Choose an App Service plan tier, scale up and out (manually and with autoscale), and create web apps with the right runtime and settings.",
+  "learningObjective": "Pick an App Service plan tier. Scale up and out, by hand and with autoscale. Create web apps with the right runtime and settings.",
   "prerequisites": [
     {
       "text": "Application hosting options (AZ-900)",
@@ -26,11 +26,13 @@
     "Several apps can share one plan, and they then share its instances."
   ],
   "engineer": [
-    "Tiers: Free and Shared run on shared infrastructure (Free: no custom domains; Shared: custom domains without TLS bindings). Basic: dedicated, custom domains and TLS, manual scale up to 3 instances. Standard: autoscale up to 10 instances, 5 deployment slots, backups. Premium v3: up to 30 instances, 20 slots, faster hardware, zone redundancy. Isolated v2 (App Service Environment): up to 100 instances, network isolation.",
-    "A plan belongs to one region and OS (Windows or Linux). All apps on a plan run on every instance; one noisy app affects the rest, so split heavy apps into their own plans.",
-    "Scale out manually (instance count) or with rule-based autoscale (Standard and above, the same Azure Monitor autoscale engine as VMSS: metrics such as CPU, memory or HTTP queue length, and schedules). Premium plans also offer automatic scaling (platform-managed).",
-    "Creating an app: name (forms <name>.azurewebsites.net, globally unique), publish model (code or container), runtime stack and version, OS, region, plan. Configure app settings and connection strings (environment variables), general settings (Always On, HTTP version, ARR affinity), and deployment (ZIP deploy, GitHub Actions, Azure DevOps, container image).",
-    "Moving an app to a different plan is possible within the same resource group and region (webspace)."
+    "Tiers, smallest to biggest: Free, shared servers, no custom domains; Shared, shared servers, custom domains but no TLS certificates; Basic, your own servers, custom domains and TLS, up to 3 instances (scale by hand only); Standard, autoscale up to 10 instances, 5 deployment slots, backups; Premium v3, up to 30 instances, 20 slots, faster hardware, zone redundancy; Isolated v2 (App Service Environment), up to 100 instances, in your own network.",
+    "A plan is a set of servers: it's in one region and one OS (Windows or Linux). Every app on the plan runs on every instance. One busy app slows down the others, so give heavy apps their own plan.",
+    "Scale up vs scale out: scale up means a bigger tier. Scale out means more instances.",
+    "Ways to scale out: by hand (set the instance count); rule-based autoscale, Standard and above, using the same Azure Monitor autoscale as scale sets (VMSS), with metrics such as CPU, memory or HTTP queue length, and schedules; automatic scaling, Premium only, where Azure decides for you.",
+    "Creating an app: a name, which becomes <name>.azurewebsites.net and must be unique; code or container; runtime stack and version; OS; region; plan.",
+    "App settings: app settings and connection strings, which your code reads as environment variables; general settings (Always On, HTTP version, ARR affinity); deployment, from ZIP deploy, GitHub Actions, Azure DevOps or a container image.",
+    "Moving an app to another plan: allowed, if the new plan is in the same resource group and region."
   ],
   "animation": {
     "id": "appservice-sim",
@@ -95,23 +97,23 @@
     ]
   },
   "example": {
-    "title": "Consolidating small sites",
+    "title": "Putting small sites together",
     "body": [
-      "Five low-traffic marketing sites share one Standard S1 plan (cheaper than five plans). The busy checkout API gets its own Premium v3 plan with autoscale 3–20 and zone redundancy."
+      "Five quiet marketing sites share one Standard S1 plan, which is cheaper than five plans. The busy checkout API gets its own Premium v3 plan, with autoscale from 3 to 20 instances and zone redundancy."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "Resource group and region",
-      "Runtime stack chosen"
+      "A resource group and a region",
+      "A runtime stack chosen"
     ],
     "permissions": [
-      "Website Contributor / Web Plan Contributor or Contributor"
+      "Website Contributor, Web Plan Contributor, or Contributor"
     ],
     "limits": [
       "Instances: Basic 3, Standard 10, Premium v3 30, Isolated v2 100",
       "Autoscale: Standard and above",
-      "App name is global (*.azurewebsites.net)"
+      "App names are global (*.azurewebsites.net)"
     ],
     "portal": [
       "App Service plans > Create: OS, region, pricing tier.",
@@ -162,50 +164,50 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Scale out option greyed out.",
-      "cause": "Free/Shared tier.",
+      "symptom": "Scale out is greyed out.",
+      "cause": "The plan is Free or Shared.",
       "fix": "Scale up to Basic or higher."
     },
     {
-      "symptom": "Custom autoscale not available.",
-      "cause": "Basic tier.",
+      "symptom": "Custom autoscale isn't available.",
+      "cause": "The plan is Basic.",
       "fix": "Scale up to Standard."
     },
     {
       "symptom": "One app slows down every app on the plan.",
-      "cause": "Apps share plan instances.",
-      "fix": "Move heavy apps to their own plan."
+      "cause": "Apps share the plan's instances.",
+      "fix": "Move the heavy app to its own plan."
     },
     {
-      "symptom": "Name not available.",
-      "cause": "Global *.azurewebsites.net namespace.",
-      "fix": "Choose another name."
+      "symptom": "The name isn't available.",
+      "cause": "*.azurewebsites.net names are shared by everyone.",
+      "fix": "Pick another name."
     }
   ],
   "comparisons": [
     {
       "service": "Azure Functions (Premium/Dedicated)",
-      "difference": "Can run on App Service plans; event-driven model."
+      "difference": "Functions can run on App Service plans too, but they run code in response to events."
     },
     {
       "service": "AWS Elastic Beanstalk / App Runner",
-      "difference": "Managed app hosting; App Service plans are explicit VM pools."
+      "difference": "Managed app hosting. An App Service plan is a set of VMs you choose and pay for directly."
     }
   ],
   "misconceptions": [
     {
       "myth": "Each app has its own instances.",
-      "reality": "Apps share the plan's instances."
+      "reality": "No. All apps on a plan share its instances."
     },
     {
       "myth": "Scaling up adds instances.",
-      "reality": "Scaling up changes the tier; scaling out adds instances."
+      "reality": "No. Scaling up changes the tier. Scaling out adds instances."
     }
   ],
   "architectureDecisions": [
-    "Group apps by load and lifecycle into plans.",
-    "Use Premium v3 with zone redundancy for production.",
-    "Turn on Always On for apps that must stay warm."
+    "Group apps into plans by load and lifecycle: quiet apps can share, busy apps get their own plan.",
+    "Production: Premium v3 with zone redundancy.",
+    "Apps that must stay warm: turn on Always On, so they don't go idle."
   ],
   "docs": [
     {

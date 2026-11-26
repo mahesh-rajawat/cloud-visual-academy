@@ -6,7 +6,7 @@
     "AZ104-2.1.5"
   ],
   "estimatedMinutes": 35,
-  "learningObjective": "Enable an identity source for Azure Files, grant share-level permissions with RBAC, set NTFS permissions, and troubleshoot SMB access.",
+  "learningObjective": "Turn on identity-based sign-in for Azure Files, give share permissions with RBAC, set NTFS (folder and file) permissions, and fix SMB access problems.",
   "prerequisites": [
     {
       "text": "File shares",
@@ -25,11 +25,12 @@
     "SMB uses TCP port 445, which some internet providers block."
   ],
   "engineer": [
-    "Identity sources (one per storage account): on-premises AD DS (the account is joined to AD with the AzFilesHybrid module; users must be synced to Entra ID), Microsoft Entra Domain Services, or Microsoft Entra Kerberos for hybrid identities (clients get Kerberos tickets from Entra ID, so no line of sight to a domain controller is needed for authentication).",
-    "Share-level permissions are Azure RBAC data roles assigned at the share (or account) scope: Storage File Data SMB Share Reader, Storage File Data SMB Share Contributor, and Storage File Data SMB Share Elevated Contributor (which can also change NTFS ACLs). Alternatively set a default share-level permission that applies to all authenticated identities.",
-    "Directory- and file-level permissions are Windows ACLs set with icacls or File Explorer, usually after mounting with the storage account key or as a user with Elevated Contributor. The effective permission is the more restrictive of the share-level and NTFS permissions.",
-    "Role assignments for share-level permissions must target identities synced to Entra ID (for AD DS and Entra Kerberos). Cloud-only accounts cannot be used with AD DS authentication.",
-    "Networking: outbound TCP 445 from the client, plus the storage firewall rules. Over the internet, SMB 3.x with encryption is required. Use VPN, ExpressRoute or private endpoints where 445 is blocked."
+    "Identity sources (pick one per storage account): on-premises AD DS, where you join the storage account to AD with the AzFilesHybrid module and users must be synced to Entra ID; Microsoft Entra Domain Services; Microsoft Entra Kerberos, for synced (hybrid) users, where clients get Kerberos tickets from Entra ID, so they don't need to reach a domain controller.",
+    "Two layers of permissions: first share-level (Azure RBAC), then folder and file level (NTFS). A user gets the stricter of the two.",
+    "Share-level roles: Storage File Data SMB Share Reader, read only; Storage File Data SMB Share Contributor, read, write and delete; Storage File Data SMB Share Elevated Contributor, which can also change NTFS permissions. Or set a default share-level permission for every signed-in identity.",
+    "NTFS permissions: normal Windows permissions (ACLs), set with icacls or File Explorer. Usually an admin mounts the share with the account key, or as a user with Elevated Contributor, to set them.",
+    "Who you can give roles to: identities synced to Entra ID (for AD DS and Entra Kerberos). Cloud-only accounts can't use AD DS sign-in.",
+    "Network: the client needs outbound TCP port 445, and the storage firewall must allow it. Over the internet, SMB 3.x with encryption is required. If port 445 is blocked, use VPN, ExpressRoute or a private endpoint."
   ],
   "animation": {
     "id": "storage-access-sim",
@@ -98,25 +99,25 @@
   "example": {
     "title": "Replacing an on-premises file server",
     "body": [
-      "Contoso migrates the finance file server to an Azure file share and joins the storage account to AD DS. The group 'Finance-Users' gets Storage File Data SMB Share Contributor on the share, and existing NTFS ACLs are copied with Robocopy.",
-      "Users map Z: with their own credentials. A remote worker cannot connect because their ISP blocks 445; the team adds Azure VPN Gateway point-to-site."
+      "Contoso moves the finance file server to an Azure file share and joins the storage account to AD DS. The group 'Finance-Users' gets Storage File Data SMB Share Contributor on the share. The existing NTFS permissions are copied across with Robocopy.",
+      "Users map drive Z: with their own sign-in. One person working from home can't connect, because their internet provider blocks port 445. The team adds a point-to-site VPN through Azure VPN Gateway."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "Users synced to Entra ID (AD DS / Entra Kerberos)",
-      "Domain-joined (or Entra-joined for Kerberos) clients",
-      "TCP 445 reachable"
+      "Users synced to Entra ID (for AD DS and Entra Kerberos)",
+      "Domain-joined PCs (or Entra-joined, for Kerberos)",
+      "TCP port 445 open"
     ],
     "permissions": [
-      "Storage Account Contributor to enable identity-based auth",
-      "Owner or User Access Administrator to assign share-level roles",
-      "Storage File Data SMB Share Elevated Contributor or account key to set NTFS ACLs"
+      "Storage Account Contributor, to turn on identity-based sign-in",
+      "Owner or User Access Administrator, to give share-level roles",
+      "Storage File Data SMB Share Elevated Contributor or the account key, to set NTFS permissions"
     ],
     "limits": [
       "One identity source per storage account",
       "Share-level and NTFS permissions both apply",
-      "SMB requires TCP 445"
+      "SMB needs TCP port 445"
     ],
     "portal": [
       "Storage account > Data storage > File shares > Identity-based access: configure AD DS, Microsoft Entra Domain Services or Microsoft Entra Kerberos.",
@@ -165,54 +166,54 @@
   },
   "troubleshooting": [
     {
-      "symptom": "System error 53 or 'network path not found' when mounting.",
-      "cause": "Outbound TCP 445 blocked.",
-      "fix": "Test-NetConnection -Port 445; use VPN, ExpressRoute or a private endpoint."
+      "symptom": "System error 53, or 'network path not found', when mounting.",
+      "cause": "Outbound TCP port 445 is blocked.",
+      "fix": "Test with Test-NetConnection -Port 445. Use VPN, ExpressRoute or a private endpoint."
     },
     {
-      "symptom": "Access denied although NTFS allows the user.",
-      "cause": "No share-level role and no default share-level permission.",
-      "fix": "Assign a Storage File Data SMB Share role on the share."
+      "symptom": "Access denied, even though NTFS allows the user.",
+      "cause": "No share-level role, and no default share-level permission.",
+      "fix": "Give a Storage File Data SMB Share role on the share."
     },
     {
-      "symptom": "A user cannot change ACLs.",
-      "cause": "Requires Elevated Contributor (or mounting with the account key).",
-      "fix": "Assign Storage File Data SMB Share Elevated Contributor to admins."
+      "symptom": "A user can't change permissions on folders.",
+      "cause": "That needs Elevated Contributor, or mounting with the account key.",
+      "fix": "Give admins Storage File Data SMB Share Elevated Contributor."
     },
     {
-      "symptom": "Kerberos authentication fails for a cloud-only user.",
-      "cause": "AD DS and Entra Kerberos require hybrid identities.",
-      "fix": "Use a synced identity, or check current support for cloud-only identities."
+      "symptom": "Kerberos sign-in fails for a cloud-only user.",
+      "cause": "AD DS and Entra Kerberos need synced (hybrid) users.",
+      "fix": "Use a synced identity, or check Microsoft's current support for cloud-only users."
     }
   ],
   "comparisons": [
     {
       "service": "Account key mount",
-      "difference": "Gives superuser access to the share and bypasses identity-based permissions; use it only for administration."
+      "difference": "Mounting with the account key gives full admin access and skips identity permissions. Use it only for admin work."
     },
     {
       "service": "Amazon FSx for Windows File Server",
-      "difference": "A managed Windows file server joined to AD; Azure Files is a PaaS share that offers identity-based auth through AD DS, Entra DS or Entra Kerberos."
+      "difference": "A managed Windows file server joined to AD. Azure Files is a managed share that signs users in through AD DS, Entra DS or Entra Kerberos."
     }
   ],
   "misconceptions": [
     {
-      "myth": "An RBAC share role alone grants access to every folder.",
-      "reality": "NTFS ACLs still apply; the more restrictive layer wins."
+      "myth": "A share role alone opens every folder.",
+      "reality": "No. NTFS permissions still apply, and the stricter one wins."
     },
     {
       "myth": "Azure Files works over the internet from anywhere.",
-      "reality": "Port 445 is often blocked and SMB 3.x encryption is required."
+      "reality": "No. Port 445 is often blocked, and SMB 3.x encryption is required."
     },
     {
       "myth": "A storage account can use AD DS and Entra DS at the same time.",
-      "reality": "Only one identity source per account."
+      "reality": "No. Only one identity source per account."
     }
   ],
   "architectureDecisions": [
-    "Assign share-level roles to groups and keep NTFS ACLs aligned with the old file server.",
-    "Prefer Microsoft Entra Kerberos for hybrid users on Entra-joined clients without line of sight to a domain controller.",
-    "Use private endpoints for SMB over private connectivity."
+    "Give share roles to groups: and keep the NTFS permissions the same as on the old file server.",
+    "Entra Kerberos for hybrid users: it's the best choice when Entra-joined PCs can't reach a domain controller.",
+    "Use private endpoints: so SMB traffic stays on private connections."
   ],
   "docs": [
     {

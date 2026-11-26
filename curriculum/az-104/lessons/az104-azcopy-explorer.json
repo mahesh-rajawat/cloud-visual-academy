@@ -6,7 +6,7 @@
     "AZ104-2.2.5"
   ],
   "estimatedMinutes": 30,
-  "learningObjective": "Move data with AzCopy (copy, sync, server-side copies) and Storage Explorer using the right authorization, and troubleshoot failed transfers.",
+  "learningObjective": "Move data with AzCopy (copy, sync, copies between accounts) and Storage Explorer, using the right kind of sign-in, and fix failed transfers.",
   "prerequisites": [
     {
       "text": "Moving files: AzCopy, Storage Explorer, File Sync (AZ-900)",
@@ -24,11 +24,13 @@
     "Both need permission to the data: either sign in with Microsoft Entra ID (and have a data role), or use a SAS token or account key."
   ],
   "engineer": [
-    "Authorization: azcopy login (interactive, device code, managed identity or service principal) needs an Entra data role such as Storage Blob Data Contributor; Owner or Contributor alone is not enough. Alternatively, append a SAS to each URL.",
-    "Commands: azcopy copy (one-time copy; --recursive for folders), azcopy sync (copies only changed or new files based on last-modified time; --delete-destination=true mirrors deletions), azcopy make (create a container or share), azcopy remove, azcopy list, and azcopy jobs list/resume/show to resume failed transfers using the job's plan files.",
-    "Copies between storage accounts are server-side (Put Block From URL / Copy Blob from URL), so data does not flow through the client. Useful flags: --include-pattern, --exclude-pattern, --overwrite, --put-md5, --cap-mbps, --block-blob-tier.",
-    "Storage Explorer connects with Entra ID (subscription or resource), account name and key, SAS URL, or connection string, and also to Azurite (local emulator). It can manage access policies, generate SAS, change tiers, undelete soft-deleted blobs and work with Data Lake ACLs.",
-    "Firewall rules apply to both tools: the client IP or network must be allowed by the storage account."
+    "Signing in to AzCopy: azcopy login (interactive, device code, managed identity or service principal) needs an Entra data role such as Storage Blob Data Contributor. Owner or Contributor alone is not enough. Or add a SAS to each URL instead.",
+    "AzCopy commands: azcopy copy, a one-time copy (add --recursive for folders); azcopy sync, copies only new or changed files, by last-modified time (add --delete-destination=true to also delete what you deleted); azcopy make, creates a container or share; azcopy remove; azcopy list; azcopy jobs list, resume and show, to finish a failed transfer.",
+    "Copying between accounts: happens inside Azure (server-side copy), so the data never passes through your computer.",
+    "Handy flags: --include-pattern; --exclude-pattern; --overwrite; --put-md5, saves a checksum; --cap-mbps, limits speed; --block-blob-tier, sets the tier on upload.",
+    "Storage Explorer sign-in options: Entra ID (a subscription or one resource); account name and key; SAS URL; connection string. It can also connect to Azurite, the local emulator.",
+    "What Storage Explorer can do: manage access policies; create SAS; change tiers; undelete soft-deleted blobs; work with Data Lake permissions (ACLs).",
+    "Firewall: storage firewall rules apply to both tools. Your IP or network must be allowed."
   ],
   "animation": {
     "id": "storage-account-sim",
@@ -83,10 +85,10 @@
     ]
   },
   "example": {
-    "title": "Nightly mirror of a reports folder",
+    "title": "Copying a reports folder every night",
     "body": [
-      "A Windows server runs a scheduled task: azcopy login --identity (using the VM's managed identity, which holds Storage Blob Data Contributor), then azcopy sync C:\\reports https://stcontoso.blob.core.windows.net/reports --recursive --delete-destination=true.",
-      "After a network outage, azcopy jobs resume finishes the interrupted job without re-uploading completed files."
+      "A Windows server runs a scheduled task. First azcopy login --identity, which signs in as the VM's managed identity (it has Storage Blob Data Contributor). Then azcopy sync C:\\reports https://stcontoso.blob.core.windows.net/reports --recursive --delete-destination=true.",
+      "After a network cut, azcopy jobs resume finishes the job without uploading the finished files again."
     ]
   },
   "configuration": {
@@ -95,12 +97,12 @@
       "Network access to the storage endpoints"
     ],
     "permissions": [
-      "Storage Blob Data Contributor (or Reader for downloads) with azcopy login",
-      "Or a SAS with the required permissions"
+      "Storage Blob Data Contributor (or Reader, for downloads) with azcopy login",
+      "Or a SAS with the permissions needed"
     ],
     "limits": [
-      "sync compares last-modified times (optionally hashes)",
-      "Firewall rules apply to the client"
+      "sync compares last-modified times (or hashes, if you ask)",
+      "Firewall rules apply to your computer"
     ],
     "portal": [
       "Storage account > Storage browser (in the portal) for quick uploads and downloads.",
@@ -147,53 +149,53 @@
   },
   "troubleshooting": [
     {
-      "symptom": "AzCopy 403 AuthorizationPermissionMismatch after azcopy login.",
-      "cause": "Identity lacks a Storage Blob Data role.",
-      "fix": "Assign Storage Blob Data Contributor and wait for propagation."
+      "symptom": "AzCopy returns 403 AuthorizationPermissionMismatch after azcopy login.",
+      "cause": "The identity has no Storage Blob Data role.",
+      "fix": "Give Storage Blob Data Contributor and wait a few minutes."
     },
     {
       "symptom": "403 AuthorizationFailure from a home network.",
-      "cause": "Storage firewall blocks the client IP.",
-      "fix": "Add the IP or use an allowed network."
+      "cause": "The storage firewall blocks your IP.",
+      "fix": "Add your IP, or use an allowed network."
     },
     {
-      "symptom": "Transfer stopped halfway.",
-      "cause": "Network interruption.",
-      "fix": "azcopy jobs resume <job-id> (with the same SAS if used)."
+      "symptom": "A transfer stopped halfway.",
+      "cause": "The network dropped.",
+      "fix": "Run azcopy jobs resume <job-id> (with the same SAS if you used one)."
     },
     {
-      "symptom": "sync re-uploads everything.",
-      "cause": "Last-modified times differ (for example after a restore).",
-      "fix": "Use --compare-hash where supported, or accept a one-time full sync."
+      "symptom": "sync uploads everything again.",
+      "cause": "Last-modified times are different (for example after a restore).",
+      "fix": "Use --compare-hash where supported, or accept one full sync."
     }
   ],
   "comparisons": [
     {
       "service": "Azure Data Box",
-      "difference": "Offline transfer appliance for very large datasets or limited bandwidth; AzCopy is online."
+      "difference": "A physical device Microsoft ships to you, for very large data or slow internet. AzCopy copies over the network."
     },
     {
       "service": "Azure File Sync",
-      "difference": "Continuous sync and cloud tiering between Windows Servers and Azure Files; AzCopy runs one-off or scheduled transfers."
+      "difference": "Keeps Windows Servers and Azure Files in sync all the time, with cloud tiering. AzCopy runs one-off or scheduled copies."
     },
     {
       "service": "AWS CLI s3 cp / s3 sync",
-      "difference": "Functionally similar commands for Amazon S3."
+      "difference": "Similar commands for Amazon S3."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Owner can upload with azcopy login.",
-      "reality": "A data-plane role is required."
+      "myth": "An Owner can upload after azcopy login.",
+      "reality": "No. A data role such as Storage Blob Data Contributor is needed."
     },
     {
-      "myth": "Copying between two accounts downloads data to your PC.",
-      "reality": "AzCopy uses server-side copy between accounts."
+      "myth": "Copying between two accounts downloads the data to your PC first.",
+      "reality": "No. AzCopy copies directly between accounts, inside Azure."
     }
   ],
   "architectureDecisions": [
-    "Use managed identities with azcopy login for scheduled jobs instead of embedding SAS tokens.",
-    "Use Data Box for multi-terabyte migrations over slow links."
+    "Scheduled jobs sign in as a managed identity: use azcopy login, and don't put SAS tokens in scripts.",
+    "Huge moves over slow links: use Data Box for many terabytes."
   ],
   "docs": [
     {

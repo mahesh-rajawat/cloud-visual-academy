@@ -1,0 +1,97 @@
+{
+  "learningObjective": "Create VMs that pass the quota, size, password and network checks. Resize them the right way. Move them to another resource group, subscription or region with the right tool.",
+  "engineer": [
+    "Checks when you create a VM: vCPU quota, per region and per VM family (az vm list-usage); the size (SKU) is offered in that region and zone (az vm list-skus); the image and generation (Gen2 with Trusted Launch is the default where supported); the admin name and password; the network (VNet and subnet, an optional public IP, an NSG on the network card (NIC) or subnet).",
+    "Admin name and password rules: names such as 'admin' are blocked. Windows passwords must be 12 to 123 characters and complex.",
+    "Extra options at creation: boot diagnostics; auto-shutdown; backup; extensions (for example the Azure Monitor agent); Spot pricing, cheap but Azure can take the VM back.",
+    "Size families: B, burstable (cheap, for low average CPU); D, general purpose; E, lots of memory; F, lots of CPU; L, fast local storage; N, GPU. Each size limits vCPU, memory, data disks, network cards and speed.",
+    "Resizing: it restarts the VM. az vm list-vm-resize-options shows the sizes you can pick without stopping it. If the size you want isn't there, deallocate the VM first. In an availability set, you must deallocate every VM in the set.",
+    "Moving to another resource group or subscription (same tenant): use resource move, and move the VM with its disks, network cards (NICs) and public IPs. The region stays the same; the resource ID changes.",
+    "Moving to another region: use Azure Resource Mover, or copy it with Azure Site Recovery. Moving into an availability zone means recreating the VM, or using the zone-move feature.",
+    "Stopped vs deallocated: deallocated (Stop in the portal) stops paying for compute, but you still pay for disks. Shutting down from inside the OS leaves it 'Stopped', and you still pay for compute."
+  ],
+  "example": {
+    "title": "Giving a reporting server the right size",
+    "body": [
+      "A reporting VM on Standard_D2s_v5 hits 95% memory at every month-end. The admin lists the resize options. Standard_E4s_v5 isn't on the list, so in a maintenance window the admin deallocates the VM, resizes it, and starts it again.",
+      "Later the team moves the VM, its disks and its network card to a new resource group with resource move. They use Azure Resource Mover to make a copy in North Europe."
+    ]
+  },
+  "architectureDecisions": [
+    "No public IPs for admin access: use Bastion instead.",
+    "Size by real numbers: pick sizes from measured CPU and memory, and use Advisor to right-size.",
+    "Build VMs from code: use Bicep and images in Azure Compute Gallery."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Shutting down from inside Windows stops billing.",
+      "reality": "No. Only deallocating (Stop in the portal) stops compute billing."
+    },
+    {
+      "myth": "Moving a VM to another resource group changes its region.",
+      "reality": "No. The region stays the same."
+    },
+    {
+      "myth": "You can always resize a running VM to any size.",
+      "reality": "No. Only to sizes available on the hardware it's running on now."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon EC2",
+      "difference": "The same idea. EC2 instance types are like Azure VM sizes. Stopping an EBS-backed instance is like deallocating."
+    },
+    {
+      "service": "Azure App Service / Container Apps",
+      "difference": "PaaS: run apps without managing an operating system. VMs are IaaS."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "OperationNotAllowed: exceeds approved Total Regional Cores quota.",
+      "cause": "You've used all your vCPU quota.",
+      "fix": "Ask for more in Usage + quotas, or pick a smaller size."
+    },
+    {
+      "symptom": "SkuNotAvailable.",
+      "cause": "That size isn't offered in the region or zone, or is blocked for your subscription.",
+      "fix": "Run az vm list-skus to find another size."
+    },
+    {
+      "symptom": "The size you want isn't in the resize list for a running VM.",
+      "cause": "That size isn't on the hardware the VM is on now.",
+      "fix": "Deallocate the VM (all VMs in an availability set) and resize."
+    },
+    {
+      "symptom": "Move validation fails for the VM.",
+      "cause": "Its disks or network cards weren't included, or the VM has a setup that can't move.",
+      "fix": "Include everything it depends on, and check the VM move limits page."
+    }
+  ],
+  "configuration.limits": [
+    "Quotas per region and per VM family",
+    "Resizing restarts the VM",
+    "Resource move keeps the region"
+  ],
+  "configuration.permissions": [
+    "Virtual Machine Contributor for the VM, plus Network Contributor or join permission on the subnet",
+    "Microsoft.Resources/subscriptions/resourceGroups/moveResources/action, for moves"
+  ],
+  "configuration.prerequisites": [
+    "A VNet and subnet",
+    "vCPU quota for that family in that region",
+    "An SSH key or a password that meets the rules"
+  ],
+  "from": {
+    "learningObjective": "0f3f4107eb83",
+    "engineer": "86da70895e49",
+    "example": "4350784b7713",
+    "architectureDecisions": "abbbe4ea9110",
+    "misconceptions": "fdd48836c17e",
+    "comparisons": "12139c524b90",
+    "troubleshooting": "e75b7ea3acb8",
+    "configuration.limits": "d893cf3a9060",
+    "configuration.permissions": "c7491b6dee46",
+    "configuration.prerequisites": "542722f3abab"
+  }
+}

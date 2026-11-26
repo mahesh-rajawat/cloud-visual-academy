@@ -1,0 +1,103 @@
+{
+  "learningObjective": "Set up backup and restore, network access in and out (access restrictions, private endpoints, VNet integration), and deployment slots with safe swaps.",
+  "engineer": [
+    "Automatic backups: Basic tier and higher. Azure takes them every hour and keeps them 30 days. No storage account needed. Limit 30 GB. They never include databases.",
+    "Custom backups: Basic tier and higher (on Basic, only the production slot). Saved to your own storage account, on demand or on a schedule (at most every 2 hours). Limit 10 GB, including any linked database. Keep them 0 to 30 days, or forever.",
+    "Databases in backups: custom backups stop supporting linked databases on 31 March 2028. Back up databases with their own backup features.",
+    "Restoring: to the same app, another app, or a slot.",
+    "Controlling who can reach the app (inbound): access restrictions are allow and deny rules in priority order, by IP range, service tag, or VNet subnet (with a service endpoint), and the SCM (Kudu) site has its own rules. Private endpoints (Basic and higher) give the app a private IP; you can then turn off public access, and you need the privatelink.azurewebsites.net private DNS zone.",
+    "Letting the app reach private things (outbound): regional VNet integration (Basic and higher) lets the app call resources in or through a VNet, such as private endpoints, VMs, or on-premises through gateways. It needs its own subnet, delegated to App Service.",
+    "Route all: turn on vnetRouteAllEnabled to send all outbound traffic through the VNet, so NSGs, route tables (UDRs) and NAT gateway apply.",
+    "Hybrid connections: reach one specific host and port on-premises.",
+    "Deployment slots: Standard has 5, Premium and Isolated have 20. Each slot has its own web address and can be deployed on its own.",
+    "What a swap moves: the app content and normal settings swap. Settings marked 'Deployment slot setting' (sticky) stay with their slot.",
+    "Settings that never swap: custom domains; TLS certificates; scale settings; IP restrictions; Always On; VNet integration; managed identities; WebJobs schedulers; diagnostic settings.",
+    "How swaps avoid downtime: the target slot's settings are applied to the source instances, and they are warmed up (applicationInitialization) before traffic switches.",
+    "Swap options: swap with preview pauses halfway so you can test; auto swap (Windows apps) swaps automatically after each deployment; testing in production sends a percentage of traffic to a slot. To roll back, swap again."
+  ],
+  "example": {
+    "title": "Releases with no downtime",
+    "body": [
+      "Every release goes to the staging slot first. That slot has its own sticky connection string to a staging database. A quick test runs against app-contoso-staging.azurewebsites.net, then a swap with preview moves it to production.",
+      "The production app can only be reached through a private endpoint, from Front Door. It calls Azure SQL through VNet integration. A custom backup to a storage account runs every day."
+    ]
+  },
+  "architectureDecisions": [
+    "Every production release: deploy to a staging slot, then swap with preview.",
+    "Private apps need both directions: a private endpoint for traffic coming in, VNet integration for traffic going out.",
+    "Back up databases separately: with their own backup features."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Slot swaps cause downtime.",
+      "reality": "No. Instances are warmed up before traffic switches."
+    },
+    {
+      "myth": "All settings swap.",
+      "reality": "No. Sticky settings and some platform settings never swap."
+    },
+    {
+      "myth": "VNet integration makes the app private.",
+      "reality": "No. It only covers traffic going out. For traffic coming in, use a private endpoint or access restrictions."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Front Door + private link to App Service",
+      "difference": "A global front door with a web application firewall (WAF), in front of an app that's only reachable privately."
+    },
+    {
+      "service": "AWS Elastic Beanstalk environment swap",
+      "difference": "A similar blue/green swap, done by swapping DNS names (CNAMEs)."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "After a swap, production uses the staging database.",
+      "cause": "The connection string wasn't marked as a deployment slot setting.",
+      "fix": "Mark it sticky, swap back, then swap again."
+    },
+    {
+      "symptom": "The app can't reach SQL through its private endpoint.",
+      "cause": "No VNet integration, or the private DNS name doesn't resolve from the integration subnet.",
+      "fix": "Turn on VNet integration and link privatelink.database.windows.net to the VNet."
+    },
+    {
+      "symptom": "403 from the office after adding access restrictions.",
+      "cause": "Rule order is wrong, or there's no allow rule for the office range.",
+      "fix": "Check the rules. Remember: once any allow rule exists, everything else is denied."
+    },
+    {
+      "symptom": "The backup fails.",
+      "cause": "Content plus database is over 10 GB, or the storage SAS has expired.",
+      "fix": "Exclude some files, renew the SAS, or back up the database with its own tools."
+    }
+  ],
+  "configuration.limits": [
+    "Slots: Standard 5, Premium and Isolated 20",
+    "Custom backups: 10 GB including databases",
+    "Some settings never swap"
+  ],
+  "configuration.permissions": [
+    "Website Contributor",
+    "Network Contributor on the VNet and subnet",
+    "Storage Blob Data Contributor, or a SAS, for backup storage"
+  ],
+  "configuration.prerequisites": [
+    "Basic tier for backups (Standard for deployment slots)",
+    "An integration subnet delegated to Microsoft.Web/serverFarms, for VNet integration",
+    "A storage account, for custom backups"
+  ],
+  "from": {
+    "learningObjective": "7013abf45e35",
+    "engineer": "a8c2d2452ff9",
+    "example": "4ea1d24d48af",
+    "architectureDecisions": "f33773eb499d",
+    "misconceptions": "152227099d2a",
+    "comparisons": "1699864677d1",
+    "troubleshooting": "da81d02d9262",
+    "configuration.limits": "3ed186bbc730",
+    "configuration.permissions": "6fa9c166c020",
+    "configuration.prerequisites": "57b4d9811a40"
+  }
+}

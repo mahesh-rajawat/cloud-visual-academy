@@ -6,7 +6,7 @@
     "AZ104-3.2.7"
   ],
   "estimatedMinutes": 45,
-  "learningObjective": "Deploy a scale set with the right orchestration mode and upgrade policy, and design autoscale rules that scale out and in without flapping.",
+  "learningObjective": "Create a scale set with the right orchestration mode and upgrade policy. Write autoscale rules that add and remove VMs without bouncing up and down.",
   "prerequisites": [
     {
       "text": "Availability zones and sets",
@@ -24,12 +24,17 @@
     "Scale sets can spread instances across availability zones and fault domains for resilience."
   ],
   "engineer": [
-    "Orchestration modes: Flexible (recommended): standard VMs that can mix sizes, can be managed with VM APIs, and are spread across fault domains and zones. Uniform: identical instances from one scale set model, managed through VMSS APIs, suited to large stateless fleets.",
-    "Upgrade policy for model changes (for example a new image): Manual (you upgrade instances), Automatic (all instances updated in an undefined order, possibly simultaneously) or Rolling (batches with pauses and health checks via the Application Health extension or a load balancer probe).",
-    "Autoscale settings (Azure Monitor autoscale): a profile with minimum, maximum and default instance counts; rules with metric, time aggregation, operator, threshold, duration (look-back window, for example 10 minutes), action (increase/decrease by count or percent) and cooldown (default 5 minutes). Schedule-based profiles handle predictable peaks.",
-    "Behaviour: autoscale scales out if any scale-out rule is met, and scales in only when the scale-in conditions are met. Flapping protection estimates the post-scale-in metric and skips scale-in if it would immediately trigger a scale-out. Keep a gap between thresholds (for example out > 70%, in < 30%).",
-    "Scale-in policy: Default (balance across zones/FDs, then remove highest instance ID), NewestVM or OldestVM. Instance protection prevents specific instances from scale-in or model updates. Use custom images from Azure Compute Gallery and cloud-init or extensions for configuration.",
-    "Limits: up to 1,000 VM instances in a scale set (lower with custom images in some cases). Autoscale needs a metric source; the guest-level metrics require the Azure Monitor agent."
+    "Orchestration modes: Flexible, recommended, where instances are normal VMs, can mix sizes, can be managed with VM commands, and are spread across fault domains and zones; Uniform, where instances are identical copies of one model, managed with scale set (VMSS) commands, good for very large stateless fleets.",
+    "Upgrade policy (what happens when you change the model, for example a new image): Manual, where you upgrade instances yourself; Automatic, where all instances update in any order, maybe all at once; Rolling, where instances update in batches with pauses and health checks (Application Health extension or a load balancer probe).",
+    "Autoscale profile: a minimum, a maximum and a default number of instances.",
+    "Autoscale rule: which metric (for example CPU); how to average it; the condition and threshold (for example > 70%); how long to look back (for example 10 minutes); what to do (add or remove a number or percent); the cooldown, how long to wait before the next change (default 5 minutes).",
+    "Scheduled profiles: change the minimum and maximum for peaks you know about, such as a sale day.",
+    "How autoscale decides: it adds instances if any scale-out rule is true. It removes instances only when the scale-in rule is true.",
+    "Avoiding bouncing (flapping): before removing instances, autoscale estimates the new load. If that would trigger a scale-out straight away, it skips the scale-in. Keep a gap between thresholds, for example out above 70% and in below 30%.",
+    "Which VMs are removed (scale-in policy): Default, which keeps zones and fault domains balanced, then removes the highest instance ID; NewestVM; OldestVM.",
+    "Instance protection: stops specific instances from being removed or upgraded.",
+    "Setting up instances: use custom images from Azure Compute Gallery, and cloud-init or extensions for configuration.",
+    "Limits: up to 1,000 VMs in a scale set (sometimes fewer with custom images). Autoscale needs metric data; guest OS metrics need the Azure Monitor agent."
   ],
   "animation": {
     "id": "autoscale-sim",
@@ -88,24 +93,24 @@
     ]
   },
   "example": {
-    "title": "Black Friday web tier",
+    "title": "The web shop on Black Friday",
     "body": [
-      "The shop's web tier runs as a Flexible scale set across three zones with autoscale 3–30 instances: +2 when average CPU > 70% for 10 minutes, -1 when < 30% for 15 minutes, cooldown 5 minutes.",
-      "A scheduled profile raises the minimum to 10 on the event day. Rolling upgrades with health probes roll out a patched image without downtime."
+      "The shop's web tier is a Flexible scale set across three zones. Autoscale keeps 3 to 30 instances. It adds 2 when average CPU is above 70% for 10 minutes, and removes 1 when it's below 30% for 15 minutes. Cooldown is 5 minutes.",
+      "A scheduled profile raises the minimum to 10 on the sale day. Rolling upgrades with health probes roll out a patched image with no downtime."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "VNet/subnet and load balancer or Application Gateway",
-      "Image (marketplace or Compute Gallery)"
+      "A VNet and subnet, and a load balancer or Application Gateway",
+      "An image (from the Marketplace or Compute Gallery)"
     ],
     "permissions": [
       "Virtual Machine Contributor",
-      "Monitoring Contributor to edit autoscale settings"
+      "Monitoring Contributor, to edit autoscale settings"
     ],
     "limits": [
       "Up to 1,000 instances",
-      "Cooldown default 5 minutes",
+      "Cooldown is 5 minutes by default",
       "Autoscale needs metric data"
     ],
     "portal": [
@@ -152,50 +157,50 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Instances never scale in.",
-      "cause": "Scale-in threshold too low or flapping protection prevents it.",
-      "fix": "Widen the gap between thresholds and check autoscale run history."
+      "symptom": "Instances are never removed.",
+      "cause": "The scale-in threshold is too low, or flapping protection blocks it.",
+      "fix": "Widen the gap between thresholds, and check the autoscale run history."
     },
     {
       "symptom": "Autoscale does nothing.",
-      "cause": "Metric unavailable (for example guest metrics without the agent) or the profile is disabled.",
-      "fix": "Check run history and metric availability."
+      "cause": "The metric isn't available (for example guest metrics without the agent), or the profile is turned off.",
+      "fix": "Check the run history and whether the metric has data."
     },
     {
-      "symptom": "Model update did not reach instances.",
-      "cause": "Upgrade policy Manual.",
-      "fix": "Upgrade instances, or switch to Rolling."
+      "symptom": "A model change didn't reach the instances.",
+      "cause": "The upgrade policy is Manual.",
+      "fix": "Upgrade the instances, or switch to Rolling."
     },
     {
-      "symptom": "New instances fail health checks during rolling upgrade.",
-      "cause": "Bad image or app config.",
-      "fix": "Rolling upgrade pauses; fix the image and resume."
+      "symptom": "New instances fail health checks during a rolling upgrade.",
+      "cause": "A bad image or app setting.",
+      "fix": "The rolling upgrade pauses. Fix the image and resume."
     }
   ],
   "comparisons": [
     {
       "service": "AWS EC2 Auto Scaling groups",
-      "difference": "Equivalent concept with launch templates and scaling policies."
+      "difference": "The same idea, with launch templates and scaling policies."
     },
     {
       "service": "App Service autoscale",
-      "difference": "Same Azure Monitor autoscale engine, applied to App Service plans."
+      "difference": "The same Azure Monitor autoscale engine, used for App Service plans."
     }
   ],
   "misconceptions": [
     {
       "myth": "Autoscale reacts instantly.",
-      "reality": "It evaluates over the duration window and waits for the cooldown."
+      "reality": "No. It looks at the metric over the look-back window, and waits for the cooldown."
     },
     {
-      "myth": "Uniform mode is required for autoscale.",
-      "reality": "Both modes support autoscale; Flexible is recommended for new deployments."
+      "myth": "You need Uniform mode for autoscale.",
+      "reality": "No. Both modes support autoscale. Flexible is recommended for new deployments."
     }
   ],
   "architectureDecisions": [
-    "Use Flexible orchestration across zones.",
-    "Combine metric rules with schedule profiles for predictable peaks.",
-    "Use rolling upgrades with health probes."
+    "Flexible mode across zones: the default choice for new scale sets.",
+    "Metric rules plus schedules: schedules handle the peaks you know about, metrics handle the rest.",
+    "Rolling upgrades with health probes: a bad image stops after the first batch."
   ],
   "docs": [
     {

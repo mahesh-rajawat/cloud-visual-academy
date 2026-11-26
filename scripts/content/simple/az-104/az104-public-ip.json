@@ -1,0 +1,79 @@
+{
+  "learningObjective": "Create public IP addresses and prefixes, choose the SKU, assignment, tier and zone settings, and attach them to resources.",
+  "engineer": [
+    "SKU: Standard is the only choice for new public IPs (Basic was retired on 30 September 2025).",
+    "Standard public IPs: always static; closed to incoming traffic until an NSG allows it (secure by default); support availability zones.",
+    "Zone options: zone-redundant, survives a zone failure; zonal, pinned to one zone; no zone. You can't change this after creation.",
+    "Tier: Regional, the normal one; Global, used with the cross-region load balancer.",
+    "Routing preference: Microsoft network, the default, where traffic stays on Microsoft's network as long as possible; Internet, cheaper, where traffic uses internet providers' networks.",
+    "Public IP prefix: reserves a block of static addresses next to each other (for example a /28), so partners can allow-list one range.",
+    "Cost: you pay for every public IP per hour, attached or not.",
+    "Attaching: attach or detach a public IP on a network card's (NIC's) IP configuration. A VM can have one public IP per IP configuration. If the VM only needs to reach the internet (outbound), use a NAT gateway instead."
+  ],
+  "example": {
+    "title": "Giving a partner fixed addresses",
+    "body": [
+      "A partner must allow-list Contoso's outgoing addresses. Contoso creates a /30 public IP prefix and gives its addresses to a NAT gateway. Now all outgoing traffic uses four known IPs."
+    ]
+  },
+  "architectureDecisions": [
+    "Keep public IPs off VMs: use Bastion for admin, and a load balancer or Application Gateway for apps.",
+    "Production: use zone-redundant Standard IPs.",
+    "Fixed ranges for partners: use a public IP prefix."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Public IPs are free when they're not attached.",
+      "reality": "No. Public IPv4 addresses are billed every hour."
+    },
+    {
+      "myth": "A Standard public IP is open to the internet.",
+      "reality": "No. Incoming traffic is blocked until an NSG allows it."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "NAT gateway",
+      "difference": "Lets a whole subnet reach the internet using fixed public IPs. Outbound only: nothing can come in."
+    },
+    {
+      "service": "AWS Elastic IP",
+      "difference": "A fixed public IPv4 address you attach to an instance or NAT gateway."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "A VM with a Standard public IP can't be reached.",
+      "cause": "Standard IPs block incoming traffic by default.",
+      "fix": "Add an NSG rule that allows the port."
+    },
+    {
+      "symptom": "You can't attach the public IP to a Standard load balancer.",
+      "cause": "The SKUs don't match.",
+      "fix": "Use Standard for both."
+    },
+    {
+      "symptom": "The public IP changed after the VM was deallocated.",
+      "cause": "It was a dynamic IP (old Basic SKU).",
+      "fix": "Use a static Standard IP."
+    }
+  ],
+  "configuration.limits": [
+    "A public IP quota per region (the default depends on the subscription)",
+    "Zone and SKU can't be changed after creation"
+  ],
+  "configuration.permissions": [
+    "Network Contributor on the resource group"
+  ],
+  "from": {
+    "learningObjective": "e4f0baa27fad",
+    "engineer": "471710f75b88",
+    "example": "640a561f6a83",
+    "architectureDecisions": "2795670dd545",
+    "misconceptions": "57659e7de86b",
+    "comparisons": "dfe8a6983ea1",
+    "troubleshooting": "eacfa83aea43",
+    "configuration.limits": "5a95d9367475",
+    "configuration.permissions": "9e4728057e11"
+  }
+}

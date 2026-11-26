@@ -6,7 +6,7 @@
     "AZ104-4.1.1"
   ],
   "estimatedMinutes": 55,
-  "learningObjective": "Design a VNet address space and subnets that fit the workload, account for Azure's reserved addresses and special subnets, and stay peerable with other networks.",
+  "learningObjective": "Plan a VNet's address space and subnets so they fit the workload, allow for Azure's reserved addresses and special subnets, and can still connect (peer) to other networks.",
   "prerequisites": [
     {
       "text": "Virtual networking purpose, subnets and peering (AZ-900)",
@@ -23,13 +23,17 @@
     "Plan ranges that do not overlap with other VNets or your on-premises network. Overlapping networks cannot be peered or connected cleanly later."
   ],
   "engineer": [
-    "Reserved addresses per subnet: x.x.x.0 (network), x.x.x.1 (default gateway), x.x.x.2 and x.x.x.3 (map Azure DNS IPs into the VNet space) and the last address (broadcast). IPv4 subnets range from /29 to /2.",
-    "Use private ranges from RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16). You can also use public ranges you own, but they will not be internet-routable from the VNet. Ranges such as 224.0.0.0/4 (multicast), 255.255.255.255/32, 127.0.0.0/8, 169.254.0.0/16 and 168.63.129.16/32 are not allowed.",
-    "A VNet is regional and spans all availability zones of the region; subnets are not zonal. A VNet cannot span regions; connect regions with peering or gateways.",
-    "Several services need a dedicated, named subnet: GatewaySubnet for VPN/ExpressRoute gateways (/27 or larger recommended), AzureBastionSubnet (/26 or larger), AzureFirewallSubnet (/26). Some PaaS services require subnet delegation, after which only that service can deploy into the subnet.",
-    "Subnet address ranges can be changed only when the subnet contains no resources; VNet address spaces can be extended later (including for peered VNets, after which you sync the peering), so leave room rather than allocating the whole space up front.",
-    "Private IPs are assigned from the subnet by Azure DHCP. Static assignment in Azure (on the NIC IP configuration) reserves the address; never set static IPs inside the guest OS.",
-    "Outbound internet: new virtual networks use private subnets by default (defaultOutboundAccess = false). The portal already does this, and API versions released after 31 March 2026 do too; existing VNets keep their behaviour. VMs in a private subnet need an explicit outbound method: a NAT gateway (recommended), an instance-level public IP, or a Standard load balancer with outbound rules."
+    "Azure keeps 5 addresses in every subnet: x.x.x.0, the network address; x.x.x.1, the default gateway; x.x.x.2 and x.x.x.3, used for Azure DNS; the last address, broadcast. So a /24 gives you 256 − 5 = 251 usable addresses.",
+    "Subnet sizes: IPv4 subnets can be from /29 (smallest) to /2 (largest).",
+    "Address ranges to use: the private (RFC 1918) ranges 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16. You can use public ranges you own, but they won't reach the internet from the VNet.",
+    "Ranges you can't use: 224.0.0.0/4 (multicast); 255.255.255.255/32 (broadcast); 127.0.0.0/8 (loopback); 169.254.0.0/16 (link-local); 168.63.129.16/32 (an Azure service address).",
+    "A VNet lives in one region: it covers every availability zone in that region, and subnets aren't tied to a zone. To connect regions, use peering or gateways.",
+    "Special subnets with fixed names: GatewaySubnet, for VPN and ExpressRoute gateways (/27 or bigger recommended); AzureBastionSubnet, for Bastion (/26 or bigger); AzureFirewallSubnet, for Azure Firewall (/26).",
+    "Delegated subnets: some PaaS services need a subnet delegated to them. After that, only that service can use the subnet.",
+    "Changing ranges later: a subnet's range can only change when the subnet is empty. A VNet's address space can be extended later (for peered VNets, sync the peering afterwards). So leave room; don't hand out the whole space on day one.",
+    "Private IPs: Azure gives them out from the subnet (DHCP). To keep a fixed IP, set it to Static on the network card (NIC) in Azure. Never set a static IP inside the VM's OS.",
+    "Outbound internet: new VNets use private subnets by default (defaultOutboundAccess = false). The portal already does this, and so do API versions released after 31 March 2026. Existing VNets keep their old behaviour.",
+    "Getting out of a private subnet: VMs need an explicit way out: a NAT gateway (recommended); a public IP on the VM; or a Standard load balancer with outbound rules."
   ],
   "animation": {
     "id": "subnet-calculator",
@@ -93,24 +97,24 @@
     ]
   },
   "example": {
-    "title": "Hub-and-spoke address plan",
+    "title": "An address plan for hub and spokes",
     "body": [
-      "Contoso allocates 10.10.0.0/16 for the hub VNet (gateway, Bastion, firewall) and 10.20.0.0/16, 10.30.0.0/16 for spokes. On-premises uses 172.16.0.0/12. Nothing overlaps, so every spoke can peer with the hub and reach on-premises through the hub gateway.",
-      "In each spoke, /24 subnets per tier leave room for 251 VMs each and space to add more subnets later."
+      "Contoso gives the hub VNet 10.10.0.0/16 (gateway, Bastion, firewall). The spokes get 10.20.0.0/16 and 10.30.0.0/16. The office network uses 172.16.0.0/12. Nothing overlaps, so every spoke can peer with the hub and reach the office through the hub's gateway.",
+      "In each spoke, one /24 subnet per tier gives 251 addresses each, with space left to add more subnets later."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "A resource group in the target region",
-      "An agreed non-overlapping address plan"
+      "A resource group in the region",
+      "An agreed address plan with no overlaps"
     ],
     "permissions": [
       "Network Contributor (Microsoft.Network/virtualNetworks/*) on the resource group"
     ],
     "limits": [
-      "Subnet size /29 to /2 (IPv4)",
-      "5 reserved IPs per subnet",
-      "Default limit of 1,000 VNets per subscription per region and 3,000 subnets per VNet"
+      "Subnet size from /29 to /2 (IPv4)",
+      "5 reserved IPs in every subnet",
+      "By default up to 1,000 VNets per subscription per region, and 3,000 subnets per VNet"
     ],
     "portal": [
       "Virtual networks > Create > Basics: subscription, resource group, name, region.",
@@ -164,53 +168,53 @@
   "troubleshooting": [
     {
       "symptom": "'Subnet is not valid in virtual network' when creating a subnet.",
-      "cause": "Range is outside the VNet address space or overlaps an existing subnet.",
-      "fix": "Add an address space or pick a free, aligned range."
+      "cause": "The range is outside the VNet's address space, or overlaps another subnet.",
+      "fix": "Add an address space to the VNet, or pick a free range."
     },
     {
-      "symptom": "Cannot shrink or move a subnet.",
-      "cause": "The subnet contains resources (NICs, private endpoints, delegations).",
-      "fix": "Move or delete the resources first, or create a new subnet and migrate."
+      "symptom": "You can't shrink or move a subnet.",
+      "cause": "Something is in it (network cards, private endpoints, a delegation).",
+      "fix": "Move or delete those first, or create a new subnet and move to it."
     },
     {
-      "symptom": "Peering creation fails with overlapping address space.",
-      "cause": "The two VNets share part of their address space.",
-      "fix": "Re-address one VNet; peering never supports overlap."
+      "symptom": "Peering fails with 'overlapping address space'.",
+      "cause": "The two VNets share part of their address ranges.",
+      "fix": "Change one VNet's addresses. Peering never works with overlap."
     },
     {
-      "symptom": "VPN gateway deployment fails.",
-      "cause": "No subnet named exactly GatewaySubnet, or it is too small.",
-      "fix": "Create GatewaySubnet (/27 or larger) with no NSG blocking gateway traffic."
+      "symptom": "Creating a VPN gateway fails.",
+      "cause": "There's no subnet named exactly GatewaySubnet, or it's too small.",
+      "fix": "Create GatewaySubnet (/27 or bigger), with no NSG blocking gateway traffic."
     }
   ],
   "comparisons": [
     {
       "service": "AWS VPC",
-      "difference": "AWS subnets live in a single Availability Zone and AWS reserves 5 addresses per subnet as well; Azure subnets span all zones of the region."
+      "difference": "In AWS a subnet lives in one Availability Zone. AWS also keeps 5 addresses per subnet. In Azure, a subnet covers every zone in the region."
     },
     {
       "service": "On-premises VLANs",
-      "difference": "Azure does not support broadcast or multicast within a VNet; routing between subnets is automatic through system routes."
+      "difference": "Azure has no broadcast or multicast inside a VNet. Traffic between subnets is routed automatically by system routes."
     }
   ],
   "misconceptions": [
     {
-      "myth": "A /24 subnet provides 254 usable addresses in Azure.",
-      "reality": "Azure reserves 5, so 251."
+      "myth": "A /24 subnet gives 254 usable addresses in Azure.",
+      "reality": "No. Azure keeps 5, so you get 251."
     },
     {
-      "myth": "You need a separate subnet per availability zone.",
-      "reality": "Azure subnets span zones; you pick the zone on the resource."
+      "myth": "You need a separate subnet for each availability zone.",
+      "reality": "No. Azure subnets cover all zones. You pick the zone on the resource."
     },
     {
       "myth": "Address spaces can overlap if the VNets are in different regions.",
-      "reality": "Overlap blocks peering and gateway connectivity regardless of region."
+      "reality": "No. Overlap blocks peering and gateway connections, whatever the region."
     }
   ],
   "architectureDecisions": [
-    "Reserve a large, non-overlapping block per region (for example a /16) and allocate VNets from it with an IPAM process.",
-    "Create GatewaySubnet and AzureBastionSubnet at the top of the hub range early; they are hard to add once the space is full.",
-    "Size subnets for scale-out and for services that consume many IPs (AKS, App Service VNet integration, private endpoints)."
+    "One big block per region: reserve, for example, a /16 per region that doesn't overlap anything, and hand out VNets from it with an address plan (IPAM).",
+    "Create the special subnets early: GatewaySubnet and AzureBastionSubnet are hard to add once the address space is full.",
+    "Size subnets for growth: some services use lots of IPs (AKS, App Service VNet integration, private endpoints)."
   ],
   "docs": [
     {

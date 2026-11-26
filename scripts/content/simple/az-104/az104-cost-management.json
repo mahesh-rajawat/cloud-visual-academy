@@ -1,0 +1,99 @@
+{
+  "learningObjective": "Create budgets that warn on actual and forecast spend, at the right level. Connect them to action groups. Break down cost by tag and resource group. Act on Advisor's cost tips.",
+  "engineer": [
+    "Where you can put a budget: management group; subscription; resource group; billing scopes.",
+    "Budget options: filter by resource group, resource, service or tag. Reset monthly, quarterly or yearly. Set a start date and an end date.",
+    "Budget alerts: each alert is a percentage of the budget, checked against Actual cost or Forecasted cost. A budget can have up to five alerts. Send them to email addresses, or to an action group.",
+    "Action groups on budgets: only on subscription and resource group budgets. An action group can send email or SMS, or call a webhook, Logic App, Azure Function or Automation runbook.",
+    "Cost data is late: new usage usually shows up after 8 to 24 hours. So an Actual alert arrives after the money is spent. A Forecast alert warns you earlier when spending is steady.",
+    "Cost analysis: group or filter by resource group, service, location or tag. Save views. Schedule exports to a storage account. Tag reports only work if the resources themselves are tagged, or you turn on tag inheritance in Cost Management.",
+    "Other alert types: credit alerts (Azure Prepayment); department spending quota alerts (Enterprise Agreement, EA); cost anomaly alerts, for sudden unusual spend.",
+    "Advisor cost tips: resize or shut down VMs and scale sets that are hardly used; buy reservations or savings plans; delete idle resources.",
+    "Tuning the VM tip: you choose the average CPU level that counts as 'hardly used' (5, 10, 15, 20 or 100%) and how many days to look back (7 to 90). You can postpone or dismiss tips, and set Advisor alerts to hear about new ones.",
+    "Roles: Cost Management Reader to view costs. Cost Management Contributor (or Contributor) to create budgets and exports. Advisor needs at least Reader on the resources."
+  ],
+  "example": {
+    "title": "Keeping a dev subscription under 500 USD",
+    "body": [
+      "The team creates a monthly budget of 500 USD on the dev subscription. One alert fires when the forecast reaches 100% (early warning). Another fires when actual spend reaches 90%. The 90% alert calls an action group. Its Automation runbook stops (deallocates) every VM tagged environment=dev.",
+      "Advisor points out a build VM that averages 2% CPU. The team sets it to shut down automatically each night, and makes a web VM that sits under 10% CPU smaller. The forecast drops back under the budget."
+    ]
+  },
+  "architectureDecisions": [
+    "Budgets at several levels: one on the management group or subscription for the big picture, and one per team on their resource group.",
+    "Use both alert types: Forecast for an early warning, Actual to confirm.",
+    "Tag everything the same way: so each team's cost can be counted. Make tags required with Policy.",
+    "Check Advisor regularly: for example every month, and watch your Advisor score."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Hitting 100% of a budget shuts resources down.",
+      "reality": "No. Budgets only send alerts. To stop things, you must add automation."
+    },
+    {
+      "myth": "Budget alerts arrive almost instantly.",
+      "reality": "No. Cost data is usually 8 to 24 hours behind."
+    },
+    {
+      "myth": "Advisor applies its tips automatically.",
+      "reality": "No. You review them, then do them, postpone them or dismiss them."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AWS Budgets and Cost Explorer",
+      "difference": "Similar alerts on actual and forecast spend. AWS Budgets can also apply actions itself (for example IAM or SCP limits). Azure uses action groups and your own automation."
+    },
+    {
+      "service": "Azure Monitor alerts",
+      "difference": "Monitor alerts react to metrics and logs within minutes. Budget alerts use billing data, which is hours behind."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "The budget was passed, but resources are still running.",
+      "cause": "Budgets never stop resources.",
+      "fix": "Add an action group with automation, or use a spending limit if your offer has one."
+    },
+    {
+      "symptom": "An alert arrived a day after the cost jumped.",
+      "cause": "Cost data arrives late.",
+      "fix": "Add forecast and anomaly alerts. For real-time control, use Azure Monitor metric alerts on usage."
+    },
+    {
+      "symptom": "You can't add an action group to a budget.",
+      "cause": "Action groups only work on subscription and resource group budgets.",
+      "fix": "Create the budget on a subscription or resource group, or use email."
+    },
+    {
+      "symptom": "Cost analysis by tag shows 'untagged'.",
+      "cause": "Only the resource groups are tagged, or the tags were added after the usage.",
+      "fix": "Tag the resources (a Policy Modify rule), or turn on tag inheritance in Cost Management."
+    }
+  ],
+  "configuration.limits": [
+    "Budgets only alert; they never stop anything",
+    "Up to five alerts per budget",
+    "Cost data is hours late, not minutes"
+  ],
+  "configuration.permissions": [
+    "Cost Management Contributor or Contributor, to create budgets",
+    "Reader on the resources, for Advisor"
+  ],
+  "configuration.prerequisites": [
+    "Cost Management access at that level",
+    "An action group (and a runbook) if you want automation"
+  ],
+  "from": {
+    "learningObjective": "4c21bbe97bd0",
+    "engineer": "a4c45ca1ef2a",
+    "example": "a2622a7a2256",
+    "architectureDecisions": "9ebc2512ce77",
+    "misconceptions": "fa3abf5cf00b",
+    "comparisons": "ba5f20aae285",
+    "troubleshooting": "4810cf279a4d",
+    "configuration.limits": "b93bc3d52715",
+    "configuration.permissions": "3a9fd15bc170",
+    "configuration.prerequisites": "3d42ec55be89"
+  }
+}

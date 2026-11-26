@@ -1,0 +1,79 @@
+{
+  "learningObjective": "Create and set up backup policies (Standard and Enhanced), run backups on demand, and pick and run the right kind of restore.",
+  "engineer": [
+    "Standard policy: one backup a day. Instant restore snapshots kept 1 to 5 days (default 2).",
+    "Enhanced policy: a backup every 4, 6, 8, 12 or 24 hours. Instant restore snapshots kept 1 to 30 days (default 7). The portal requires it for Trusted Launch VMs, and it's needed for some disk types such as Premium SSD v2 and Ultra.",
+    "Retention: daily, weekly, monthly and yearly points. Daily points can be kept 7 to 9999 days.",
+    "How a VM backup works: the VM agent takes a snapshot. Where possible it's application-consistent (VSS on Windows, pre and post scripts on Linux). The snapshot is kept first as an instant restore snapshot, then copied to the vault.",
+    "Backup now: makes an extra recovery point straight away, with its own retention.",
+    "Restore options: Create new VM; Restore disks, to a staging storage account and resource group, then attach them or use the template Azure creates; Replace existing, which swaps the disks in place (the VM must still exist); Cross Region Restore, from a GRS vault with CRR turned on; File Recovery, which mounts a recovery point with a script so you can copy single files.",
+    "Azure Files backup: snapshot-based or vaulted, and restore a whole share or single files.",
+    "SQL Server in a VM: log backups every 15 minutes, so you can restore to a point in time."
+  ],
+  "example": {
+    "title": "Different policies for different VMs",
+    "body": [
+      "Production SQL VMs (Trusted Launch) use an Enhanced policy: a backup every 4 hours, snapshots kept 7 days, and 30 daily, 12 monthly and 7 yearly points. A developer deletes a config file. In minutes, the admin gets it back with File Recovery from this morning's point."
+    ]
+  },
+  "architectureDecisions": [
+    "Critical VMs: use Enhanced policies.",
+    "Fast restores: keep instant restore snapshots long enough that most restores come from them.",
+    "Test restores: on a regular schedule, not only when something breaks."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Backups survive a region outage by default.",
+      "reality": "No. Only with a GRS vault and Cross Region Restore."
+    },
+    {
+      "myth": "File Recovery restores the whole VM.",
+      "reality": "No. It mounts a recovery point so you can copy the files you need."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Site Recovery",
+      "difference": "Copies VMs all the time for a fast failover (an RPO of minutes). Backup keeps older copies for a long time."
+    },
+    {
+      "service": "Managed disk snapshots",
+      "difference": "Copies you take by hand, with no policy and no vault retention."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "Backup fails: VM agent unresponsive.",
+      "cause": "The agent isn't running, or its outbound traffic is blocked.",
+      "fix": "Restart or update the agent, and allow the endpoints it needs."
+    },
+    {
+      "symptom": "You can't pick a Standard policy for a Trusted Launch VM.",
+      "cause": "The portal only offers Enhanced for Trusted Launch VMs.",
+      "fix": "Use an Enhanced policy (Standard only works through newer CLI, PowerShell or API versions)."
+    },
+    {
+      "symptom": "Replace existing is greyed out.",
+      "cause": "The original VM was deleted.",
+      "fix": "Use Create new VM, or Restore disks."
+    }
+  ],
+  "configuration.limits": [
+    "Standard policy: 1 backup a day, instant restore 1 to 5 days",
+    "Enhanced policy: every 4, 6, 8, 12 or 24 hours, instant restore 1 to 30 days"
+  ],
+  "configuration.permissions": [
+    "Backup Contributor to manage vaults and policies (Monitoring Contributor for alerts and diagnostic settings)"
+  ],
+  "from": {
+    "learningObjective": "6ad487932826",
+    "engineer": "d15b3da87c3c",
+    "example": "811132bbc29a",
+    "architectureDecisions": "6613a71b8f71",
+    "misconceptions": "30f6f6202e65",
+    "comparisons": "c07d68d775c5",
+    "troubleshooting": "a126faeb6247",
+    "configuration.limits": "95941cb3212e",
+    "configuration.permissions": "c554cc2de377"
+  }
+}

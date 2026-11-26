@@ -1,0 +1,102 @@
+{
+  "learningObjective": "Put the right lock at the right level. Predict what it blocks, including the surprises ReadOnly causes. Remove or work around locks safely.",
+  "engineer": [
+    "What locks block: locks are checked by Azure Resource Manager (ARM) on management requests (to management.azure.com). CanNotDelete blocks DELETE. ReadOnly blocks PUT, PATCH, DELETE and POST, so everyone acts as if they had only the Reader role.",
+    "Locks apply to everyone: even Owner. To create or remove a lock you need Microsoft.Authorization/locks/*, which Owner and User Access Administrator have. Contributor can't manage locks.",
+    "Locks pass down: a lock on a subscription or resource group covers everything inside it. If there are several, the strictest one wins. You can't lock a management group.",
+    "Deleting a group with a locked resource: deleting a resource group or subscription fails if anything inside it is locked.",
+    "ReadOnly surprises: it blocks POST actions too. On a storage account, nobody can list the keys, so the portal can't use keys to show data; on a resource group with a VM, nobody can start or restart the VM; on an App Service, Visual Studio Server Explorer can't show the app's files.",
+    "Locks don't protect data: CanNotDelete on a storage account doesn't stop someone deleting blobs or files if they have data permissions. It doesn't stop a SQL user dropping tables either. Protect data with soft delete, versioning or immutability.",
+    "Locks can stop Azure cleaning up: a CanNotDelete lock on a resource group can stop services removing their own leftovers, for example Azure Backup deleting old restore point collections. Lock the single resource instead when this matters."
+  ],
+  "example": {
+    "title": "Protecting shared networking",
+    "body": [
+      "The hub VNet, VPN gateway and Azure Firewall are in rg-connectivity. The platform team puts CanNotDelete on rg-connectivity. Network engineers can still change routes and rules, but nobody can delete the gateway by mistake.",
+      "They don't put ReadOnly on the resource group. It would block normal changes and POST actions such as resetting the gateway. They only use ReadOnly on one production storage account during an audit freeze. Its apps sign in with Entra ID, because listing keys stops working under ReadOnly."
+    ]
+  },
+  "architectureDecisions": [
+    "Use CanNotDelete by default: put it on production and shared resource groups as a safety net.",
+    "Use ReadOnly rarely: only for short freezes or resources that almost never change, and check what POST actions it will block first.",
+    "Keep locks in code: define them in Bicep next to the resources they protect, so they aren't forgotten.",
+    "Locks are not enough on their own: add soft delete, backups and RBAC. Locks don't protect data or changes made by allowed users."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Owners aren't affected by locks.",
+      "reality": "No. Locks apply to everyone. An Owner can remove the lock, but has to do that first."
+    },
+    {
+      "myth": "ReadOnly only blocks edits in the portal.",
+      "reality": "No. It blocks every write and POST, including listing storage keys and starting VMs."
+    },
+    {
+      "myth": "CanNotDelete on a storage account protects the data in it.",
+      "reality": "No. Locks don't cover data actions such as deleting blobs."
+    },
+    {
+      "myth": "You can lock a management group.",
+      "reality": "No. Only a subscription, resource group or resource."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure RBAC",
+      "difference": "RBAC gives permissions to specific people. A lock blocks an action for everyone, whatever their role."
+    },
+    {
+      "service": "Azure Policy DenyAction",
+      "difference": "DenyAction can block deletes across a whole scope based on resource settings, such as a tag. A lock covers one specific scope."
+    },
+    {
+      "service": "Deployment stacks deny settings",
+      "difference": "A deployment stack can block changes to the resources it manages, and you can exclude some people. Locks have no exclusions."
+    },
+    {
+      "service": "AWS termination protection",
+      "difference": "In AWS it's a setting on each EC2 instance or CloudFormation stack. Azure locks are separate objects that pass down from subscription, resource group or resource."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "An Owner gets ScopeLocked when deleting a resource.",
+      "cause": "There is a lock on the resource, its resource group or its subscription.",
+      "fix": "Run az lock list --resource-group <rg> (inherited locks show where they come from). Remove the lock if the change is approved."
+    },
+    {
+      "symptom": "Deleting a resource group fails, but the group has no lock.",
+      "cause": "A resource inside the group is locked.",
+      "fix": "Find and remove the lock on that resource first."
+    },
+    {
+      "symptom": "The portal says 'You do not have permissions to list the data using your user account' on a storage account.",
+      "cause": "A ReadOnly lock blocks listing the keys, so key access fails.",
+      "fix": "Sign in with Entra ID and a Storage Blob Data role, or use CanNotDelete instead of ReadOnly."
+    },
+    {
+      "symptom": "Automation can't start the VMs in the morning.",
+      "cause": "A ReadOnly lock on the resource group blocks the start action.",
+      "fix": "Use CanNotDelete instead, or lock single resources."
+    }
+  ],
+  "configuration.limits": [
+    "Levels you can lock: subscription, resource group or resource (not management group)",
+    "Two lock types: CanNotDelete and ReadOnly",
+    "Only management actions are blocked, not data actions"
+  ],
+  "configuration.permissions": [
+    "Microsoft.Authorization/locks/* (Owner, User Access Administrator, or a custom role)"
+  ],
+  "from": {
+    "learningObjective": "93b53b4ea610",
+    "engineer": "3c7c94eee701",
+    "example": "6795a49018e2",
+    "architectureDecisions": "a024867bf76a",
+    "misconceptions": "4e54a7158518",
+    "comparisons": "63f68a1dc629",
+    "troubleshooting": "533fe0ae3b45",
+    "configuration.limits": "2621ffa956d9",
+    "configuration.permissions": "597880032fea"
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "learningObjective": "Create users and groups, one at a time or in bulk. Pick the right group type and membership type. Write dynamic membership rules. Manage user and group properties.",
+  "engineer": [
+    "Where users come from: cloud-only users are created directly in Entra ID; synced users come from your on-premises Active Directory through Microsoft Entra Connect or Cloud Sync, so you change their details on-premises, not in the portal; guests are people from other organisations (userType is Guest).",
+    "Ways to create users: the portal (New user > Create new user); bulk create, by uploading the portal's CSV template; Microsoft Graph PowerShell (New-MgUser); Azure CLI (az ad user create).",
+    "Deleting users: a deleted user goes to the recycle bin (soft delete). You can restore them for 30 days.",
+    "Group types: Security groups give access (Azure roles, licences, Conditional Access, apps); Microsoft 365 groups are for teamwork (shared mailbox, calendar, files) but can also give access.",
+    "Membership types: Assigned, where you add people by hand; Dynamic user, where a rule picks the users; Dynamic device, where a rule picks devices (security groups only). You can change the membership type later.",
+    "Groups that hold admin roles: to give a group a Microsoft Entra role, create it with 'Microsoft Entra roles can be assigned to the group' set to Yes (isAssignableToRole). You can't switch this on later. These groups use Assigned membership only.",
+    "Dynamic rules: a rule reads a user property and compares it, for example user.department -eq \"Sales\". Compare with -eq, -ne, -startsWith, -contains or -match. Join rules with -and, -or, -not. You can't add members by hand to a dynamic group. Updates are not instant; in big tenants they can take a while.",
+    "Licence for dynamic groups: every user who is in a dynamic group needs Microsoft Entra ID P1.",
+    "Who can do what: User Administrator manages users and groups; Groups Administrator manages groups only; a group owner can change members of an Assigned group; Azure RBAC roles such as Owner or Contributor give no rights in the directory.",
+    "Properties to remember: usageLocation, which must be set before you give a licence directly; accountEnabled, set it to No to block sign-in; department, jobTitle and companyName, which dynamic rules often use; manager.",
+    "PowerShell: the old AzureAD and MSOnline modules are retired. Use Microsoft Graph PowerShell."
+  ],
+  "example": {
+    "title": "New starters and team moves, handled by a rule",
+    "body": [
+      "HR sets each person's department when they join or move. A dynamic security group called Sales has the rule user.department -eq \"Sales\". That group gets access to the CRM resource group and the Sales licences.",
+      "Chen moves from Sales to Engineering. HR changes Chen's department. The rule removes Chen from Sales, and Chen's Sales access and licences go with it. No admin touches the group. Chen is a synced user, so the department is changed in on-premises AD and then syncs to the cloud."
+    ]
+  },
+  "architectureDecisions": [
+    "Use dynamic groups for access and licences: base the rule on HR details such as department or job title, so access follows people when they join, move or leave. Remember they need Entra ID P1.",
+    "Use assigned groups for exceptions: when a rule can't describe who belongs, such as a project team, let the group owner add people by hand.",
+    "Script bulk changes: use Microsoft Graph PowerShell or Azure CLI so the result is the same every time. Don't use the old AzureAD or MSOnline modules; they are retired."
+  ],
+  "misconceptions": [
+    {
+      "myth": "A subscription Owner can create Entra users.",
+      "reality": "No. Azure roles only cover Azure resources. Creating users needs an Entra role, such as User Administrator."
+    },
+    {
+      "myth": "Dynamic groups update instantly.",
+      "reality": "No. Updates run in the background and can take a while."
+    },
+    {
+      "myth": "A deleted user is gone straight away.",
+      "reality": "No. It stays in the recycle bin, and you can restore it for 30 days."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "On-premises AD security groups",
+      "difference": "In AD, a group inside a group passes on access. In Entra ID, group-based licensing and some other features ignore groups inside groups, and only direct members count."
+    },
+    {
+      "service": "AWS IAM users and groups",
+      "difference": "AWS IAM groups can't contain other groups and have no dynamic rules. Company staff usually sign in through IAM Identity Center instead."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "You can't edit a user's department in the portal.",
+      "cause": "The user is synced from on-premises AD, so AD is the source of their details.",
+      "fix": "Change it in AD. It reaches the cloud at the next sync."
+    },
+    {
+      "symptom": "A user isn't in the dynamic group their department should match.",
+      "cause": "The rule has a typo or a spacing or case difference, or the update hasn't finished yet.",
+      "fix": "Use 'Validate rules' on the group to test that user, and check the group's processing status."
+    },
+    {
+      "symptom": "The 'Add members' button is missing.",
+      "cause": "The group has dynamic membership.",
+      "fix": "Change the rule or the user's details, or change the group to Assigned."
+    },
+    {
+      "symptom": "You can't give an Entra role to a group.",
+      "cause": "The group wasn't created as role-assignable, and that can't be changed later.",
+      "fix": "Create a new group with 'Microsoft Entra roles can be assigned to the group' set to Yes."
+    }
+  ],
+  "from": {
+    "learningObjective": "e227bd18d8f6",
+    "engineer": "ed0dee9d7de8",
+    "example": "e8d7079ae463",
+    "architectureDecisions": "2e8a7a9b1192",
+    "misconceptions": "dfe3a4603015",
+    "comparisons": "57393f9ce662",
+    "troubleshooting": "514cfcff39bf"
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "learningObjective": "Give containers the right CPU and memory. Set up Container Apps scale rules, including scale to zero. Remember that ACI doesn't autoscale.",
+  "engineer": [
+    "ACI sizing: set CPU and memory per container. The group's total must fit the region's limits. GPUs work in some regions.",
+    "Changing ACI size: you can't change a running group. Redeploy with new values.",
+    "Scaling out ACI: create more container groups yourself (for example behind Application Gateway), or use Container Apps or AKS instead.",
+    "Container Apps sizing: on the Consumption plan, CPU and memory come in fixed pairs, from 0.25 vCPU with 0.5 GiB up to 4 vCPU with 8 GiB. Memory is always 2 × vCPU. Workload profiles (dedicated) allow bigger sizes.",
+    "Replicas: set a minimum and maximum number of copies (replicas) per revision. The minimum can be 0. The maximum is 10 by default and can be raised.",
+    "Scale rule types: HTTP, by concurrent requests per replica (default 10); TCP, by concurrent connections; CPU or memory use; custom KEDA scalers, for example by Azure Service Bus queue length.",
+    "Scale to zero: with minimum replicas 0, an idle app costs nothing for compute. The catch: the first request after idle is slow (cold start).",
+    "How scaling works: decisions are made per revision. The scaler (KEDA) checks the event source and adds replicas, up to the maximum. For APIs that must answer fast, set the minimum to 1 or more."
+  ],
+  "example": {
+    "title": "A worker that follows the queue",
+    "body": [
+      "An order-processing worker on Container Apps uses a Service Bus scale rule: one replica for every 20 messages, minimum 0, maximum 30. Overnight it scales to zero. At peak it reaches 30 replicas.",
+      "An old report job stays on ACI with 2 vCPU and 4 GiB. A Logic App starts it when needed."
+    ]
+  },
+  "architectureDecisions": [
+    "Pick the rule by workload: HTTP concurrency for APIs, queue or event rules for workers.",
+    "No cold starts allowed: keep minimum replicas at 1 or more."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Scale to zero deletes the app.",
+      "reality": "No. Revisions stay. Replicas start again when work arrives."
+    },
+    {
+      "myth": "ACI can scale with rules, like a scale set (VMSS).",
+      "reality": "No. It can't."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "AKS Horizontal Pod Autoscaler / KEDA",
+      "difference": "Container Apps uses KEDA inside, without showing you the cluster."
+    },
+    {
+      "service": "AWS Fargate",
+      "difference": "ECS services on Fargate scale with Application Auto Scaling. App Runner scales by concurrent requests."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "The container app is slow on the first request each morning.",
+      "cause": "It scaled to zero overnight (cold start).",
+      "fix": "Set minimum replicas to 1."
+    },
+    {
+      "symptom": "Requests queue up at peak time.",
+      "cause": "Maximum replicas reached.",
+      "fix": "Raise the maximum, or the requests each replica can handle."
+    },
+    {
+      "symptom": "Invalid CPU/memory combination error.",
+      "cause": "The Consumption plan needs fixed pairs.",
+      "fix": "Use a valid pair, or a dedicated workload profile."
+    }
+  ],
+  "configuration.limits": [
+    "ACI: no autoscale; size is fixed per deployment",
+    "Container Apps Consumption: fixed CPU and memory pairs",
+    "Maximum replicas can be changed (default 10)"
+  ],
+  "configuration.permissions": [
+    "Contributor on the container app"
+  ],
+  "configuration.prerequisites": [
+    "A Container Apps environment",
+    "Something to scale on (HTTP ingress, a queue, and so on)"
+  ],
+  "from": {
+    "learningObjective": "c7e8f28930be",
+    "engineer": "1d73ff90d349",
+    "example": "97a4173eee07",
+    "architectureDecisions": "fcb6232ee7e4",
+    "misconceptions": "2eaccc5bbc36",
+    "comparisons": "d197442f3627",
+    "troubleshooting": "156e9ff645d7",
+    "configuration.limits": "6e8f8d0c03ee",
+    "configuration.permissions": "e101644fb1de",
+    "configuration.prerequisites": "8fbfb96ef42c"
+  }
+}

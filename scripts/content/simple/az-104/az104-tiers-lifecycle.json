@@ -1,0 +1,95 @@
+{
+  "learningObjective": "Pick an access tier based on how often data is read. Plan for minimum days and the wait to bring archived data back. Automate moving and deleting blobs with lifecycle rules.",
+  "engineer": [
+    "Tiers basics: tiers are for block blobs. The account's default tier (Hot or Cool) applies to blobs without their own tier. You can set one blob's tier with Set Blob Tier. Premium block blob accounts don't use tiers.",
+    "Archive is offline: reading an archived blob returns 409 BlobArchived. First you must bring it back (rehydrate): change its tier to Hot, Cool or Cold, or copy it to one of those tiers.",
+    "How long rehydration takes: Standard priority, up to 15 hours. High priority, usually under an hour for blobs under 10 GB.",
+    "Where archive works: not on ZRS, GZRS or RA-GZRS accounts.",
+    "Minimum days (early deletion): Cool 30 days; Cold 90 days; Archive 180 days. Move or delete a blob sooner and you still pay for the remaining days.",
+    "Lifecycle rules: a JSON policy. Each rule has filters, to choose blobs (blobTypes, prefixMatch, blobIndexMatch), and actions, for the current blob, its snapshots and its versions.",
+    "Lifecycle actions: tierToCool; tierToCold; tierToArchive; delete; enableAutoTierToHotFromCool, which moves a blob back to Hot when it's read.",
+    "Lifecycle conditions: daysAfterModificationGreaterThan; daysAfterCreationGreaterThan; daysAfterLastAccessTimeGreaterThan, which needs last access time tracking turned on.",
+    "When two actions match: the cheapest action wins. Delete beats archive, archive beats cold, cold beats cool.",
+    "Timing: the policy runs about once a day. New or changed rules can take up to 24 hours to start, and longer to finish.",
+    "Cost and access: the policy itself is free, but each tier change or delete is billed as an operation. Setting the policy only needs Storage Account Contributor."
+  ],
+  "example": {
+    "title": "Keeping logs for a year, cheaply",
+    "body": [
+      "App logs under logs/ are read often for a week, sometimes for a month, and kept for a year for audits. The rules: move to Cool after 30 days, to Archive after 90 days, delete after 365 days.",
+      "One investigation needs a 6-month-old log. The engineer rehydrates it with High priority and copies it to a Hot container for the investigation."
+    ]
+  },
+  "architectureDecisions": [
+    "Label data by how it's used: put it under prefixes or blob index tags, so rules can find it.",
+    "Unpredictable reads: use last-access-time rules, so blobs move by real use, not by age.",
+    "Archive data needs the right redundancy: keep it in LRS, GRS or RA-GRS accounts."
+  ],
+  "misconceptions": [
+    {
+      "myth": "You can read archived blobs, just slowly.",
+      "reality": "No. You must rehydrate them first. Reads fail until then."
+    },
+    {
+      "myth": "Lifecycle rules run straight away.",
+      "reality": "No. They run about once a day, and changes can take 24 hours."
+    },
+    {
+      "myth": "If two rules match, the first one listed wins.",
+      "reality": "No. The cheapest action wins."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon S3 storage classes and lifecycle rules",
+      "difference": "The same idea (Standard-IA, Glacier, lifecycle transitions). S3 also has Intelligent-Tiering. Azure has last-access rules and auto-move back to Hot."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "You made a lifecycle rule, but nothing changed after an hour.",
+      "cause": "Policies run about once a day, and new rules can take 24 hours.",
+      "fix": "Wait, and check the blob's properties the next day."
+    },
+    {
+      "symptom": "409 BlobArchived when downloading.",
+      "cause": "Archived blobs are offline.",
+      "fix": "Rehydrate it (Set Blob Tier or copy) and wait until it's done."
+    },
+    {
+      "symptom": "Unexpected early-deletion charges.",
+      "cause": "Blobs were moved or deleted before the tier's minimum days.",
+      "fix": "Set rule days to at least the tier's minimum days."
+    },
+    {
+      "symptom": "The Archive option is missing.",
+      "cause": "The account is ZRS, GZRS or RA-GZRS, or it's a premium account.",
+      "fix": "Use an LRS, GRS or RA-GRS account for archive data."
+    }
+  ],
+  "configuration.limits": [
+    "Minimum days: Cool 30, Cold 90, Archive 180",
+    "Policy runs about once a day; changes take up to 24 hours",
+    "No archive on ZRS, GZRS or RA-GZRS"
+  ],
+  "configuration.permissions": [
+    "Storage Account Contributor, to set the lifecycle policy",
+    "Storage Blob Data Contributor, to change the tier of single blobs"
+  ],
+  "configuration.prerequisites": [
+    "A GPv2 or Blob Storage account (LRS, GRS or RA-GRS for archive)",
+    "Last access time tracking, for rules based on last access"
+  ],
+  "from": {
+    "learningObjective": "d810bb56d8ad",
+    "engineer": "d42b1c97975f",
+    "example": "7578f0b4945e",
+    "architectureDecisions": "6f2fe2a2311f",
+    "misconceptions": "fd5617f4e22c",
+    "comparisons": "f3327e0d41e5",
+    "troubleshooting": "137eccbe9e9d",
+    "configuration.limits": "0079f2865056",
+    "configuration.permissions": "ebcae4e257d5",
+    "configuration.prerequisites": "e0ba7649a528"
+  }
+}

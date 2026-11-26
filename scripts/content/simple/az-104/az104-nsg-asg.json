@@ -1,0 +1,116 @@
+{
+  "learningObjective": "Create NSGs and ASGs, attach them to subnets and network cards, predict whether traffic is allowed, and prove it with effective security rules and IP flow verify.",
+  "engineer": [
+    "Order of checks, incoming: subnet NSG first, then the network card (NIC) NSG.",
+    "Order of checks, outgoing: NIC NSG first, then the subnet NSG.",
+    "One deny is enough: if the first NSG denies the traffic, the second one is never checked. Incoming traffic must be allowed by both.",
+    "Priorities: your rules use 100 to 4096. A lower number is checked first, and the first rule that matches decides.",
+    "Default rules: 65000, AllowVnetInBound and AllowVnetOutBound; 65001, AllowAzureLoadBalancerInBound and AllowInternetOutBound; 65500, DenyAllInBound and DenyAllOutBound. You can't delete them, but your own rules (lower numbers) come first.",
+    "What a rule matches (5-tuple): source; source port; destination; destination port; protocol (TCP, UDP, ICMP or Any).",
+    "Sources and destinations can be: IP ranges; service tags, such as Internet, VirtualNetwork, AzureLoadBalancer or Storage.WestEurope; ASGs.",
+    "NSGs remember connections (stateful): if incoming 443 is allowed, the reply is allowed automatically. You don't write an outbound rule for it. Connections already open aren't cut straight away when you change a rule.",
+    "VirtualNetwork is wider than it sounds: the tag includes the VNet, peered VNets, and on-premises networks connected through a gateway. So AllowVnetInBound allows a lot.",
+    "Standard SKU public IPs are closed by default: incoming traffic is blocked until an NSG allows it. (Basic public IPs were open, and were retired in September 2025.)",
+    "ASG rules: all network cards in an ASG must be in the same VNet. A rule with ASGs as both source and destination needs both ASGs in that same VNet.",
+    "Effective security rules: shows the subnet and NIC NSGs merged, with service tags expanded (portal: VM > Networking > Effective security rules, or Get-AzEffectiveNetworkSecurityGroup). The VM must be running.",
+    "IP flow verify (Network Watcher): tests one 5-tuple and tells you which rule allowed or denied it."
+  ],
+  "example": {
+    "title": "A three-tier app without IP lists",
+    "body": [
+      "Contoso runs web VMs and SQL VMs in separate subnets of vnet-prod. Their network cards are in the ASGs asg-web and asg-db.",
+      "The snet-web NSG allows TCP 443 from Internet to asg-web (priority 200). The snet-db NSG allows TCP 1433 from asg-web to asg-db (priority 200), then denies TCP 1433 from VirtualNetwork (priority 300). Without that deny, AllowVnetInBound would let every VNet source reach SQL.",
+      "When the web tier scales out, new network cards join asg-web and get the rules automatically. Nobody edits IP addresses."
+    ]
+  },
+  "architectureDecisions": [
+    "NSGs on subnets by default: add a NIC NSG only when one VM needs an exception. Two layers means twice the places to check.",
+    "Use ASGs, not IP lists: new VMs pick up the rules automatically.",
+    "Never open ports 22 or 3389 to the internet: use Azure Bastion or just-in-time VM access."
+  ],
+  "misconceptions": [
+    {
+      "myth": "The most specific rule wins.",
+      "reality": "No. Priority wins. The matching rule with the lowest number decides."
+    },
+    {
+      "myth": "You need an outbound rule for replies to allowed incoming traffic.",
+      "reality": "No. NSGs are stateful, so replies are allowed automatically."
+    },
+    {
+      "myth": "A subnet NSG allow overrides a NIC NSG deny.",
+      "reality": "No. Incoming traffic must be allowed at both levels. Either one can block it."
+    },
+    {
+      "myth": "You can delete DenyAllInBound.",
+      "reality": "No. Default rules can't be deleted. Override them with lower-numbered rules."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Firewall",
+      "difference": "One central, managed firewall with domain name (FQDN) filtering, threat intelligence and logging. NSGs are simple 5-tuple filters on each subnet or network card. Use both together."
+    },
+    {
+      "service": "AWS security groups",
+      "difference": "Attached to network interfaces, with allow rules only (no deny, no priority). NSGs have allow and deny, with priorities."
+    },
+    {
+      "service": "AWS network ACLs",
+      "difference": "Subnet filters with numbered rules, but stateless (replies need their own rule). NSGs are stateful."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "You can't RDP or SSH to a VM with a public IP, and you see no NSG errors.",
+      "cause": "A Standard public IP is closed by default, and no NSG allows the port.",
+      "fix": "Add an inbound allow rule for the port, ideally only from your IP. Better: use Azure Bastion."
+    },
+    {
+      "symptom": "The subnet NSG allows 443, but the site still times out.",
+      "cause": "A NIC NSG denies it (incoming traffic is checked by the subnet NSG, then the NIC NSG).",
+      "fix": "Check Effective security rules on the network card, and fix or remove the NIC NSG."
+    },
+    {
+      "symptom": "The database can be reached from every subnet, despite a 'web only' rule.",
+      "cause": "AllowVnetInBound (65000) allows every VirtualNetwork source. Your allow rule doesn't block anyone else.",
+      "fix": "Add a deny for that port from VirtualNetwork, numbered after your ASG allow rule and below 65000."
+    },
+    {
+      "symptom": "Effective security rules are greyed out.",
+      "cause": "The VM is stopped (deallocated).",
+      "fix": "Start the VM, or use IP flow verify in Network Watcher."
+    },
+    {
+      "symptom": "Load balancer backends show unhealthy after you add a deny-all rule.",
+      "cause": "Your deny (numbered below 65001) blocks the load balancer's health probes.",
+      "fix": "Add an allow from the AzureLoadBalancer service tag, numbered before the deny."
+    }
+  ],
+  "configuration.limits": [
+    "Your rule priorities: 100 to 4096; up to 1,000 rules per NSG by default",
+    "One NSG per subnet and one per network card; one NSG can be used on many subnets and cards",
+    "ASGs: all network cards in one ASG must be in the same VNet"
+  ],
+  "configuration.permissions": [
+    "Network Contributor (or Microsoft.Network/networkSecurityGroups/*) to create and edit NSGs",
+    "Microsoft.Network/networkSecurityGroups/join/action to attach an NSG to a subnet or network card",
+    "Microsoft.Network/virtualNetworks/subnets/write on the subnet, to attach at subnet level"
+  ],
+  "configuration.prerequisites": [
+    "A resource group and a VNet with subnets",
+    "The NSG must be in the same region and subscription as its VNet or network card"
+  ],
+  "from": {
+    "learningObjective": "469e30da0ab8",
+    "engineer": "3b1157f6cead",
+    "example": "11492a5cae2a",
+    "architectureDecisions": "d7d43f1ae833",
+    "misconceptions": "113dcc4abf37",
+    "comparisons": "8ad51e2569b1",
+    "troubleshooting": "a6c5713d4426",
+    "configuration.limits": "95127fb808a7",
+    "configuration.permissions": "81dff349998a",
+    "configuration.prerequisites": "42e488b0f0ef"
+  }
+}

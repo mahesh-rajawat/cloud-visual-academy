@@ -6,7 +6,7 @@
     "AZ104-5.1.4"
   ],
   "estimatedMinutes": 40,
-  "learningObjective": "Create metric, log search and activity log alert rules, configure action groups, and use alert processing rules to route or suppress notifications.",
+  "learningObjective": "Create metric, log search and activity log alert rules. Set up action groups. Use alert processing rules to send or silence notifications.",
   "prerequisites": [
     {
       "text": "Querying logs with KQL",
@@ -19,11 +19,14 @@
     "An action group says who to notify and what to run. An alert processing rule changes what happens to fired alerts, for example silencing them during maintenance."
   ],
   "engineer": [
-    "Alert rule = scope + condition (signal, aggregation, operator, threshold or dynamic threshold, lookback window and evaluation frequency) + actions + details (severity 0–4, name, auto-resolve).",
-    "Types: metric alerts (near real time, stateful: they resolve automatically), log search alerts (KQL on a schedule), activity log alerts (for example a VM deleted, or Service Health and Resource Health events), smart detection, Prometheus alerts.",
-    "Action groups: notifications (email, SMS, Azure app push, voice, email Azure Resource Manager role) and actions (Automation runbook, Azure Functions, Event Hubs, ITSM, Logic Apps, webhook/secure webhook). Reusable across many rules. Rate limits apply to SMS/voice/email.",
-    "Alert processing rules: scope (subscription, resource group, resource) with filters (severity, alert rule, resource type…), action = add action groups or suppress notifications, optional schedule (once or recurring). Suppressed alerts still fire and appear in the alerts list.",
-    "Alert state: monitor condition Fired/Resolved, and user response New/Acknowledged/Closed."
+    "An alert rule has four parts: scope, what to watch; condition, the signal, how to combine it, the comparison, a fixed or dynamic threshold, how far back to look and how often to check; actions, the action groups to call; details, severity 0 to 4 (0 is the most serious), name and auto-resolve.",
+    "Alert types: metric alerts, almost real time, and they resolve themselves when the problem goes away; log search alerts, a KQL query run on a schedule; activity log alerts, for example when a VM is deleted, or for Service Health and Resource Health events; smart detection; Prometheus alerts.",
+    "Action groups, who to tell: email, SMS, Azure app push notification, voice call, or email everyone with an Azure Resource Manager role.",
+    "Action groups, what to run: Automation runbook; Azure Functions; Event Hubs; ITSM tool; Logic Apps; webhook or secure webhook.",
+    "Action group tips: one action group can be used by many rules. SMS, voice and email have rate limits.",
+    "Alert processing rules: choose a scope (subscription, resource group or resource) and filters (severity, alert rule, resource type…). Then either add action groups, or silence notifications. You can give them a schedule, once or repeating.",
+    "Silenced still means fired: suppressed alerts still fire and still appear in the alerts list. Only the notifications are stopped.",
+    "Alert states: the condition is Fired or Resolved. Your response is New, Acknowledged or Closed."
   ],
   "animation": {
     "id": "monitor-sim",
@@ -88,10 +91,10 @@
     ]
   },
   "example": {
-    "title": "Paging the right team",
+    "title": "Calling the right team",
     "body": [
-      "A metric alert fires when average CPU > 80% over 5 minutes on any production VM. One action group emails and texts the ops team and calls a Logic App to open a ticket.",
-      "An alert processing rule suppresses notifications every Sunday 01:00–03:00 when patching runs."
+      "A metric alert fires when average CPU is above 80% for 5 minutes on any production VM. Its action group emails and texts the ops team, and calls a Logic App that opens a ticket.",
+      "An alert processing rule silences notifications every Sunday from 01:00 to 03:00, while patching runs."
     ]
   },
   "configuration": {
@@ -157,45 +160,45 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Alert never fires.",
-      "cause": "Window/aggregation smooths the signal, or wrong scope.",
-      "fix": "Shorter window, Maximum aggregation, check the scope."
+      "symptom": "The alert never fires.",
+      "cause": "The window or the Average smooths out the spikes, or the scope is wrong.",
+      "fix": "Use a shorter window or Maximum, and check the scope."
     },
     {
-      "symptom": "Alert fires but nobody is notified.",
-      "cause": "No action group, or an alert processing rule suppresses it.",
-      "fix": "Attach an action group; review processing rules."
+      "symptom": "The alert fires, but nobody is told.",
+      "cause": "No action group, or an alert processing rule silences it.",
+      "fix": "Add an action group, and check the processing rules."
     },
     {
       "symptom": "Too many SMS alerts.",
-      "cause": "Rate limiting or noisy thresholds.",
-      "fix": "Use dynamic thresholds and severity-based routing."
+      "cause": "Thresholds are too noisy, or rate limits kick in.",
+      "fix": "Use dynamic thresholds, and route by severity."
     }
   ],
   "comparisons": [
     {
       "service": "Amazon CloudWatch alarms + SNS",
-      "difference": "Alarm ≈ alert rule; SNS topic ≈ action group."
+      "difference": "A CloudWatch alarm is like an alert rule. An SNS topic is like an action group."
     },
     {
       "service": "Service Health alerts",
-      "difference": "Activity log alerts for Azure platform incidents affecting your subscriptions."
+      "difference": "Activity log alerts for Azure problems that affect your subscriptions."
     }
   ],
   "misconceptions": [
     {
       "myth": "Alert processing rules delete alerts.",
-      "reality": "They add action groups or suppress notifications; alerts still fire."
+      "reality": "No. They add action groups or silence notifications. Alerts still fire."
     },
     {
       "myth": "Each alert rule needs its own action group.",
-      "reality": "Action groups are reusable."
+      "reality": "No. Many rules can share one action group."
     }
   ],
   "architectureDecisions": [
-    "Use severity levels consistently and route by severity with processing rules.",
-    "Prefer dynamic thresholds for noisy metrics.",
-    "Manage alert rules as code (Bicep/ARM) per environment."
+    "Use severities the same way everywhere: then route by severity with processing rules.",
+    "Noisy metrics: use dynamic thresholds, which learn what's normal.",
+    "Keep alert rules in code: Bicep or ARM, one set per environment."
   ],
   "docs": [
     {

@@ -6,7 +6,7 @@
     "AZ104-5.2.7"
   ],
   "estimatedMinutes": 30,
-  "learningObjective": "Configure Backup reports with Log Analytics and set up and interpret Azure Monitor alerts for backup and Site Recovery.",
+  "learningObjective": "Set up Backup reports with Log Analytics, and set up and read Azure Monitor alerts for Backup and Site Recovery.",
   "prerequisites": [
     {
       "text": "Backup policies, backup and restore",
@@ -24,10 +24,14 @@
     "Alerts tell you immediately when a backup or restore job fails."
   ],
   "engineer": [
-    "Reports: configure a diagnostic setting on each vault to send backup data (resource-specific mode tables such as AddonAzureBackupJobs, CoreAzureBackup) to a Log Analytics workspace; use Azure Policy to apply this at scale. Then open Backup reports in Business continuity center (or the vault): Summary, Backup items, Usage, Jobs, Policies, Optimize. Data can take up to 24 hours to appear initially.",
-    "Alerts: Azure Monitor built-in alerts for Azure Backup (for example backup job failures, security events like soft-deleted data) are raised automatically; route notifications with alert processing rules to action groups. Classic backup alerts have been replaced. You can also create log search alerts on the backup tables for custom conditions.",
-    "Site Recovery health and job alerts are also available through Azure Monitor alerts.",
-    "Backup jobs view in the vault shows per-job status and error codes with recommended actions."
+    "Reports, step 1: add a diagnostic setting on each vault that sends backup data to a Log Analytics workspace, in resource-specific mode (tables such as AddonAzureBackupJobs and CoreAzureBackup). Use Azure Policy to do this for every vault.",
+    "Reports, step 2: open Backup reports in Business continuity center (or in the vault). Tabs: Summary; Backup items; Usage; Jobs; Policies; Optimize.",
+    "Reports, timing: the first data can take up to 24 hours to appear.",
+    "Built-in alerts: Azure Monitor raises Backup alerts automatically, for example failed backup jobs, or security events such as backup data being soft-deleted. The old classic backup alerts are replaced.",
+    "Getting told about alerts: built-in alerts don't email anyone by themselves. Use an alert processing rule to send them to an action group.",
+    "Custom alerts: write log search alerts on the backup tables for anything else.",
+    "Site Recovery: its health and job alerts also come through Azure Monitor alerts.",
+    "Backup jobs page in the vault: shows each job's status, error codes and suggested fixes, live."
   ],
   "animation": {
     "id": "backup-dr-sim",
@@ -102,9 +106,9 @@
     ]
   },
   "example": {
-    "title": "Weekly compliance",
+    "title": "A weekly compliance check",
     "body": [
-      "An Azure Policy deploys vault diagnostic settings to law-backup. The weekly Backup report shows 98.7% job success; two failures were paged immediately through an alert processing rule to the backup team's action group."
+      "An Azure Policy adds diagnostic settings to every vault, sending data to law-backup. The weekly Backup report shows 98.7% of jobs succeeded. The two failures were sent straight away to the backup team's action group by an alert processing rule."
     ]
   },
   "configuration": {
@@ -161,38 +165,38 @@
   "troubleshooting": [
     {
       "symptom": "Backup reports are empty.",
-      "cause": "No diagnostic settings, wrong workspace or data not yet arrived.",
-      "fix": "Configure resource-specific diagnostic settings; wait up to 24 hours."
+      "cause": "No diagnostic settings, the wrong workspace, or the data hasn't arrived yet.",
+      "fix": "Set up resource-specific diagnostic settings, and wait up to 24 hours."
     },
     {
-      "symptom": "Backup failures don't notify anyone.",
-      "cause": "Built-in alerts not routed.",
+      "symptom": "Nobody is told when backups fail.",
+      "cause": "The built-in alerts aren't sent anywhere.",
       "fix": "Create an alert processing rule with an action group."
     }
   ],
   "comparisons": [
     {
       "service": "AWS Backup Audit Manager",
-      "difference": "AWS compliance reporting for backups."
+      "difference": "AWS's compliance reports for backups."
     },
     {
       "service": "Vault Backup jobs blade",
-      "difference": "Real-time job view; reports show trends across vaults."
+      "difference": "Shows jobs live. Reports show trends across many vaults."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Backup reports work out of the box.",
-      "reality": "They need vault diagnostic settings to Log Analytics."
+      "myth": "Backup reports work with no setup.",
+      "reality": "No. Each vault needs a diagnostic setting that sends data to Log Analytics."
     },
     {
       "myth": "Built-in alerts send emails automatically.",
-      "reality": "Route them to action groups."
+      "reality": "No. Send them to an action group with an alert processing rule."
     }
   ],
   "architectureDecisions": [
-    "Deploy diagnostic settings with Azure Policy.",
-    "Use one workspace for backup reporting across subscriptions."
+    "Deploy diagnostic settings with Azure Policy: so no vault is missed.",
+    "One workspace for backup reports: across all subscriptions."
   ],
   "docs": [
     {

@@ -8,7 +8,7 @@
     "AZ104-3.3.3"
   ],
   "estimatedMinutes": 55,
-  "learningObjective": "Create and secure a container registry, build and push images, and run containers on ACI and Container Apps with the right authentication, networking, restart and revision settings.",
+  "learningObjective": "Create and secure a container registry, build and push images, and run containers on ACI and Container Apps with the right sign-in, networking, restart and revision settings.",
   "prerequisites": [
     {
       "text": "Compare containers, VMs and functions (AZ-900)",
@@ -26,11 +26,19 @@
     "Azure Container Apps runs containerised apps and microservices with HTTPS ingress, automatic scaling (even to zero), and versioned revisions."
   ],
   "engineer": [
-    "ACR: names are 5–50 alphanumeric characters, globally unique (<name>.azurecr.io). SKUs Basic, Standard and Premium differ in included storage and throughput; Premium adds geo-replication, private endpoints, content trust and dedicated agent pools. Build in the cloud with az acr build (ACR Tasks), or locally with docker push after az acr login.",
-    "ACR authentication: Entra identities with AcrPull/AcrPush roles (managed identities for services, service principals for CI), repository-scoped tokens, or the admin user (disabled by default; one shared credential, not recommended). Anonymous pull is a Standard/Premium option.",
-    "ACI: a container group is the deployment unit (containers on the same host sharing network, lifecycle and volumes; multi-container groups are Linux only). Settings: CPU and memory per container, OS type, ports, public IP with an optional DNS name label (<label>.<region>.azurecontainer.io) or deployment into a VNet subnet, restart policy Always (default), OnFailure or Never, environment variables (secure values), Azure Files volumes. Private ACR pulls need credentials or a managed identity.",
-    "Container Apps: apps run in a Container Apps environment (shared VNet, logging). Ingress can be external or internal with a target port and automatic HTTPS. Revisions are immutable snapshots created by revision-scope changes (image, containers, scale rules). Single revision mode replaces the active revision; Multiple mode allows traffic splitting between revisions (blue/green, canary). Secrets, managed identities, Dapr and jobs are supported.",
-    "Choosing: ACI for simple isolated containers and batch tasks; Container Apps for HTTP APIs, microservices and event-driven apps that need scaling and revisions; AKS when you need full Kubernetes control."
+    "Azure Container Registry (ACR) names: 5 to 50 letters and numbers, unique across Azure (<name>.azurecr.io).",
+    "ACR tiers (SKUs): Basic, Standard and Premium differ in storage and speed. Only Premium has geo-replication, private endpoints, content trust and dedicated agent pools.",
+    "Building images: in the cloud with az acr build (ACR Tasks, no Docker needed on your machine), or locally with docker push after az acr login.",
+    "Signing in to ACR: Entra identities with the AcrPull or AcrPush role (managed identities for Azure services, service principals for CI pipelines); repository-scoped tokens; the admin user, which is off by default, is one shared password, and isn't recommended. Anonymous pull is an option on Standard and Premium.",
+    "Azure Container Instances (ACI), the container group: the unit you deploy. Its containers run on the same host and share network, lifecycle and volumes. Groups with several containers are Linux only.",
+    "ACI settings: CPU and memory per container; OS type; ports; a public IP with an optional DNS name (<label>.<region>.azurecontainer.io), or a private IP in a VNet subnet; environment variables, with secure values for secrets; Azure Files volumes.",
+    "ACI restart policy: Always, the default, restarts the container every time it stops; OnFailure restarts only if it fails; Never doesn't restart. For jobs that should finish and stop, use OnFailure or Never.",
+    "ACI and a private registry: it needs registry credentials or a managed identity with AcrPull.",
+    "Container Apps, the environment: apps run in a Container Apps environment, which shares a VNet and logging.",
+    "Container Apps ingress: external (internet) or internal (VNet only), with a target port, and HTTPS automatically.",
+    "Container Apps revisions: a revision is a saved, unchangeable version of the app. Changing the image, containers or scale rules creates a new one. Single revision mode replaces the old revision. Multiple revision mode lets you split traffic between revisions (blue/green, canary).",
+    "Container Apps extras: secrets; managed identities; Dapr; jobs.",
+    "Which one to pick: ACI for a simple single container or a batch job; Container Apps for web APIs, microservices and event-driven apps that need scaling and revisions; AKS when you need full control of Kubernetes."
   ],
   "animation": {
     "id": "container-sim",
@@ -98,26 +106,26 @@
     ]
   },
   "example": {
-    "title": "Nightly job and public API",
+    "title": "A nightly job and a public API",
     "body": [
-      "A nightly data-cleanup container runs on ACI with restart policy OnFailure: it exits when done, so it is billed only for its runtime. It pulls from ACR with a user-assigned managed identity holding AcrPull.",
-      "The public API runs on Container Apps with external ingress. Version 2 is deployed as a new revision receiving 20% of traffic; after monitoring, traffic moves to 100%."
+      "A nightly clean-up container runs on ACI with restart policy OnFailure. It stops when it's done, so you only pay while it runs. It pulls its image from ACR using a user-assigned managed identity that has AcrPull.",
+      "The public API runs on Container Apps with external ingress. Version 2 is deployed as a new revision and gets 20% of the traffic. After checking it works, the team moves traffic to 100%."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "Resource group; Dockerfile or image",
-      "For VNet deployment: delegated subnet (ACI) or environment VNet (Container Apps)"
+      "A resource group, and a Dockerfile or an image",
+      "For VNet deployment: a delegated subnet (ACI) or an environment VNet (Container Apps)"
     ],
     "permissions": [
-      "Contributor to create registries and apps",
-      "AcrPush for CI, AcrPull for runtimes",
-      "User Access Administrator/Owner to assign AcrPull"
+      "Contributor, to create registries and apps",
+      "AcrPush for CI pipelines, AcrPull for apps that run images",
+      "User Access Administrator or Owner, to give AcrPull"
     ],
     "limits": [
-      "ACR name 5–50 alphanumeric",
-      "Geo-replication Premium only",
-      "ACI resources are fixed per container group (redeploy to change)"
+      "ACR name: 5 to 50 letters and numbers",
+      "Geo-replication: Premium only",
+      "ACI resources are fixed per container group (redeploy to change them)"
     ],
     "portal": [
       "Container registries > Create: name, SKU; Access keys (admin user); Networking (Premium private endpoints); Replications (Premium).",
@@ -173,54 +181,54 @@
   },
   "troubleshooting": [
     {
-      "symptom": "ACI stuck pulling: unauthorized.",
+      "symptom": "ACI is stuck pulling the image: unauthorized.",
       "cause": "No credentials or identity for the private registry.",
-      "fix": "Assign AcrPull to the managed identity and pass --acr-identity, or provide registry credentials."
+      "fix": "Give the managed identity AcrPull and pass --acr-identity, or give registry credentials."
     },
     {
-      "symptom": "ACI batch job runs again and again.",
-      "cause": "Restart policy Always (default).",
+      "symptom": "An ACI batch job keeps running again and again.",
+      "cause": "Restart policy is Always (the default).",
       "fix": "Use OnFailure or Never."
     },
     {
-      "symptom": "Container App unreachable from the internet.",
-      "cause": "Ingress internal or disabled, or wrong target port.",
-      "fix": "Enable external ingress with the container's port."
+      "symptom": "A container app can't be reached from the internet.",
+      "cause": "Ingress is internal or off, or the target port is wrong.",
+      "fix": "Turn on external ingress with the port the container listens on."
     },
     {
-      "symptom": "New revision gets no traffic.",
-      "cause": "Multiple revision mode with traffic pinned to the old revision.",
-      "fix": "Adjust traffic weights or use latest-revision routing."
+      "symptom": "A new revision gets no traffic.",
+      "cause": "Multiple revision mode, with traffic fixed on the old revision.",
+      "fix": "Change the traffic weights, or send traffic to the latest revision."
     }
   ],
   "comparisons": [
     {
       "service": "AKS",
-      "difference": "Full Kubernetes with node pools and cluster management; Container Apps abstracts Kubernetes."
+      "difference": "Full Kubernetes: you manage node pools and the cluster. Container Apps hides Kubernetes from you."
     },
     {
       "service": "AWS ECR / ECS on Fargate / App Runner",
-      "difference": "ECR ≈ ACR; Fargate tasks ≈ ACI; App Runner/ECS services ≈ Container Apps."
+      "difference": "ECR is like ACR. Fargate tasks are like ACI. App Runner and ECS services are like Container Apps."
     }
   ],
   "misconceptions": [
     {
-      "myth": "ACI autoscales.",
-      "reality": "ACI has no autoscale; use Container Apps or AKS."
+      "myth": "ACI scales automatically.",
+      "reality": "No. ACI has no autoscale. Use Container Apps or AKS."
     },
     {
-      "myth": "The ACR admin user is the recommended way to pull.",
-      "reality": "Use Entra identities with AcrPull."
+      "myth": "The ACR admin user is the recommended way to pull images.",
+      "reality": "No. Use Entra identities with AcrPull."
     },
     {
-      "myth": "Every Container Apps change creates a revision.",
-      "reality": "Only revision-scope changes do."
+      "myth": "Every change to a container app creates a new revision.",
+      "reality": "No. Only revision-scope changes do (image, containers, scale rules)."
     }
   ],
   "architectureDecisions": [
-    "Build with ACR Tasks to avoid local Docker on build agents.",
-    "Pull with managed identities; keep the admin user disabled.",
-    "Use Premium ACR with geo-replication for multi-region deployments."
+    "Build in the cloud with ACR Tasks: build agents don't need Docker installed.",
+    "Pull with managed identities: keep the admin user off.",
+    "Several regions: use Premium ACR with geo-replication."
   ],
   "docs": [
     {

@@ -7,7 +7,7 @@
     "AZ104-5.1.2"
   ],
   "estimatedMinutes": 45,
-  "learningObjective": "Interpret metrics in Metrics explorer and configure the right collection (activity log, diagnostic settings, Azure Monitor Agent with data collection rules) and destinations.",
+  "learningObjective": "Read metrics in Metrics explorer, and set up the right data collection (activity log, diagnostic settings, Azure Monitor Agent with data collection rules) and the right destinations.",
   "prerequisites": [
     {
       "text": "Basic familiarity with VMs and storage accounts"
@@ -19,11 +19,13 @@
     "A chart only shows what its aggregation and time grain reveal: a 1-hour average can hide a 3-minute spike."
   ],
   "engineer": [
-    "Metrics: platform metrics every minute, kept 93 days; Metrics explorer chooses scope, metric, aggregation (Average, Min, Max, Sum, Count), time range and granularity; split or filter by dimensions (for example per disk LUN or per API name). Pin charts to dashboards or workbooks.",
-    "Activity log: subscription-level control-plane events (create, delete, role changes, service health), kept 90 days. Export with a diagnostic setting for longer retention or KQL.",
-    "Resource logs (data-plane: Key Vault access, storage reads, NSG events) are not collected until you create a diagnostic setting choosing categories and destinations: Log Analytics workspace (query/alert), Storage account (archive), Event Hubs (stream to SIEM), partner solutions. Up to 5 diagnostic settings per resource.",
-    "Guest OS data (performance counters, Windows events, Syslog, text logs) needs the Azure Monitor Agent plus a data collection rule (DCR) that says what to collect and where to send it. The legacy Log Analytics agent is retired.",
-    "Log Analytics workspace settings: region, access control mode (resource-context or workspace), table plans and retention (interactive retention plus long-term retention up to 12 years), daily cap."
+    "Platform metrics: collected every minute, kept 93 days, no setup needed.",
+    "Metrics explorer: pick the scope, the metric, how to combine values (Average, Min, Max, Sum, Count), the time range and the time grain. Split or filter by dimensions, for example per disk (LUN) or per API name. Pin charts to dashboards or workbooks.",
+    "Activity log: management events for the subscription: create, delete, role changes, service health. Kept 90 days. To keep it longer or query it with KQL, export it with a diagnostic setting.",
+    "Resource logs: what happens inside a resource, for example Key Vault access, storage reads or NSG events. Not collected until you create a diagnostic setting.",
+    "A diagnostic setting picks categories and destinations: Log Analytics workspace, to query and alert; storage account, to archive cheaply; Event Hubs, to stream to a SIEM; partner solutions. Up to 5 diagnostic settings per resource.",
+    "Data from inside the VM (performance counters, Windows events, Syslog, text logs): needs the Azure Monitor Agent plus a data collection rule (DCR) that says what to collect and where to send it. The old Log Analytics agent is retired.",
+    "Log Analytics workspace settings: region; access control mode (resource-context or workspace); table plans and retention (interactive, plus long-term up to 12 years); daily cap."
   ],
   "animation": {
     "id": "monitor-sim",
@@ -114,8 +116,8 @@
   "example": {
     "title": "A slow website",
     "body": [
-      "The 1-hour average CPU chart looks fine, but switching to Maximum at 1-minute granularity reveals 97% spikes every evening during backups.",
-      "To investigate requests, the team adds a diagnostic setting on the App Service sending HTTP logs to Log Analytics."
+      "The CPU chart with a 1-hour Average looks fine. Switching to Maximum with a 1-minute grain shows spikes to 97% every evening, during backups.",
+      "To look at the requests, the team adds a diagnostic setting on the App Service that sends HTTP logs to Log Analytics."
     ]
   },
   "configuration": {
@@ -179,44 +181,44 @@
   "troubleshooting": [
     {
       "symptom": "Log Analytics has no Key Vault logs.",
-      "cause": "No diagnostic setting.",
-      "fix": "Create one with the AuditEvent/allLogs category."
+      "cause": "There's no diagnostic setting.",
+      "fix": "Create one with the AuditEvent (or allLogs) category."
     },
     {
-      "symptom": "Perf table is empty for a VM.",
-      "cause": "No Azure Monitor Agent or DCR.",
-      "fix": "Associate a DCR (installs the agent)."
+      "symptom": "The Perf table is empty for a VM.",
+      "cause": "No Azure Monitor Agent, or no DCR.",
+      "fix": "Link a DCR to the VM (this installs the agent)."
     },
     {
-      "symptom": "Can't see who deleted a resource 4 months ago.",
-      "cause": "Activity log keeps 90 days.",
-      "fix": "Export the activity log to a workspace or storage."
+      "symptom": "You can't see who deleted a resource 4 months ago.",
+      "cause": "The activity log only keeps 90 days.",
+      "fix": "Export the activity log to a workspace or storage account, from now on."
     }
   ],
   "comparisons": [
     {
       "service": "Amazon CloudWatch",
-      "difference": "Metrics, logs and alarms; CloudTrail is the activity log equivalent."
+      "difference": "Metrics, logs and alarms. CloudTrail is like the activity log."
     },
     {
       "service": "Application Insights",
-      "difference": "Application performance monitoring (requests, dependencies, traces) built on Azure Monitor."
+      "difference": "Monitoring for your application's code (requests, dependencies, traces), built on Azure Monitor."
     }
   ],
   "misconceptions": [
     {
       "myth": "Azure collects all logs automatically.",
-      "reality": "Only platform metrics and the activity log; resource and guest logs need configuration."
+      "reality": "No. Only platform metrics and the activity log. Resource logs and VM logs need setup."
     },
     {
-      "myth": "The average shows the worst case.",
-      "reality": "Use Maximum for peaks."
+      "myth": "The average shows the worst moment.",
+      "reality": "No. Use Maximum to see peaks."
     }
   ],
   "architectureDecisions": [
-    "Send logs to one central workspace per environment unless data residency or access requires more.",
-    "Use Azure Policy to deploy diagnostic settings and DCRs at scale.",
-    "Set retention and table plans to control cost."
+    "One workspace per environment: unless data-location rules or access needs force more.",
+    "Set up collection at scale: use Azure Policy to deploy diagnostic settings and DCRs everywhere.",
+    "Control cost: choose retention and table plans on purpose."
   ],
   "docs": [
     {

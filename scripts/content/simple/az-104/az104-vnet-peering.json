@@ -1,0 +1,85 @@
+{
+  "learningObjective": "Create and set up VNet peering in one region and across regions, including hub-and-spoke designs that share a gateway and pass traffic through a firewall.",
+  "engineer": [
+    "A peering is two links: one in each VNet. Its status is Initiated until both links exist, then Connected. The portal creates both links at once if you have rights on both VNets. With the CLI you create each side yourself.",
+    "The four settings on each link: Allow access to the remote VNet, the basic on switch; Allow forwarded traffic, which accepts traffic that a firewall or NVA in the other VNet passes on (traffic that didn't start there); Allow gateway transit, set on the hub, which lets peers use the hub's VPN or ExpressRoute gateway; Use remote gateways, set on the spoke, which uses the hub's gateway (the spoke must not have its own).",
+    "Peering is not transitive: if spoke 1 and spoke 2 both peer with the hub, they still can't talk to each other.",
+    "Making spokes talk: a firewall or NVA in the hub plus route tables (UDRs) in the spokes; Azure Virtual Network Manager connectivity configurations; Virtual WAN; or peer the spokes directly.",
+    "Across subscriptions and tenants: peering works across subscriptions and even Entra tenants, if you have rights on both sides.",
+    "Resizing: you can change a peered VNet's address space later, then sync the peering.",
+    "Cost: peering traffic is charged per GB, both in and out. Global peering (across regions) costs more."
+  ],
+  "example": {
+    "title": "A hub for shared services",
+    "body": [
+      "Contoso runs domain controllers and a VPN gateway in vnet-hub. Each app team has a spoke peered to the hub with Use remote gateways, so every spoke reaches the office through the one gateway.",
+      "The spokes can't reach each other. Later the security team adds Azure Firewall in the hub, and route tables in the spokes that send 10.0.0.0/8 to it. Now spoke-to-spoke traffic flows through the firewall."
+    ]
+  },
+  "architectureDecisions": [
+    "Hub and spoke with a central firewall: shared services and traffic inspection live in the hub.",
+    "Plan addresses first: no two VNets may overlap.",
+    "Many spokes: consider Azure Virtual Network Manager to manage the peerings."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Spokes can talk to each other through the hub's peerings.",
+      "reality": "No. Peering isn't transitive. Use a firewall or NVA, Virtual WAN, or peer the spokes directly."
+    },
+    {
+      "myth": "Global peering traffic is free.",
+      "reality": "No. Peering is billed per GB, in and out."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "VPN gateway VNet-to-VNet",
+      "difference": "An encrypted IPsec tunnel between gateways, with bandwidth limits. Peering is faster, with lower latency and more bandwidth."
+    },
+    {
+      "service": "AWS VPC peering",
+      "difference": "Also not transitive. AWS Transit Gateway is like the hub."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "Peering status stays Initiated.",
+      "cause": "Only one of the two links exists.",
+      "fix": "Create the peering from the other VNet too."
+    },
+    {
+      "symptom": "Spoke 1 can't reach spoke 2.",
+      "cause": "Peering isn't transitive.",
+      "fix": "Add a firewall or NVA in the hub with route tables, or peer the spokes directly."
+    },
+    {
+      "symptom": "A spoke can't reach the office network.",
+      "cause": "Gateway transit isn't set up.",
+      "fix": "On the hub link, Allow gateway transit. On the spoke link, Use remote gateways."
+    },
+    {
+      "symptom": "You can't create the peering.",
+      "cause": "The address spaces overlap.",
+      "fix": "Change one VNet's addresses."
+    }
+  ],
+  "configuration.limits": [
+    "500 peerings per VNet (more with Azure Virtual Network Manager)",
+    "Address spaces must not overlap",
+    "Use remote gateways needs a gateway in the other VNet and none in this one"
+  ],
+  "configuration.permissions": [
+    "Network Contributor (or Microsoft.Network/virtualNetworks/virtualNetworkPeerings/write) on both VNets"
+  ],
+  "from": {
+    "learningObjective": "22a959c7a2b1",
+    "engineer": "be556b5f8968",
+    "example": "aeca62f89c6f",
+    "architectureDecisions": "f307e83a7d83",
+    "misconceptions": "1b44c1ce6df4",
+    "comparisons": "0c2e56b7b81b",
+    "troubleshooting": "fc63f08d9452",
+    "configuration.limits": "a70333fdda70",
+    "configuration.permissions": "d2a1b11e817e"
+  }
+}

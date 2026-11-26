@@ -7,7 +7,7 @@
     "AZ104-3.4.5"
   ],
   "estimatedMinutes": 40,
-  "learningObjective": "Map custom domains to App Service with the right DNS records and verification, and secure them with the right certificate type and TLS settings.",
+  "learningObjective": "Point a custom domain at App Service with the right DNS records and verification, and protect it with the right certificate and TLS settings.",
   "prerequisites": [
     {
       "text": "Azure DNS",
@@ -24,10 +24,12 @@
     "To serve https:// on your own domain you need a TLS certificate bound to the app. App Service can issue a free managed certificate for many cases."
   ],
   "engineer": [
-    "DNS mapping: subdomains (www) use a CNAME to <app>.azurewebsites.net. The apex (contoso.com) uses an A record to the app's inbound IP (or an alias record in Azure DNS). Domain verification uses a TXT record asuid.<subdomain> (asuid for the apex) containing the app's custom domain verification ID. Custom domains require Shared tier or higher; TLS bindings require Basic or higher.",
-    "Certificates: App Service managed certificate (free, auto-renewing, no wildcard, not exportable); import from Key Vault (the app needs access to the vault; renewals sync automatically); upload a PFX (password-protected, includes the private key, at least 2048-bit RSA); App Service Certificate (purchased, stored in Key Vault).",
-    "Bindings: SNI SSL (standard) or IP-based SSL (dedicated IP). Enable HTTPS Only to redirect HTTP, and set the minimum TLS version (1.2 recommended). End-to-end TLS through Front Door or Application Gateway may need certificates there too.",
-    "Troubleshoot with nslookup/dig for CNAME/A/TXT, and remember DNS propagation and TTL."
+    "DNS records you need: for a subdomain such as www, a CNAME to <app>.azurewebsites.net; for the root domain (apex) such as contoso.com, an A record to the app's inbound IP (or an alias record in Azure DNS); to prove you own it, a TXT record named asuid.<subdomain> (just asuid for the apex) holding the app's custom domain verification ID.",
+    "Tier needed: custom domains need Shared or higher. TLS certificates (bindings) need Basic or higher.",
+    "Certificate choices: App Service managed certificate, free and renews itself, but no wildcards and can't be exported; import from Key Vault, where the app needs access to the vault and renewals sync automatically; upload a PFX file, which must have a password, include the private key and use RSA 2048-bit or more; App Service Certificate, which you buy, stored in Key Vault.",
+    "Binding types: SNI SSL, the normal choice; IP-based SSL, which gives a dedicated IP.",
+    "TLS settings: turn on HTTPS Only to redirect HTTP to HTTPS. Set minimum TLS to 1.2. With Front Door or Application Gateway in front, you may need certificates there too.",
+    "Checking DNS: use nslookup or dig to check the CNAME, A and TXT records. Changes take time to spread, depending on the TTL."
   ],
   "animation": {
     "id": "appservice-sim",
@@ -83,26 +85,26 @@
     ]
   },
   "example": {
-    "title": "Launching www and apex",
+    "title": "Going live on www and the root domain",
     "body": [
-      "www.contoso.com gets a CNAME and asuid.www TXT record and a free managed certificate. The apex contoso.com uses an A record to the app's IP and a TXT asuid record; HTTPS Only redirects HTTP traffic.",
-      "A future *.contoso.com requirement is met with a wildcard certificate imported from Key Vault, because managed certificates do not support wildcards."
+      "www.contoso.com gets a CNAME record, an asuid.www TXT record, and a free managed certificate. The root domain contoso.com gets an A record to the app's IP and an asuid TXT record. HTTPS Only sends all HTTP traffic to HTTPS.",
+      "Later the team needs *.contoso.com. Managed certificates don't support wildcards, so they import a wildcard certificate from Key Vault."
     ]
   },
   "configuration": {
     "prerequisites": [
       "Access to the DNS zone",
-      "Basic tier or higher for TLS"
+      "Basic tier or higher, for TLS"
     ],
     "permissions": [
       "Website Contributor on the app",
-      "DNS Zone Contributor (Azure DNS) or registrar access",
-      "Key Vault Secrets User for the app's identity (Key Vault certs)"
+      "DNS Zone Contributor (Azure DNS) or access at your domain registrar",
+      "Key Vault Secrets User for the app's identity (for Key Vault certificates)"
     ],
     "limits": [
       "Free tier: no custom domains",
-      "Managed certificates: no wildcard, not exportable",
-      "PFX must include the private key"
+      "Managed certificates: no wildcards, can't be exported",
+      "A PFX must include the private key"
     ],
     "portal": [
       "Web app > Custom domains > Add custom domain: choose hostname record type, copy the A/CNAME and TXT values, validate, add.",
@@ -155,49 +157,49 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Domain validation fails.",
-      "cause": "TXT asuid record missing/incorrect or not yet propagated.",
-      "fix": "Check with nslookup -type=TXT asuid.www.contoso.com and wait for TTL."
+      "symptom": "Domain verification fails.",
+      "cause": "The asuid TXT record is missing, wrong, or hasn't spread yet.",
+      "fix": "Check with nslookup -type=TXT asuid.www.contoso.com, and wait for the TTL."
     },
     {
-      "symptom": "Browser shows certificate warning.",
-      "cause": "No binding for that hostname, or certificate does not match.",
+      "symptom": "The browser shows a certificate warning.",
+      "cause": "No binding for that name, or the certificate doesn't match it.",
       "fix": "Add an SNI binding with a matching certificate."
     },
     {
-      "symptom": "Cannot create managed certificate for *.contoso.com.",
-      "cause": "Wildcards not supported.",
-      "fix": "Use Key Vault or upload a wildcard PFX."
+      "symptom": "You can't create a managed certificate for *.contoso.com.",
+      "cause": "Managed certificates don't support wildcards.",
+      "fix": "Use Key Vault, or upload a wildcard PFX."
     },
     {
       "symptom": "Uploading the PFX fails.",
-      "cause": "No private key, weak key or wrong password.",
-      "fix": "Export the PFX with private key and password, RSA ≥ 2048."
+      "cause": "No private key, a weak key, or the wrong password.",
+      "fix": "Export the PFX with its private key and a password, RSA 2048-bit or more."
     }
   ],
   "comparisons": [
     {
       "service": "Azure Front Door managed certificates",
-      "difference": "Front Door can terminate TLS and manage certificates at the edge for apps behind it."
+      "difference": "Front Door can handle TLS and certificates at the edge, for apps behind it."
     },
     {
       "service": "AWS Certificate Manager + CloudFront/ALB",
-      "difference": "ACM issues free certificates for AWS endpoints."
+      "difference": "ACM gives free certificates for AWS endpoints."
     }
   ],
   "misconceptions": [
     {
-      "myth": "A CNAME works at the zone apex.",
-      "reality": "DNS does not allow a CNAME at the apex; use A or alias records."
+      "myth": "A CNAME works on the root domain (contoso.com).",
+      "reality": "No. DNS doesn't allow a CNAME at the root. Use an A record or an alias record."
     },
     {
       "myth": "Free managed certificates can be exported.",
-      "reality": "They cannot."
+      "reality": "No. They can't."
     }
   ],
   "architectureDecisions": [
-    "Use managed certificates for simple hostnames, Key Vault for wildcards and central rotation.",
-    "Always enable HTTPS Only and TLS 1.2."
+    "Simple names use managed certificates: wildcards and certificates you want to rotate in one place go in Key Vault.",
+    "Always turn on HTTPS Only and TLS 1.2."
   ],
   "docs": [
     {

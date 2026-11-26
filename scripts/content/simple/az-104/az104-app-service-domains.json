@@ -1,0 +1,90 @@
+{
+  "learningObjective": "Point a custom domain at App Service with the right DNS records and verification, and protect it with the right certificate and TLS settings.",
+  "engineer": [
+    "DNS records you need: for a subdomain such as www, a CNAME to <app>.azurewebsites.net; for the root domain (apex) such as contoso.com, an A record to the app's inbound IP (or an alias record in Azure DNS); to prove you own it, a TXT record named asuid.<subdomain> (just asuid for the apex) holding the app's custom domain verification ID.",
+    "Tier needed: custom domains need Shared or higher. TLS certificates (bindings) need Basic or higher.",
+    "Certificate choices: App Service managed certificate, free and renews itself, but no wildcards and can't be exported; import from Key Vault, where the app needs access to the vault and renewals sync automatically; upload a PFX file, which must have a password, include the private key and use RSA 2048-bit or more; App Service Certificate, which you buy, stored in Key Vault.",
+    "Binding types: SNI SSL, the normal choice; IP-based SSL, which gives a dedicated IP.",
+    "TLS settings: turn on HTTPS Only to redirect HTTP to HTTPS. Set minimum TLS to 1.2. With Front Door or Application Gateway in front, you may need certificates there too.",
+    "Checking DNS: use nslookup or dig to check the CNAME, A and TXT records. Changes take time to spread, depending on the TTL."
+  ],
+  "example": {
+    "title": "Going live on www and the root domain",
+    "body": [
+      "www.contoso.com gets a CNAME record, an asuid.www TXT record, and a free managed certificate. The root domain contoso.com gets an A record to the app's IP and an asuid TXT record. HTTPS Only sends all HTTP traffic to HTTPS.",
+      "Later the team needs *.contoso.com. Managed certificates don't support wildcards, so they import a wildcard certificate from Key Vault."
+    ]
+  },
+  "architectureDecisions": [
+    "Simple names use managed certificates: wildcards and certificates you want to rotate in one place go in Key Vault.",
+    "Always turn on HTTPS Only and TLS 1.2."
+  ],
+  "misconceptions": [
+    {
+      "myth": "A CNAME works on the root domain (contoso.com).",
+      "reality": "No. DNS doesn't allow a CNAME at the root. Use an A record or an alias record."
+    },
+    {
+      "myth": "Free managed certificates can be exported.",
+      "reality": "No. They can't."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Azure Front Door managed certificates",
+      "difference": "Front Door can handle TLS and certificates at the edge, for apps behind it."
+    },
+    {
+      "service": "AWS Certificate Manager + CloudFront/ALB",
+      "difference": "ACM gives free certificates for AWS endpoints."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "Domain verification fails.",
+      "cause": "The asuid TXT record is missing, wrong, or hasn't spread yet.",
+      "fix": "Check with nslookup -type=TXT asuid.www.contoso.com, and wait for the TTL."
+    },
+    {
+      "symptom": "The browser shows a certificate warning.",
+      "cause": "No binding for that name, or the certificate doesn't match it.",
+      "fix": "Add an SNI binding with a matching certificate."
+    },
+    {
+      "symptom": "You can't create a managed certificate for *.contoso.com.",
+      "cause": "Managed certificates don't support wildcards.",
+      "fix": "Use Key Vault, or upload a wildcard PFX."
+    },
+    {
+      "symptom": "Uploading the PFX fails.",
+      "cause": "No private key, a weak key, or the wrong password.",
+      "fix": "Export the PFX with its private key and a password, RSA 2048-bit or more."
+    }
+  ],
+  "configuration.limits": [
+    "Free tier: no custom domains",
+    "Managed certificates: no wildcards, can't be exported",
+    "A PFX must include the private key"
+  ],
+  "configuration.permissions": [
+    "Website Contributor on the app",
+    "DNS Zone Contributor (Azure DNS) or access at your domain registrar",
+    "Key Vault Secrets User for the app's identity (for Key Vault certificates)"
+  ],
+  "configuration.prerequisites": [
+    "Access to the DNS zone",
+    "Basic tier or higher, for TLS"
+  ],
+  "from": {
+    "learningObjective": "a58ab299363c",
+    "engineer": "309889b7a359",
+    "example": "8eddc5d88be1",
+    "architectureDecisions": "1539425ce336",
+    "misconceptions": "bf27a09b91c9",
+    "comparisons": "7ddd9f1f5ef6",
+    "troubleshooting": "81ea2bbb5658",
+    "configuration.limits": "73429c7b94c6",
+    "configuration.permissions": "4f3bd2f6b5c0",
+    "configuration.prerequisites": "45315baf2efb"
+  }
+}

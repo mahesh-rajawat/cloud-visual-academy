@@ -1,0 +1,85 @@
+{
+  "learningObjective": "Set up a public or internal Standard load balancer with a frontend, backend pool, health probe and rules, and fix load balancing problems.",
+  "engineer": [
+    "The parts: frontend IP, the address clients connect to; backend pool, the VMs' network cards (NICs) or IP addresses (all in one VNet); health probe, which checks each VM (TCP, HTTP or HTTPS, every few seconds); load-balancing rule, which sends a frontend port to a backend port; inbound NAT rule, which forwards one port to one VM; outbound rule, for outbound internet.",
+    "Session persistence (on the rule): None, the default, which spreads by 5-tuple; Client IP, so the same client always goes to the same VM; Client IP and protocol.",
+    "SKU: Standard only (Basic was retired on 30 September 2025). Standard can be zone-redundant or zonal, gives detailed metrics, and supports HA ports on internal load balancers.",
+    "Standard is closed by default: the backend VMs' NSGs must allow the client traffic.",
+    "Health probes come from 168.63.129.16 (service tag AzureLoadBalancer). The default NSG rule AllowAzureLoadBalancerInBound allows them. Your own deny rule with a lower number can block them. A VM that fails the probe gets no new connections.",
+    "Checking problems: the Health Probe Status and Data Path Availability metrics; Load Balancer Insights; the app listens on the probe port and path (an HTTP probe needs a 200 reply); the OS firewall; NSGs; the VM is in the backend pool.",
+    "A known limit: a backend VM can't call its own internal load balancer's frontend and land on itself.",
+    "Other load balancers: Application Gateway for layer 7 (URL paths, TLS, WAF); Front Door for global HTTP; Traffic Manager for global routing using DNS."
+  ],
+  "example": {
+    "title": "Three web servers across zones",
+    "body": [
+      "A zone-redundant public Standard load balancer sits in front of three VMs in zones 1, 2 and 3, with an HTTP probe on /health. During patching, one VM fails the probe and is taken out automatically. Users don't notice.",
+      "An internal load balancer with HA ports sits in front of the SQL tier, for the availability group listener."
+    ]
+  },
+  "architectureDecisions": [
+    "Production: zone-redundant Standard load balancers.",
+    "Probe a health page: an HTTP probe on an endpoint that lightly checks the app's dependencies.",
+    "Predictable outbound: use a NAT gateway or outbound rules."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Load Balancer can route by URL path.",
+      "reality": "No. It works at layer 4 (IP and port). Use Application Gateway for paths."
+    },
+    {
+      "myth": "A Standard load balancer lets traffic in without NSGs.",
+      "reality": "No. Standard is closed by default. NSGs must allow the traffic."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Application Gateway",
+      "difference": "Layer 7, in one region, with URL path routing, TLS and a web application firewall."
+    },
+    {
+      "service": "AWS Network Load Balancer",
+      "difference": "AWS's layer 4 load balancer. The AWS Application Load Balancer is layer 7."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "All backends are unhealthy.",
+      "cause": "Wrong probe port or path, the app is down, or an NSG or OS firewall blocks 168.63.129.16.",
+      "fix": "Fix the probe, allow AzureLoadBalancer, and check the app returns 200."
+    },
+    {
+      "symptom": "Clients time out on a public Standard load balancer.",
+      "cause": "The backend NSG doesn't allow the client traffic.",
+      "fix": "Add an inbound allow rule."
+    },
+    {
+      "symptom": "Traffic always goes to one VM.",
+      "cause": "Session persistence is Client IP and there are few clients, or the other VMs are unhealthy.",
+      "fix": "Check probe status and the persistence setting."
+    },
+    {
+      "symptom": "A backend VM can't reach the internal load balancer's frontend.",
+      "cause": "A backend VM calling its own frontend isn't supported.",
+      "fix": "Call the service directly, or test from a separate client VM."
+    }
+  ],
+  "configuration.limits": [
+    "Backend pool members must be in one VNet",
+    "HA ports only on internal Standard load balancers"
+  ],
+  "configuration.permissions": [
+    "Network Contributor on the resource group"
+  ],
+  "from": {
+    "learningObjective": "bdb2659722d6",
+    "engineer": "d5c96ff1a1f1",
+    "example": "8c8bcbb072f8",
+    "architectureDecisions": "924c80878c88",
+    "misconceptions": "2d8834d66805",
+    "comparisons": "244edb053c6a",
+    "troubleshooting": "fc34adbf9552",
+    "configuration.limits": "20b3fa4d159f",
+    "configuration.permissions": "9e4728057e11"
+  }
+}

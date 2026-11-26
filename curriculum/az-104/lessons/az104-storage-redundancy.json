@@ -6,7 +6,7 @@
     "AZ104-2.2.2"
   ],
   "estimatedMinutes": 50,
-  "learningObjective": "Choose and change a storage account's redundancy based on failure domains, read requirements, RPO and feature constraints, and know what happens during each failure.",
+  "learningObjective": "Choose and change a storage account's redundancy, based on what failure you must survive, whether you need to read during an outage, how much data you can lose, and feature limits. Know what happens in each failure.",
   "prerequisites": [
     {
       "text": "Regions, region pairs and availability zones (AZ-900)",
@@ -24,12 +24,14 @@
     "Copies inside one region are written at the same time (synchronously). The copy to the second region is sent a little later (asynchronously), so the very latest writes can be lost if the primary region is destroyed."
   ],
   "engineer": [
-    "Primary-region writes are acknowledged only after all three synchronous copies are written (LRS within a datacenter, ZRS across zones). Durability design targets: LRS at least 11 nines, ZRS at least 12 nines, GRS/RA-GRS/GZRS/RA-GZRS at least 16 nines per year.",
-    "Geo-replication to the paired secondary region is asynchronous. Microsoft documents a typical RPO below 15 minutes, with no SLA on replication time. The Last Sync Time property (geoReplicationStats.lastSyncTime) tells you the point up to which the secondary is guaranteed consistent.",
-    "The secondary region always stores data as LRS. After an unplanned customer-managed failover the account becomes LRS in the new primary region, and you must reconfigure geo-redundancy (which triggers a full copy and egress cost).",
-    "RA-GRS/RA-GZRS expose a read-only secondary endpoint: <account>-secondary.blob.core.windows.net. Applications must be written to use it (for example a retry policy that falls back to the secondary for reads).",
-    "Feature constraints: premium block blob and premium file share accounts support LRS and ZRS only (no geo-redundancy). The archive access tier is supported only for LRS, GRS and RA-GRS accounts, not ZRS, GZRS or RA-GZRS.",
-    "Changing redundancy: switching between LRS, GRS and RA-GRS (and between ZRS, GZRS and RA-GZRS) is an account update. Moving to or from zone redundancy (for example LRS → ZRS) needs a conversion (requested from the Redundancy blade) or a manual migration, and zone redundancy is available only in regions with availability zones."
+    "Writes in the main region: a write only counts as done when all three copies are saved at the same time. LRS keeps the three copies in one datacenter. ZRS spreads them across three zones.",
+    "How durable each option is (per year): LRS at least 11 nines; ZRS at least 12 nines; GRS, RA-GRS, GZRS and RA-GZRS at least 16 nines.",
+    "Copying to the second region: this happens in the background (asynchronously) to the paired region. It's usually less than 15 minutes behind, but there's no guarantee (no SLA). That gap is your RPO: the data you could lose.",
+    "Last Sync Time: the property geoReplicationStats.lastSyncTime tells you up to when the second region is complete. Anything written after it could be lost in a disaster.",
+    "The second region is always LRS: after an unplanned failover that you start, the account is LRS in the new main region. You must turn geo-redundancy on again, which copies everything again and costs data transfer.",
+    "RA- means you can read the second copy: RA-GRS and RA-GZRS give a read-only address, <account>-secondary.blob.core.windows.net. Your app must be built to use it, for example by retrying reads there.",
+    "Feature limits: premium block blob and premium file share accounts only support LRS and ZRS (no second region); the archive tier only works on LRS, GRS and RA-GRS, not on ZRS, GZRS or RA-GZRS.",
+    "Changing redundancy: switching between LRS, GRS and RA-GRS, or between ZRS, GZRS and RA-GZRS, is a simple setting change. Adding or removing zones (for example LRS to ZRS) needs a conversion, requested on the Redundancy page, or a manual move. Zone options only exist in regions that have availability zones."
   ],
   "animation": {
     "id": "storage-replication",
@@ -97,26 +99,26 @@
     ]
   },
   "example": {
-    "title": "Picking redundancy for three workloads",
+    "title": "Choosing redundancy for three kinds of data",
     "body": [
-      "Build artifacts that can be regenerated: LRS. Cheapest, and losing them is an inconvenience, not a disaster.",
-      "Order documents for an app deployed across zones in West Europe: ZRS. The data stays available for reads and writes if a single zone fails, which matches the app's zone-redundant compute.",
-      "Regulatory archive that must survive a regional disaster and be readable during one: RA-GZRS if no archive tier is needed. If the archive tier is required, RA-GRS, because the archive tier is not supported on zone-redundant accounts."
+      "Build files you can make again: LRS. It's the cheapest, and losing them is annoying, not a disaster.",
+      "Order documents for an app running across zones in West Europe: ZRS. If one zone fails, the data can still be read and written, just like the app keeps running.",
+      "A legal archive that must survive a whole region going down, and be readable during it: RA-GZRS if you don't need the archive tier. If you need the archive tier, RA-GRS, because archive doesn't work on zone-redundant accounts."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "Region with availability zones for ZRS/GZRS/RA-GZRS",
-      "General-purpose v2 account for geo-zone options"
+      "A region with availability zones, for ZRS, GZRS and RA-GZRS",
+      "A general-purpose v2 account, for the geo-zone options"
     ],
     "permissions": [
-      "Microsoft.Storage/storageAccounts/write (Storage Account Contributor or Contributor) to change SKU",
-      "Microsoft.Storage/storageAccounts/failover/action to initiate failover"
+      "Microsoft.Storage/storageAccounts/write (Storage Account Contributor or Contributor) to change redundancy (the account SKU)",
+      "Microsoft.Storage/storageAccounts/failover/action to start a failover"
     ],
     "limits": [
-      "Premium block blob / file shares: LRS or ZRS only",
+      "Premium block blob and file share accounts: LRS or ZRS only",
       "Archive tier: LRS, GRS and RA-GRS only",
-      "Geo-replication has no RPO SLA; typical RPO under 15 minutes"
+      "No guarantee on geo-copy delay; usually under 15 minutes"
     ],
     "portal": [
       "Storage accounts > Create > Basics > Redundancy: choose LRS, ZRS, GRS or GZRS; tick 'Make read access to data available in the event of regional unavailability' for RA-.",
@@ -168,62 +170,62 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Cannot select ZRS/GZRS when creating an account.",
-      "cause": "Region has no availability zones, or the account type does not support zone redundancy.",
-      "fix": "Pick a zone-enabled region or an account type that supports ZRS."
+      "symptom": "You can't pick ZRS or GZRS when creating an account.",
+      "cause": "The region has no availability zones, or the account type doesn't support zones.",
+      "fix": "Pick a region with zones, or an account type that supports ZRS."
     },
     {
-      "symptom": "Set Blob Tier to Archive fails on a GZRS account.",
-      "cause": "Archive tier is not supported with ZRS, GZRS or RA-GZRS.",
-      "fix": "Use Cool/Cold, or store archive data in an LRS/GRS/RA-GRS account."
+      "symptom": "Setting a blob to Archive fails on a GZRS account.",
+      "cause": "Archive doesn't work with ZRS, GZRS or RA-GZRS.",
+      "fix": "Use Cool or Cold, or keep archive data in an LRS, GRS or RA-GRS account."
     },
     {
       "symptom": "Reads from <account>-secondary fail with 'not found'.",
-      "cause": "Account is GRS/GZRS (not RA-), or the blob has not replicated yet (written after Last Sync Time).",
-      "fix": "Enable RA- and check Last Sync Time."
+      "cause": "The account is GRS or GZRS without RA-, or the blob hasn't been copied yet (written after Last Sync Time).",
+      "fix": "Switch to RA-, and check Last Sync Time."
     },
     {
-      "symptom": "After failover, the account shows LRS.",
-      "cause": "Expected: unplanned failover leaves the new primary as LRS.",
-      "fix": "Reconfigure GRS/GZRS after the incident; plan for the re-replication time and cost."
+      "symptom": "After a failover, the account shows LRS.",
+      "cause": "This is normal: after an unplanned failover the new main region is LRS.",
+      "fix": "Turn GRS or GZRS back on after the incident. Plan for the time and cost of copying everything again."
     }
   ],
   "comparisons": [
     {
       "service": "Azure Backup / blob soft delete / versioning",
-      "difference": "Redundancy protects against hardware and site failure, not against accidental deletes or corruption, which replicate to every copy. Use soft delete, versioning or backups for that."
+      "difference": "Redundancy protects against broken hardware or a lost site. It doesn't protect against deletes or corruption, because those are copied everywhere. Soft delete, versioning and backups do."
     },
     {
       "service": "Object replication",
-      "difference": "Asynchronously copies block blobs between containers in different accounts that you choose (any region); geo-redundancy replicates the whole account to the fixed paired region."
+      "difference": "Copies block blobs between containers in accounts you choose, in any region. Geo-redundancy copies the whole account to its fixed paired region."
     },
     {
       "service": "Amazon S3 storage classes",
-      "difference": "S3 Standard stores data across at least three AZs by default; cross-Region copies require S3 Replication rules rather than an account-level SKU."
+      "difference": "S3 Standard keeps data in at least three zones by default. Copying to another region needs S3 Replication rules, not an account setting."
     }
   ],
   "misconceptions": [
     {
-      "myth": "GRS means zero data loss if the region fails.",
-      "reality": "Geo-replication is asynchronous; writes after the Last Sync Time can be lost."
+      "myth": "With GRS, no data is lost if the region fails.",
+      "reality": "No. Copying is in the background, so writes after the Last Sync Time can be lost."
     },
     {
-      "myth": "With GRS you can read the secondary any time.",
-      "reality": "Only RA-GRS/RA-GZRS provide a readable secondary endpoint without failover."
+      "myth": "With GRS you can read the second copy any time.",
+      "reality": "No. Only RA-GRS and RA-GZRS let you read it without a failover."
     },
     {
-      "myth": "ZRS protects against a regional outage.",
-      "reality": "All ZRS copies are in one region."
+      "myth": "ZRS protects you if a whole region goes down.",
+      "reality": "No. All ZRS copies are in one region."
     },
     {
-      "myth": "Redundancy protects against accidental deletion.",
-      "reality": "Deletes replicate too; use soft delete, versioning, point-in-time restore or backups."
+      "myth": "Redundancy protects against accidental deletes.",
+      "reality": "No. Deletes are copied too. Use soft delete, versioning, point-in-time restore or backups."
     }
   ],
   "architectureDecisions": [
-    "Match storage redundancy to compute: zone-redundant apps should use ZRS or GZRS, otherwise a zone failure takes out storage even when compute survives.",
-    "Monitor Last Sync Time if your RPO matters; it is the actual exposure, not the 15-minute typical figure.",
-    "Use RA- only if the application can actually read from the secondary endpoint; otherwise you pay for a capability you cannot use."
+    "Match storage to compute: if your app runs across zones, use ZRS or GZRS. Otherwise a zone failure takes out your storage even though the app survives.",
+    "Watch Last Sync Time: if data loss matters, it shows your real risk, not the usual 15 minutes.",
+    "Only pay for RA- if your app reads the second copy: otherwise you pay for something you never use."
   ],
   "docs": [
     {

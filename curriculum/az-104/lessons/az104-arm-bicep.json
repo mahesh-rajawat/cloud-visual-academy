@@ -10,7 +10,7 @@
     "AZ104-3.1.5"
   ],
   "estimatedMinutes": 75,
-  "learningObjective": "Interpret and modify ARM JSON and Bicep files, deploy them safely with validation and what-if, choose the deployment mode, and export or decompile existing infrastructure.",
+  "learningObjective": "Read and change ARM JSON and Bicep files. Deploy them safely with validate and what-if. Pick the right deployment mode. Export or convert existing infrastructure.",
   "prerequisites": [
     {
       "text": "Infrastructure as code and ARM (AZ-900)",
@@ -29,12 +29,20 @@
     "Deployments are declarative: you say what you want, and ARM works out the order and creates or updates resources to match."
   ],
   "engineer": [
-    "ARM JSON sections: $schema, contentVersion, parameters (type, defaultValue, allowedValues, minValue/maxValue, metadata; secureString/secureObject for secrets), variables, functions, resources (type, apiVersion, name, location, properties, dependsOn, copy, condition), outputs. Template functions include resourceId(), reference(), concat()/format(), uniqueString(), resourceGroup().location.",
-    "Bicep: param (with decorators such as @secure(), @allowed(), @minLength()), var, resource symbolicName 'type@apiVersion' = {...}, module, output, existing, for-loops and if-conditions. Referencing another resource's symbolic name (vnet.id) creates an implicit dependency; explicit dependsOn is rarely needed. az bicep build compiles to JSON; az bicep decompile converts JSON to Bicep on a best-effort basis.",
-    "ARM deploys resources in parallel unless dependencies say otherwise. A missing dependency causes intermittent 'not found' failures; a circular dependency fails validation.",
-    "Scopes: resource group (az deployment group create), subscription (az deployment sub create, for example resource groups and policy), management group and tenant. Parameters come from the command line, a .parameters.json file or a .bicepparam file; secrets can be pulled from Key Vault references.",
-    "Modes: Incremental (default) adds and updates resources and leaves others unchanged. Complete deletes resources in the resource group that are not in the template (resource group scope only). Always run what-if (az deployment group what-if) before Complete mode or risky changes; az deployment group validate runs preflight validation.",
-    "Exporting: 'Export template' on a resource group captures current state with hard-coded values, and some resource types cannot be exported. The deployment history (Deployments blade) keeps the exact template and parameters used. Templates can be published as template specs for reuse with RBAC."
+    "The parts of an ARM JSON file: $schema and contentVersion, the header; parameters, values you pass in; variables, values the file works out; functions, your own helpers; resources, what to create; outputs, values it gives back.",
+    "Parameter options: type; defaultValue; allowedValues; minValue and maxValue; metadata (a description). Use secureString or secureObject for secrets, so they aren't shown or logged.",
+    "Each resource has: type; apiVersion; name; location; properties; and, when needed, dependsOn (create after another resource), copy (create several), condition (create only if true).",
+    "Template functions to know: resourceId() builds a resource's ID; reference() reads a deployed resource's values; concat() and format() join text; uniqueString() makes a repeatable unique name; resourceGroup().location gives the resource group's region.",
+    "The same thing in Bicep: param, with decorators such as @secure(), @allowed() and @minLength(); var; resource symbolicName 'type@apiVersion' = {...}; module, to reuse another file; output; existing, to point at a resource that's already there; for loops and if conditions.",
+    "Dependencies in Bicep: when one resource uses another's symbolic name (for example vnet.id), Bicep knows to create that one first. You rarely need dependsOn.",
+    "Converting: az bicep build turns Bicep into JSON. az bicep decompile turns JSON into Bicep, but the result may need tidying.",
+    "Order of creation: ARM creates resources in parallel unless a dependency says otherwise. A missing dependency gives random 'not found' errors. Two resources depending on each other (circular) fail validation.",
+    "Where you can deploy: resource group (az deployment group create); subscription (az deployment sub create), for example to create resource groups or assign policy; management group; tenant.",
+    "Passing parameters: on the command line; from a .parameters.json file; from a .bicepparam file. Secrets can come from Key Vault references.",
+    "Deployment modes: Incremental, the default, adds and updates what's in the file and leaves everything else alone; Complete deletes anything in the resource group that's not in the file (resource group deployments only).",
+    "Check before you deploy: az deployment group validate checks the file. az deployment group what-if shows what will be created, changed or deleted. Always run what-if before Complete mode or a risky change.",
+    "Getting a template from what exists: 'Export template' on a resource group captures what's there now, but with fixed values, and some types can't be exported. The Deployments page keeps the exact file and parameters of every past deployment.",
+    "Sharing templates: publish them as template specs. Others can deploy them, and you control who with RBAC."
   ],
   "animation": {
     "id": "arm-sim",
@@ -113,25 +121,25 @@
     ]
   },
   "example": {
-    "title": "Promoting a network template",
+    "title": "Changing a network through a template",
     "body": [
-      "The platform team keeps network.bicep in Git. A pull request changes the subnet prefix; the pipeline runs az deployment group what-if, which shows a Modify on the subnet and no deletes.",
-      "Once approved, the pipeline deploys in Incremental mode with environment-specific .bicepparam files for dev and prod. An old hand-made storage account in the resource group is untouched, because Complete mode is not used."
+      "The platform team keeps network.bicep in Git. A pull request changes a subnet's address range. The pipeline runs az deployment group what-if. It shows one change (Modify) to the subnet and nothing deleted.",
+      "After approval, the pipeline deploys in Incremental mode, using one .bicepparam file for dev and one for prod. An old storage account someone made by hand in the same resource group is left alone, because Complete mode isn't used."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "Azure CLI with Bicep (az bicep install) or Azure PowerShell",
-      "Target resource group or subscription"
+      "Azure CLI with Bicep (az bicep install), or Azure PowerShell",
+      "The target resource group or subscription"
     ],
     "permissions": [
-      "Microsoft.Resources/deployments/* at the target scope (Contributor or Owner)",
-      "Permissions for every resource type in the template"
+      "Microsoft.Resources/deployments/* at the target level (Contributor or Owner)",
+      "Permission for every resource type in the file"
     ],
     "limits": [
       "Template size 4 MB; 256 parameters; 800 resources per deployment",
-      "Deployment history keeps up to 800 deployments per resource group (old ones are deleted automatically)",
-      "Complete mode only at resource group scope"
+      "Deployment history keeps up to 800 deployments per resource group (older ones are deleted automatically)",
+      "Complete mode only for resource group deployments"
     ],
     "portal": [
       "Deploy a custom template > Build your own template in the editor, or load a quickstart.",
@@ -190,52 +198,52 @@
   "troubleshooting": [
     {
       "symptom": "InvalidTemplate: circular dependency detected.",
-      "cause": "Two resources depend on each other directly or indirectly.",
-      "fix": "Remove the dependency that is not needed, or split into modules."
+      "cause": "Two resources depend on each other, directly or through others.",
+      "fix": "Remove the dependency you don't need, or split the file into modules."
     },
     {
-      "symptom": "ResourceNotFound for a subnet during deployment, but it works on retry.",
-      "cause": "Missing dependency causes a race.",
-      "fix": "Reference the VNet's symbolic name (Bicep) or add dependsOn with resourceId() (JSON)."
+      "symptom": "ResourceNotFound for a subnet during deployment, but it works when you retry.",
+      "cause": "A missing dependency, so ARM sometimes creates things in the wrong order.",
+      "fix": "In Bicep, use the VNet's symbolic name. In JSON, add dependsOn with resourceId()."
     },
     {
-      "symptom": "Deployment deleted resources unexpectedly.",
-      "cause": "Complete mode removed resources not in the template.",
-      "fix": "Use Incremental, or run what-if first; protect key resources with locks."
+      "symptom": "A deployment deleted resources you didn't expect.",
+      "cause": "Complete mode removed everything not in the file.",
+      "fix": "Use Incremental, or run what-if first. Protect key resources with locks."
     },
     {
-      "symptom": "Exported template fails to redeploy.",
-      "cause": "Export contains hard-coded values and read-only properties, and may miss unsupported types.",
-      "fix": "Clean it up and parameterise, or start from the deployment history or a quickstart."
+      "symptom": "An exported template fails when you deploy it again.",
+      "cause": "It has fixed values and read-only properties, and may be missing types that can't be exported.",
+      "fix": "Clean it up and add parameters, or start from the deployment history or a quickstart template."
     }
   ],
   "comparisons": [
     {
       "service": "Terraform",
-      "difference": "Multi-cloud IaC with a state file; ARM/Bicep has no state file, because Azure is the source of truth."
+      "difference": "Works across clouds and keeps a state file. ARM and Bicep have no state file; Azure itself is the record of what exists."
     },
     {
       "service": "AWS CloudFormation",
-      "difference": "AWS's declarative templates (JSON/YAML); stacks are similar to deployments plus deployment stacks."
+      "difference": "AWS's template language (JSON or YAML). A CloudFormation stack is like an Azure deployment plus a deployment stack."
     }
   ],
   "misconceptions": [
     {
       "myth": "Bicep is deployed by a separate Bicep service.",
-      "reality": "Bicep is compiled to ARM JSON and deployed by ARM."
+      "reality": "No. Bicep is turned into ARM JSON, and ARM deploys it."
     },
     {
-      "myth": "Incremental mode deletes resources removed from the template.",
-      "reality": "Only Complete mode deletes them."
+      "myth": "Incremental mode deletes resources you removed from the file.",
+      "reality": "No. Only Complete mode deletes them."
     },
     {
-      "myth": "dependsOn is always required in Bicep.",
-      "reality": "Symbolic references create implicit dependencies."
+      "myth": "Bicep always needs dependsOn.",
+      "reality": "No. Using another resource's symbolic name creates the dependency for you."
     }
   ],
   "architectureDecisions": [
-    "Author in Bicep, store in Git, deploy through pipelines with what-if.",
-    "Use modules for reusable components and template specs to share them.",
+    "Write Bicep, keep it in Git, deploy through a pipeline: and run what-if every time.",
+    "Reuse with modules and template specs: modules for building blocks, template specs to share them with other teams.",
     "Keep secrets out of parameter files: use @secure() and Key Vault references."
   ],
   "docs": [

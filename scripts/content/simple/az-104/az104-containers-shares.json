@@ -1,0 +1,89 @@
+{
+  "learningObjective": "Create and set up blob containers (names, anonymous access) and file shares (protocol, tier, size limit, mounting).",
+  "engineer": [
+    "Container names: 3 to 63 characters; lowercase letters, numbers and hyphens; start with a letter or number; no two hyphens in a row.",
+    "Folders in blob storage: a '/' in a blob name only looks like a folder. Real folders exist only with hierarchical namespace.",
+    "Anonymous access levels: Private, the default, with no anonymous access; Blob, where anyone with the URL can read a blob; Container, where anyone can read and also list the blobs. Blob and Container only appear if the account allows blob anonymous access.",
+    "Blob types: block blobs, for most data; append blobs, for logs (you only add to the end); page blobs, for random reads and writes, such as VHD disks.",
+    "Container features: immutability policies (time-based retention, legal hold); metadata; stored access policies.",
+    "Standard file shares (on Standard GPv2 accounts): pay as you go, with three tiers: Transaction optimized, Hot and Cool. SMB only. Size limit 5 TiB, or up to 100 TiB with large file shares turned on.",
+    "Premium file shares (on FileStorage accounts): you pay for the size you reserve (provisioned). SMB or NFS 4.1. Up to 100 TiB.",
+    "Mounting a share: SMB uses TCP port 445. The share's Connect page gives you a ready script (net use on Windows, mount on Linux). If port 445 is blocked, use a private endpoint or VPN.",
+    "Azure File Sync: keeps a copy (cache) of the share on your own Windows Servers.",
+    "Hierarchical namespace (Data Lake Storage Gen2): containers become file systems, with real folders, POSIX permissions (ACLs) and a dfs endpoint."
+  ],
+  "example": {
+    "title": "Website images and team shares",
+    "body": [
+      "Marketing serves product images from a container with Blob-level anonymous access. It's in its own storage account, the only one where anonymous access is allowed, and Azure Front Door sits in front.",
+      "The finance team's share 'finance' (Hot tier, 2 TiB limit) is mounted as drive Z: on their PCs, through a private endpoint, with identity-based access."
+    ]
+  },
+  "architectureDecisions": [
+    "Public files get their own account: then anonymous access can stay off everywhere else.",
+    "Pick shares by need: premium for low latency or NFS, standard Hot or Cool for ordinary file shares."
+  ],
+  "misconceptions": [
+    {
+      "myth": "Normal blob storage has real folders.",
+      "reality": "No. Folders are just parts of the blob name, unless hierarchical namespace is on."
+    },
+    {
+      "myth": "Any storage account can have NFS shares.",
+      "reality": "No. NFS needs premium file shares."
+    }
+  ],
+  "comparisons": [
+    {
+      "service": "Amazon S3 buckets / EFS / FSx",
+      "difference": "An S3 bucket is like a container (but each bucket name is global). EFS (NFS) and FSx are like Azure file shares."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "symptom": "The anonymous access options are greyed out.",
+      "cause": "The account has 'Allow blob anonymous access' turned off.",
+      "fix": "Turn it on for the account (if your rules allow it), or use a SAS or Entra ID."
+    },
+    {
+      "symptom": "A public URL returns 404 ResourceNotFound.",
+      "cause": "The container is Private. Anonymous requests get 404, not 403.",
+      "fix": "Set the level to Blob, or use a SAS."
+    },
+    {
+      "symptom": "You can't set a share's size limit above 5 TiB.",
+      "cause": "Large file shares isn't turned on.",
+      "fix": "Turn on large file shares. You can't turn it off again."
+    },
+    {
+      "symptom": "Mounting an NFS share on Linux fails.",
+      "cause": "NFS needs a premium share and private network access, and has its own secure-transfer rules.",
+      "fix": "Use a FileStorage account with a private endpoint or service endpoint, and follow the NFS mounting steps."
+    }
+  ],
+  "configuration.limits": [
+    "Container and share names: 3 to 63 characters",
+    "Standard share: 5 TiB, or 100 TiB with large file shares",
+    "NFS needs premium file shares"
+  ],
+  "configuration.permissions": [
+    "Storage Blob Data Contributor (data) or Contributor (management), to create containers",
+    "Storage Account Contributor, to create file shares"
+  ],
+  "configuration.prerequisites": [
+    "A storage account of the right type",
+    "Anonymous access allowed on the account, for public containers"
+  ],
+  "from": {
+    "learningObjective": "f51341f6e86f",
+    "engineer": "0cba836a596c",
+    "example": "9020a543e469",
+    "architectureDecisions": "04b4df092ab4",
+    "misconceptions": "af3ccd138e86",
+    "comparisons": "e264eb2898ff",
+    "troubleshooting": "c8cd939545d2",
+    "configuration.limits": "3a25747fe307",
+    "configuration.permissions": "775b28b195b6",
+    "configuration.prerequisites": "a698e333924b"
+  }
+}

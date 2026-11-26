@@ -6,7 +6,7 @@
     "AZ104-3.3.4"
   ],
   "estimatedMinutes": 30,
-  "learningObjective": "Size container CPU and memory correctly, and configure Container Apps scale rules (including scale to zero), knowing that ACI does not autoscale.",
+  "learningObjective": "Give containers the right CPU and memory. Set up Container Apps scale rules, including scale to zero. Remember that ACI doesn't autoscale.",
   "prerequisites": [
     {
       "text": "Containers on Azure",
@@ -25,10 +25,14 @@
     "Azure Container Apps adds and removes copies (replicas) automatically based on rules such as HTTP traffic, and can go down to zero when idle."
   ],
   "engineer": [
-    "ACI sizing: CPU and memory requests per container (the group's total must fit the region's limits); GPU in supported regions. Resources cannot be changed on a running group; redeploy with new values. Scale out by creating more container groups (for example behind Application Gateway), or use Container Apps or AKS.",
-    "Container Apps sizing: in the Consumption plan, CPU/memory combinations are fixed pairs (for example 0.25 vCPU/0.5 GiB up to 4 vCPU/8 GiB, memory = 2 × vCPU). Workload profiles (dedicated) allow larger sizes.",
-    "Container Apps scaling: min and max replicas per revision (min can be 0; max defaults to 10 and can be raised). Scale rules: HTTP (concurrent requests per replica, default 10), TCP (concurrent connections), CPU/memory utilisation, and custom KEDA scalers (for example Azure Service Bus queue length). With min replicas 0, an idle app costs nothing for compute but has a cold start.",
-    "Scaling decisions are per revision; the KEDA-based scaler polls event sources and adds replicas up to max. Set min replicas to 1+ for latency-sensitive APIs."
+    "ACI sizing: set CPU and memory per container. The group's total must fit the region's limits. GPUs work in some regions.",
+    "Changing ACI size: you can't change a running group. Redeploy with new values.",
+    "Scaling out ACI: create more container groups yourself (for example behind Application Gateway), or use Container Apps or AKS instead.",
+    "Container Apps sizing: on the Consumption plan, CPU and memory come in fixed pairs, from 0.25 vCPU with 0.5 GiB up to 4 vCPU with 8 GiB. Memory is always 2 × vCPU. Workload profiles (dedicated) allow bigger sizes.",
+    "Replicas: set a minimum and maximum number of copies (replicas) per revision. The minimum can be 0. The maximum is 10 by default and can be raised.",
+    "Scale rule types: HTTP, by concurrent requests per replica (default 10); TCP, by concurrent connections; CPU or memory use; custom KEDA scalers, for example by Azure Service Bus queue length.",
+    "Scale to zero: with minimum replicas 0, an idle app costs nothing for compute. The catch: the first request after idle is slow (cold start).",
+    "How scaling works: decisions are made per revision. The scaler (KEDA) checks the event source and adds replicas, up to the maximum. For APIs that must answer fast, set the minimum to 1 or more."
   ],
   "animation": {
     "id": "autoscale-sim",
@@ -82,24 +86,24 @@
     ]
   },
   "example": {
-    "title": "Queue-driven worker",
+    "title": "A worker that follows the queue",
     "body": [
-      "An order-processing worker on Container Apps uses a Service Bus scale rule: one replica per 20 messages, min 0, max 30. Overnight it scales to zero; at peak it reaches 30 replicas.",
-      "A legacy report job stays on ACI with 2 vCPU / 4 GiB, run on demand by a Logic App."
+      "An order-processing worker on Container Apps uses a Service Bus scale rule: one replica for every 20 messages, minimum 0, maximum 30. Overnight it scales to zero. At peak it reaches 30 replicas.",
+      "An old report job stays on ACI with 2 vCPU and 4 GiB. A Logic App starts it when needed."
     ]
   },
   "configuration": {
     "prerequisites": [
-      "Container Apps environment",
-      "Scale source (HTTP ingress, queue, etc.)"
+      "A Container Apps environment",
+      "Something to scale on (HTTP ingress, a queue, and so on)"
     ],
     "permissions": [
       "Contributor on the container app"
     ],
     "limits": [
-      "ACI: no autoscale; resources fixed per deployment",
-      "ACA Consumption: CPU/memory pairs",
-      "Max replicas configurable (default 10)"
+      "ACI: no autoscale; size is fixed per deployment",
+      "Container Apps Consumption: fixed CPU and memory pairs",
+      "Maximum replicas can be changed (default 10)"
     ],
     "portal": [
       "Container App > Scale: min/max replicas and scale rules (HTTP, TCP, custom).",
@@ -151,44 +155,44 @@
   },
   "troubleshooting": [
     {
-      "symptom": "Container app slow on the first request in the morning.",
-      "cause": "Scaled to zero; cold start.",
-      "fix": "Set min replicas to 1."
+      "symptom": "The container app is slow on the first request each morning.",
+      "cause": "It scaled to zero overnight (cold start).",
+      "fix": "Set minimum replicas to 1."
     },
     {
-      "symptom": "Requests queue during peak.",
-      "cause": "Max replicas reached.",
-      "fix": "Raise max replicas or the per-replica concurrency."
+      "symptom": "Requests queue up at peak time.",
+      "cause": "Maximum replicas reached.",
+      "fix": "Raise the maximum, or the requests each replica can handle."
     },
     {
       "symptom": "Invalid CPU/memory combination error.",
-      "cause": "Consumption profile requires fixed pairs.",
-      "fix": "Use a valid pair or a dedicated workload profile."
+      "cause": "The Consumption plan needs fixed pairs.",
+      "fix": "Use a valid pair, or a dedicated workload profile."
     }
   ],
   "comparisons": [
     {
       "service": "AKS Horizontal Pod Autoscaler / KEDA",
-      "difference": "Container Apps uses KEDA under the hood without exposing the cluster."
+      "difference": "Container Apps uses KEDA inside, without showing you the cluster."
     },
     {
       "service": "AWS Fargate",
-      "difference": "ECS services on Fargate use Application Auto Scaling; App Runner scales on concurrency."
+      "difference": "ECS services on Fargate scale with Application Auto Scaling. App Runner scales by concurrent requests."
     }
   ],
   "misconceptions": [
     {
-      "myth": "Scale to zero means the app is deleted.",
-      "reality": "Revisions remain; replicas start again on demand."
+      "myth": "Scale to zero deletes the app.",
+      "reality": "No. Revisions stay. Replicas start again when work arrives."
     },
     {
-      "myth": "ACI can scale with rules like VMSS.",
-      "reality": "It cannot."
+      "myth": "ACI can scale with rules, like a scale set (VMSS).",
+      "reality": "No. It can't."
     }
   ],
   "architectureDecisions": [
-    "Use HTTP concurrency rules for APIs and event-source rules for workers.",
-    "Keep min replicas ≥ 1 where cold starts are unacceptable."
+    "Pick the rule by workload: HTTP concurrency for APIs, queue or event rules for workers.",
+    "No cold starts allowed: keep minimum replicas at 1 or more."
   ],
   "docs": [
     {
