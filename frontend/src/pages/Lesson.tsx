@@ -141,8 +141,14 @@ export default function LessonPage() {
   const opened = useRef(Date.now())
   const [view, setViewState] = useState<View>(readView)
   const [topicsOpen, toggleTopics] = useTopicsOpen()
+  // Views opened in this lesson stay mounted (hidden when not shown), so switching back keeps the walkthrough step, answers and simulator.
+  const [openViews, setOpenViews] = useState<{ lessonId: string; views: View[] }>({ lessonId, views: [view] })
+  const mountedViews = openViews.lessonId === lessonId ? openViews.views : [view]
+  const [switches, setSwitches] = useState(0)
   const setView = (v: View) => {
     setViewState(v)
+    setOpenViews({ lessonId, views: mountedViews.includes(v) ? mountedViews : [...mountedViews, v] })
+    setSwitches((n) => n + 1)
     try { localStorage.setItem(VIEW_KEY, v) } catch { /* per-viewer convenience only */ }
   }
 
@@ -190,9 +196,8 @@ export default function LessonPage() {
     </div>
   )
 
-  if (lesson.walkthrough && view === 'lite') {
-    const w = lesson.walkthrough
-    return (
+  const w = lesson.walkthrough
+  const liteView = w && (
       <div className={`grid gap-4 ${topicsOpen ? 'xl:grid-cols-[260px_minmax(0,1fr)]' : 'xl:grid-cols-[40px_minmax(0,1fr)]'}`}>
       <CurriculumNav lesson={lesson} open={topicsOpen} onToggle={toggleTopics} />
       <div className="min-w-0 space-y-4">
@@ -215,7 +220,7 @@ export default function LessonPage() {
             <Suspense fallback={<p>Loading simulation…</p>}><Anim onLabCheck={onLabCheck} /></Suspense>
           </section>
         )}
-        {lesson.handsOn && <HandsOnLab key={`ho-${lesson.id}`} lessonId={lesson.id} lab={lesson.handsOn} online={online} />}
+        {lesson.handsOn && <HandsOnLab key={`ho-${lesson.id}-${switches}`} lessonId={lesson.id} lab={lesson.handsOn} online={online} />}
         <section className="card p-4 text-sm" aria-label="Quick check">
           <QuestionRunner key={lesson.id} questions={qs} feedback="immediate" recordAs="lesson" title="Quick check" />
         </section>
@@ -228,10 +233,9 @@ export default function LessonPage() {
         <PrevNext lesson={lesson} />
       </div>
       </div>
-    )
-  }
+  )
 
-  return (
+  const fullView = (
     <div className={`grid gap-4 ${topicsOpen ? 'xl:grid-cols-[260px_minmax(0,1fr)] 2xl:grid-cols-[240px_minmax(0,1fr)_480px]' : 'xl:grid-cols-[40px_minmax(0,1fr)_440px] 2xl:grid-cols-[40px_minmax(0,1fr)_540px]'}`}>
       <CurriculumNav lesson={lesson} open={topicsOpen} onToggle={toggleTopics} />
 
@@ -365,5 +369,13 @@ export default function LessonPage() {
         </div>
       </aside>
     </div>
+  )
+
+  if (!liteView) return fullView
+  return (
+    <>
+      {mountedViews.includes('lite') && <div hidden={view !== 'lite'}>{liteView}</div>}
+      {mountedViews.includes('full') && <div hidden={view !== 'full'}>{fullView}</div>}
+    </>
   )
 }
